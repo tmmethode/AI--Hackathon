@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-surface-muted text-ink font-sans;
+    font-variation-settings: "wdth" 100;
+  }
+  h1, h2, h3, h4, h5 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-card shadow-card;
+  }
+  .hairline {
+    @apply border-b border-line;
+  }
+}
