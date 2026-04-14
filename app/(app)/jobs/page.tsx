@@ -2,12 +2,13 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Download, Play, Pencil, Upload, MoreHorizontal, CircleCheck, Search, Trash2, Archive, X } from "lucide-react";
+import { Download, Play, Pencil, Upload, MoreHorizontal, CircleCheck, Search, Trash2, Archive, X, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
 
 interface Job {
   id: string;
@@ -51,6 +52,8 @@ export default function JobsPage() {
   const [selectedId, setSelectedId] = useState<string>("JOB-001");
   const [page, setPage] = useState(1);
   const [menuOpen, setMenuOpen] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     return jobs.filter((j) => {
@@ -70,11 +73,13 @@ export default function JobsPage() {
   function handleDelete(id: string) {
     setJobs((prev) => prev.filter((j) => j.id !== id));
     if (selectedId === id) setSelectedId(jobs.find((j) => j.id !== id)?.id ?? "");
+    setDeleteTarget(null);
     setMenuOpen(null);
   }
 
   function handleArchive(id: string) {
     setJobs((prev) => prev.map((j) => (j.id === id ? { ...j, status: "Closed" } : j)));
+    setShowArchiveConfirm(null);
     setMenuOpen(null);
   }
 
@@ -190,13 +195,13 @@ export default function JobsPage() {
                         <div className="absolute right-0 top-8 z-10 w-40 rounded-md border border-line bg-white shadow-card">
                           <button
                             className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-surface-soft"
-                            onClick={() => handleArchive(j.id)}
+                            onClick={() => { setShowArchiveConfirm(j.id); setMenuOpen(null); }}
                           >
                             <Archive className="h-3.5 w-3.5 text-ink-muted" /> Archive
                           </button>
                           <button
                             className="flex w-full items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-danger/5"
-                            onClick={() => handleDelete(j.id)}
+                            onClick={() => { setDeleteTarget(j.id); setMenuOpen(null); }}
                           >
                             <Trash2 className="h-3.5 w-3.5" /> Delete
                           </button>
@@ -315,6 +320,78 @@ export default function JobsPage() {
       {menuOpen && (
         <div className="fixed inset-0 z-[5]" onClick={() => setMenuOpen(null)} />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} size="sm">
+        <ModalHeader
+          title="Delete Job"
+          subtitle="This action cannot be undone."
+          onClose={() => setDeleteTarget(null)}
+        />
+        <ModalBody className="flex flex-col gap-4">
+          {deleteTarget && (() => {
+            const job = jobs.find((j) => j.id === deleteTarget);
+            if (!job) return null;
+            return (
+              <>
+                <div className="flex items-center gap-3 rounded-md border border-danger/20 bg-danger/5 p-4">
+                  <AlertTriangle className="h-5 w-5 shrink-0 text-danger" />
+                  <div>
+                    <p className="text-sm font-semibold text-ink">{job.title}</p>
+                    <p className="text-xs text-ink-muted">{job.id} · {job.dept} · {job.applicants} applicants</p>
+                  </div>
+                </div>
+                <p className="text-sm text-ink-muted">
+                  Deleting this job will permanently remove it and all associated screening data.
+                  Candidate records will remain in the candidate pool.
+                </p>
+              </>
+            );
+          })()}
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+          <Button variant="danger" leftIcon={<Trash2 className="h-4 w-4" />} onClick={() => deleteTarget && handleDelete(deleteTarget)}>
+            Delete Permanently
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Archive Confirmation Modal */}
+      <Modal open={!!showArchiveConfirm} onClose={() => setShowArchiveConfirm(null)} size="sm">
+        <ModalHeader
+          title="Archive Job"
+          subtitle="This job will be moved to Closed status."
+          onClose={() => setShowArchiveConfirm(null)}
+        />
+        <ModalBody className="flex flex-col gap-4">
+          {showArchiveConfirm && (() => {
+            const job = jobs.find((j) => j.id === showArchiveConfirm);
+            if (!job) return null;
+            return (
+              <>
+                <div className="flex items-center gap-3 rounded-md border border-line bg-surface-soft/30 p-4">
+                  <Archive className="h-5 w-5 shrink-0 text-ink-muted" />
+                  <div>
+                    <p className="text-sm font-semibold text-ink">{job.title}</p>
+                    <p className="text-xs text-ink-muted">{job.id} · {job.dept}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-ink-muted">
+                  Archived jobs stop accepting new applicants but all existing data is preserved.
+                  You can reactivate this job later from the Jobs Management page.
+                </p>
+              </>
+            );
+          })()}
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setShowArchiveConfirm(null)}>Cancel</Button>
+          <Button leftIcon={<Archive className="h-4 w-4" />} onClick={() => showArchiveConfirm && handleArchive(showArchiveConfirm)}>
+            Confirm Archive
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 }

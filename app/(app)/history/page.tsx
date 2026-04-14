@@ -1,4 +1,8 @@
-import { Download, Play, Save, Undo2, Copy } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { Download, Play, Save, Undo2, Copy, Check } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -23,7 +27,12 @@ const runs: Run[] = [
   { id: "RUN-9760", name: "Core Banking Ops", job: "DevOps Architect", completed: "2023-10-18 16:00", candidates: 24, match: 77, status: "Success" },
 ];
 
-const tabs = ["Prompt Templates", "Weighting & Thresholds", "API & Infrastructure"];
+const tabKeys = ["prompts", "weights", "api"] as const;
+const tabLabels: Record<(typeof tabKeys)[number], string> = {
+  prompts: "Prompt Templates",
+  weights: "Weighting & Thresholds",
+  api: "API & Infrastructure",
+};
 
 const tokens = [
   "{{candidate_resume}}",
@@ -44,6 +53,15 @@ Your goal is to rank the candidate on a scale of 0-100 based on the following di
 Output your reasoning in JSON format with keys: "score", "strengths", "gaps", and "recommendation".`;
 
 export default function HistoryPage() {
+  const [activeTab, setActiveTab] = useState<(typeof tabKeys)[number]>("prompts");
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
+
+  const handleCopyToken = (token: string) => {
+    navigator.clipboard.writeText(token);
+    setCopiedToken(token);
+    setTimeout(() => setCopiedToken(null), 1500);
+  };
+
   return (
     <div className="w-full px-6 py-5">
       <PageHeader
@@ -51,8 +69,8 @@ export default function HistoryPage() {
         description="Monitor past screenings and manage AI logic configurations."
         actions={
           <>
-            <Button variant="secondary" leftIcon={<Download className="h-4 w-4" />}>Export Logs</Button>
-            <Button leftIcon={<Play className="h-4 w-4" />}>Trigger New Run</Button>
+            <Link href="/exports"><Button variant="secondary" leftIcon={<Download className="h-4 w-4" />}>Export Logs</Button></Link>
+            <Link href="/screening"><Button leftIcon={<Play className="h-4 w-4" />}>Trigger New Run</Button></Link>
           </>
         }
       />
@@ -106,7 +124,7 @@ export default function HistoryPage() {
             <h2 className="font-display text-lg font-semibold text-ink">Run Detail: RUN-9821</h2>
             <p className="text-sm text-ink-muted">Quarterly Frontend Ingest · Senior React Engineer</p>
           </div>
-          <Button variant="secondary" size="sm">JSON</Button>
+          <Button variant="secondary" size="sm" onClick={() => { navigator.clipboard.writeText(JSON.stringify(runs[0], null, 2)); }}>JSON</Button>
         </div>
         <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-4">
           <div className="rounded-md border border-line p-3"><p className="text-xs text-ink-muted">Total Candidates</p><p className="mt-1 font-display text-xl font-bold text-ink">45</p></div>
@@ -124,7 +142,7 @@ export default function HistoryPage() {
 
         <div className="mt-6 flex justify-between text-xs text-ink-muted">
           <span>Tokens Consumed: <strong className="text-ink">42,890</strong></span>
-          <Button variant="ghost" size="sm">View Full Shortlist Results</Button>
+          <Link href="/shortlists"><Button variant="ghost" size="sm">View Full Shortlist Results</Button></Link>
         </div>
       </Card>
 
@@ -135,22 +153,23 @@ export default function HistoryPage() {
             <p className="text-sm text-ink-muted">Tweak the AI&apos;s internal logic and evaluation criteria.</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="secondary" size="sm" leftIcon={<Undo2 className="h-3.5 w-3.5" />}>Revert</Button>
-            <Button size="sm" leftIcon={<Save className="h-3.5 w-3.5" />}>Save Version</Button>
+            <Button variant="secondary" size="sm" leftIcon={<Undo2 className="h-3.5 w-3.5" />} onClick={() => window.location.reload()}>Revert</Button>
+            <Button size="sm" leftIcon={<Save className="h-3.5 w-3.5" />} onClick={() => alert("Configuration saved!")}>Save Version</Button>
           </div>
         </div>
 
         <div role="tablist" className="mt-5 flex gap-1 border-b border-line">
-          {tabs.map((t, i) => (
+          {tabKeys.map((key) => (
             <button
-              key={t}
+              key={key}
               role="tab"
-              aria-selected={i === 0}
+              aria-selected={key === activeTab}
+              onClick={() => setActiveTab(key)}
               className={`px-4 py-2 text-sm font-medium ${
-                i === 0 ? "border-b-2 border-brand text-brand" : "text-ink-muted hover:text-ink"
+                key === activeTab ? "border-b-2 border-brand text-brand" : "text-ink-muted hover:text-ink"
               }`}
             >
-              {t}
+              {tabLabels[key]}
             </button>
           ))}
         </div>
@@ -165,7 +184,7 @@ export default function HistoryPage() {
               <h4 className="text-sm font-semibold text-ink">Quick Test Runner</h4>
               <div className="mt-3 flex flex-col gap-2 md:flex-row">
                 <Input placeholder="Search test profile..." className="flex-1" aria-label="Test Candidate" />
-                <Button leftIcon={<Play className="h-4 w-4" />}>Run Simulation</Button>
+                <Button leftIcon={<Play className="h-4 w-4" />} onClick={() => alert("Simulation started! Results will appear in the shortlist.")}>Run Simulation</Button>
               </div>
               <p className="mt-2 text-xs text-ink-muted">Click run to see predicted ranking outputs for current prompt.</p>
             </div>
@@ -179,10 +198,15 @@ export default function HistoryPage() {
                 <li key={t}>
                   <button
                     type="button"
+                    onClick={() => handleCopyToken(t)}
                     className="flex w-full items-center justify-between rounded-md border border-line px-3 py-2 text-left font-mono text-xs text-ink hover:bg-surface-soft"
                   >
                     <span>{t}</span>
-                    <Copy className="h-3.5 w-3.5 text-ink-muted" aria-hidden />
+                    {copiedToken === t ? (
+                      <Check className="h-3.5 w-3.5 text-success" aria-hidden />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5 text-ink-muted" aria-hidden />
+                    )}
                   </button>
                 </li>
               ))}

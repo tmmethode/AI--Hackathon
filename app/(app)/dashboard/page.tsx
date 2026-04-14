@@ -66,7 +66,7 @@ export default function DashboardPage() {
         actions={
           <>
             <Link href="/jobs"><Button variant="secondary" leftIcon={<Briefcase className="h-4 w-4" />}>Manage Jobs</Button></Link>
-            <Button leftIcon={<Plus className="h-4 w-4" />}>Create New Job</Button>
+            <Link href="/jobs/new"><Button leftIcon={<Plus className="h-4 w-4" />}>Create New Job</Button></Link>
           </>
         }
       />
@@ -104,7 +104,7 @@ export default function DashboardPage() {
             <CardHeader
               title="Recent Screening Runs"
               description="View the status and results of your latest AI evaluations."
-              action={<Button variant="ghost" size="sm">View All History</Button>}
+              action={<Link href="/history"><Button variant="ghost" size="sm">View All History</Button></Link>}
             />
             <div role="table" className="divide-y divide-line">
               <div role="row" className="hidden grid-cols-[1.6fr_1fr_1.3fr_1fr_100px] gap-4 bg-surface-soft/30 px-4 py-3 text-xs text-ink-muted md:grid">
@@ -147,7 +147,7 @@ export default function DashboardPage() {
                     <Badge tone={r.status === "Processing" ? "neutral" : "neutral"}>{r.status}</Badge>
                   </div>
                   <div className="md:text-right">
-                    <Button variant="ghost" size="sm">Review</Button>
+                    <Link href="/shortlists"><Button variant="ghost" size="sm">Review</Button></Link>
                   </div>
                 </div>
               ))}
@@ -193,15 +193,17 @@ export default function DashboardPage() {
                     <Badge tone="success" pill>AI Pick</Badge>
                   </div>
                   <p className="mt-1 text-xs text-ink-muted">{item.count}</p>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    fullWidth
-                    className="mt-3"
-                    leftIcon={<RefreshCw className="h-3 w-3" />}
-                  >
-                    Re-run Screening
-                  </Button>
+                  <Link href="/screening">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      fullWidth
+                      className="mt-3"
+                      leftIcon={<RefreshCw className="h-3 w-3" />}
+                    >
+                      Re-run Screening
+                    </Button>
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -221,7 +223,7 @@ export default function DashboardPage() {
               &ldquo;Pro Tip: You can automate candidate ingestion by connecting your ATS in the settings panel.&rdquo;
             </p>
             <div className="mt-2 text-center">
-              <Button variant="ghost" size="sm">Configure Integration</Button>
+              <Link href="/history"><Button variant="ghost" size="sm">Configure Integration</Button></Link>
             </div>
           </Card>
         </div>
