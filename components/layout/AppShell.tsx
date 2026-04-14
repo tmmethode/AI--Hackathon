@@ -5,12 +5,11 @@ import { Footer } from "./Footer";
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-white">
-      <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar />
-        <main className="flex-1 bg-white">{children}</main>
-        <Footer />
+    <div className="flex h-screen flex-col bg-white">
+      <Topbar />
+      <div className="flex min-h-0 flex-1">
+        <Sidebar />
+        <main className="flex-1 overflow-y-auto bg-white">{children}</main>
       </div>
     </div>
   );

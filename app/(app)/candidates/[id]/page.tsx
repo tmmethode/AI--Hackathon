@@ -55,7 +55,7 @@ const risks = [
 
 export default function CandidateDetailPage({ params }: PageProps) {
   return (
-    <div className="mx-auto w-full max-w-[1184px] px-4 py-8 md:px-8">
+    <div className="w-full px-6 py-5">
       <Card className="mb-6 p-6">
         <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
           <div className="flex items-start gap-4">
