@@ -7,7 +7,8 @@ import {
   Briefcase, ShieldCheck, FileDown, Plus, Search,
   MapPin, Users, Clock, CheckCircle2, FileText, Sheet, FileJson,
   Eye, TrendingUp, BarChart3, Sparkles, Calendar, Star,
-  MessageSquare, Send, ChevronRight, Award,
+  MessageSquare, Send, ChevronRight, Award, ChevronDown,
+  ClipboardCheck, GraduationCap, Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -23,39 +24,104 @@ interface Candidate {
   strength: string; cultureFit: string; retentionRisk: string;
   location: string; email: string;
   matching: { label: string; value: number }[];
-  status: "shortlisted" | "interview" | "rejected";
+  status: "shortlisted" | "interview" | "exam" | "assessment" | "practical" | "rejected";
 }
 
-const initialCandidates: Candidate[] = [
-  { id: 1, rank: 1, name: "Sarah Jenkins", title: "Senior Full Stack Engineer", match: 98, skills: ["React", "Node.js", "AWS"], extras: 2, summary: "Exceptional architectural depth with proven experience leading distributed teams at scale.", years: 8, strength: "Scalable Architecture", cultureFit: "High", retentionRisk: "Low", location: "Remote (EU)", email: "sarah.j@example.com", matching: [{ label: "System Design", value: 95 }, { label: "React / Next.js", value: 98 }, { label: "AWS Infrastructure", value: 82 }, { label: "Team Leadership", value: 75 }], status: "shortlisted" },
-  { id: 2, rank: 2, name: "Michael Chen", title: "Technical Product Lead", match: 94, skills: ["Agile", "Python", "Product Roadmap"], extras: 1, summary: "Strong bridge between technical execution and business requirements; high culture fit score.", years: 6, strength: "Product Strategy", cultureFit: "High", retentionRisk: "Low", location: "Kigali, Rwanda", email: "m.chen@example.com", matching: [{ label: "System Design", value: 88 }, { label: "React / Next.js", value: 72 }, { label: "AWS Infrastructure", value: 65 }, { label: "Team Leadership", value: 91 }], status: "shortlisted" },
-  { id: 3, rank: 3, name: "Elena Rodriguez", title: "DevOps & Infrastructure Specialist", match: 91, skills: ["Kubernetes", "Terraform", "CI/CD"], extras: 1, summary: "Infrastructure veteran with a focus on security automation and high-availability systems.", years: 7, strength: "Infrastructure Automation", cultureFit: "Medium", retentionRisk: "Medium", location: "Remote (US)", email: "elena.r@example.com", matching: [{ label: "System Design", value: 90 }, { label: "React / Next.js", value: 40 }, { label: "AWS Infrastructure", value: 97 }, { label: "Team Leadership", value: 68 }], status: "shortlisted" },
-  { id: 4, rank: 4, name: "David Okafor", title: "Backend Architect", match: 88, skills: ["Java", "Spring Boot", "Kafka"], extras: 1, summary: "High performance in technical assessment tests; specialized in message-driven architectures.", years: 9, strength: "Distributed Systems", cultureFit: "High", retentionRisk: "Low", location: "Lagos, Nigeria", email: "david.o@example.com", matching: [{ label: "System Design", value: 93 }, { label: "React / Next.js", value: 30 }, { label: "AWS Infrastructure", value: 78 }, { label: "Team Leadership", value: 80 }], status: "shortlisted" },
-  { id: 5, rank: 5, name: "Aisha Gupta", title: "Frontend Developer", match: 85, skills: ["TypeScript", "Tailwind", "Next.js"], extras: 1, summary: "Design-centric engineer with exceptional attention to detail in UI/UX implementation.", years: 4, strength: "UI/UX Engineering", cultureFit: "High", retentionRisk: "Low", location: "Remote (IN)", email: "aisha.g@example.com", matching: [{ label: "System Design", value: 70 }, { label: "React / Next.js", value: 95 }, { label: "AWS Infrastructure", value: 50 }, { label: "Team Leadership", value: 60 }], status: "shortlisted" },
-  { id: 6, rank: 6, name: "James Osei", title: "Cloud Engineer", match: 80, skills: ["GCP", "Docker", "Python"], extras: 2, summary: "Solid cloud-native background with strong automation skills across multi-cloud environments.", years: 5, strength: "Cloud Automation", cultureFit: "Medium", retentionRisk: "Medium", location: "Accra, Ghana", email: "james.o@example.com", matching: [{ label: "System Design", value: 78 }, { label: "React / Next.js", value: 35 }, { label: "AWS Infrastructure", value: 88 }, { label: "Team Leadership", value: 55 }], status: "shortlisted" },
-  { id: 7, rank: 7, name: "Priya Nair", title: "Data Engineer", match: 76, skills: ["Spark", "SQL", "Airflow"], extras: 1, summary: "Strong data pipeline experience with a focus on real-time analytics and data quality.", years: 5, strength: "Data Pipelines", cultureFit: "High", retentionRisk: "Low", location: "Bangalore, India", email: "priya.n@example.com", matching: [{ label: "System Design", value: 72 }, { label: "React / Next.js", value: 20 }, { label: "AWS Infrastructure", value: 70 }, { label: "Team Leadership", value: 65 }], status: "shortlisted" },
+interface ScreeningJob {
+  id: string;
+  title: string;
+  dept: string;
+  location: string;
+  type: string;
+  salary: string;
+  manager: string;
+  screened: number;
+  screenedDate: string;
+  isCurrent: boolean;
+  skills: string[];
+  description: string;
+  requirements: string[];
+  candidates: Candidate[];
+}
+
+const screeningJobs: ScreeningJob[] = [
+  {
+    id: "SF-204", title: "Senior Full Stack Developer", dept: "Product Engineering",
+    location: "Remote (Africa / Europe)", type: "Full-time Permanent",
+    salary: "$70,000 – $110,000 USD", manager: "Marcus Chen",
+    screened: 124, screenedDate: "Oct 24, 2023", isCurrent: true,
+    skills: ["React", "Node.js", "TypeScript", "AWS", "PostgreSQL", "System Design"],
+    description: "We are looking for a senior full stack developer to join our core product team. The ideal candidate has 5+ years of experience building scalable SaaS applications and is comfortable owning both frontend and backend systems.",
+    requirements: ["5+ years full stack experience", "Strong React & Node.js skills", "Experience with cloud infrastructure (AWS/GCP)", "Excellent communication skills"],
+    candidates: [
+      { id: 1, rank: 1, name: "Sarah Jenkins", title: "Senior Full Stack Engineer", match: 98, skills: ["React", "Node.js", "AWS"], extras: 2, summary: "Exceptional architectural depth with proven experience leading distributed teams at scale.", years: 8, strength: "Scalable Architecture", cultureFit: "High", retentionRisk: "Low", location: "Remote (EU)", email: "sarah.j@example.com", matching: [{ label: "System Design", value: 95 }, { label: "React / Next.js", value: 98 }, { label: "AWS Infrastructure", value: 82 }, { label: "Team Leadership", value: 75 }], status: "shortlisted" },
+      { id: 2, rank: 2, name: "Michael Chen", title: "Technical Product Lead", match: 94, skills: ["Agile", "Python", "Product Roadmap"], extras: 1, summary: "Strong bridge between technical execution and business requirements; high culture fit score.", years: 6, strength: "Product Strategy", cultureFit: "High", retentionRisk: "Low", location: "Kigali, Rwanda", email: "m.chen@example.com", matching: [{ label: "System Design", value: 88 }, { label: "React / Next.js", value: 72 }, { label: "AWS Infrastructure", value: 65 }, { label: "Team Leadership", value: 91 }], status: "shortlisted" },
+      { id: 3, rank: 3, name: "Elena Rodriguez", title: "DevOps & Infrastructure Specialist", match: 91, skills: ["Kubernetes", "Terraform", "CI/CD"], extras: 1, summary: "Infrastructure veteran with a focus on security automation and high-availability systems.", years: 7, strength: "Infrastructure Automation", cultureFit: "Medium", retentionRisk: "Medium", location: "Remote (US)", email: "elena.r@example.com", matching: [{ label: "System Design", value: 90 }, { label: "React / Next.js", value: 40 }, { label: "AWS Infrastructure", value: 97 }, { label: "Team Leadership", value: 68 }], status: "shortlisted" },
+      { id: 4, rank: 4, name: "David Okafor", title: "Backend Architect", match: 88, skills: ["Java", "Spring Boot", "Kafka"], extras: 1, summary: "High performance in technical assessment tests; specialized in message-driven architectures.", years: 9, strength: "Distributed Systems", cultureFit: "High", retentionRisk: "Low", location: "Lagos, Nigeria", email: "david.o@example.com", matching: [{ label: "System Design", value: 93 }, { label: "React / Next.js", value: 30 }, { label: "AWS Infrastructure", value: 78 }, { label: "Team Leadership", value: 80 }], status: "shortlisted" },
+      { id: 5, rank: 5, name: "Aisha Gupta", title: "Frontend Developer", match: 85, skills: ["TypeScript", "Tailwind", "Next.js"], extras: 1, summary: "Design-centric engineer with exceptional attention to detail in UI/UX implementation.", years: 4, strength: "UI/UX Engineering", cultureFit: "High", retentionRisk: "Low", location: "Remote (IN)", email: "aisha.g@example.com", matching: [{ label: "System Design", value: 70 }, { label: "React / Next.js", value: 95 }, { label: "AWS Infrastructure", value: 50 }, { label: "Team Leadership", value: 60 }], status: "shortlisted" },
+      { id: 6, rank: 6, name: "James Osei", title: "Cloud Engineer", match: 80, skills: ["GCP", "Docker", "Python"], extras: 2, summary: "Solid cloud-native background with strong automation skills across multi-cloud environments.", years: 5, strength: "Cloud Automation", cultureFit: "Medium", retentionRisk: "Medium", location: "Accra, Ghana", email: "james.o@example.com", matching: [{ label: "System Design", value: 78 }, { label: "React / Next.js", value: 35 }, { label: "AWS Infrastructure", value: 88 }, { label: "Team Leadership", value: 55 }], status: "shortlisted" },
+      { id: 7, rank: 7, name: "Priya Nair", title: "Data Engineer", match: 76, skills: ["Spark", "SQL", "Airflow"], extras: 1, summary: "Strong data pipeline experience with a focus on real-time analytics and data quality.", years: 5, strength: "Data Pipelines", cultureFit: "High", retentionRisk: "Low", location: "Bangalore, India", email: "priya.n@example.com", matching: [{ label: "System Design", value: 72 }, { label: "React / Next.js", value: 20 }, { label: "AWS Infrastructure", value: 70 }, { label: "Team Leadership", value: 65 }], status: "shortlisted" },
+    ],
+  },
+  {
+    id: "SF-189", title: "Product Designer", dept: "UX/UI Team",
+    location: "Remote (US/Africa)", type: "Full-time Permanent",
+    salary: "$55,000 – $85,000 USD", manager: "Lisa Uwimana",
+    screened: 68, screenedDate: "Oct 12, 2023", isCurrent: false,
+    skills: ["Figma", "User Research", "Design Systems", "Prototyping", "Accessibility"],
+    description: "We need a talented product designer to own the end-to-end design process for our hiring platform, from user research through final pixel-perfect interfaces.",
+    requirements: ["5+ years UX/UI design experience", "Strong Figma & prototyping skills", "SaaS product portfolio", "User research methodology"],
+    candidates: [
+      { id: 101, rank: 1, name: "Julie Tran", title: "Senior Product Designer", match: 95, skills: ["Figma", "Prototyping", "User Research"], extras: 2, summary: "Outstanding portfolio with deep experience in SaaS design systems and accessible interfaces.", years: 6, strength: "Design Systems", cultureFit: "High", retentionRisk: "Low", location: "Ho Chi Minh, Vietnam", email: "julie.t@example.com", matching: [{ label: "Visual Design", value: 96 }, { label: "User Research", value: 92 }, { label: "Design Systems", value: 98 }, { label: "Prototyping", value: 88 }], status: "interview" },
+      { id: 102, rank: 2, name: "Amina Bakari", title: "UX Designer", match: 90, skills: ["Figma", "Usability Testing", "Wireframing"], extras: 1, summary: "Strong researcher with a data-driven approach to design decisions and proven team collaboration.", years: 4, strength: "User Research", cultureFit: "High", retentionRisk: "Low", location: "Nairobi, Kenya", email: "amina.b@example.com", matching: [{ label: "Visual Design", value: 82 }, { label: "User Research", value: 95 }, { label: "Design Systems", value: 78 }, { label: "Prototyping", value: 85 }], status: "shortlisted" },
+      { id: 103, rank: 3, name: "Carlos Mendez", title: "UI/UX Lead", match: 87, skills: ["Sketch", "Figma", "Motion Design"], extras: 1, summary: "Creative leader with a focus on micro-interactions and delightful user experiences in B2B products.", years: 7, strength: "Interaction Design", cultureFit: "Medium", retentionRisk: "Medium", location: "Remote (EU)", email: "carlos.m@example.com", matching: [{ label: "Visual Design", value: 94 }, { label: "User Research", value: 70 }, { label: "Design Systems", value: 82 }, { label: "Prototyping", value: 90 }], status: "shortlisted" },
+      { id: 104, rank: 4, name: "Sophie Ngabo", title: "Visual Designer", match: 82, skills: ["Illustrator", "Figma", "Branding"], extras: 1, summary: "Brand-focused designer transitioning into product design with strong visual craft.", years: 3, strength: "Visual Craft", cultureFit: "High", retentionRisk: "Low", location: "Kigali, Rwanda", email: "sophie.n@example.com", matching: [{ label: "Visual Design", value: 92 }, { label: "User Research", value: 55 }, { label: "Design Systems", value: 68 }, { label: "Prototyping", value: 72 }], status: "shortlisted" },
+      { id: 105, rank: 5, name: "Raj Patel", title: "Product Designer", match: 78, skills: ["Figma", "HTML/CSS", "Analytics"], extras: 1, summary: "Technically-minded designer who can bridge design and engineering with working prototypes.", years: 5, strength: "Design-to-Code", cultureFit: "Medium", retentionRisk: "Medium", location: "Remote (IN)", email: "raj.p@example.com", matching: [{ label: "Visual Design", value: 75 }, { label: "User Research", value: 68 }, { label: "Design Systems", value: 80 }, { label: "Prototyping", value: 88 }], status: "rejected" },
+    ],
+  },
+  {
+    id: "SF-172", title: "DevOps Architect", dept: "Infrastructure",
+    location: "Kigali, Rwanda", type: "Full-time Permanent",
+    salary: "$65,000 – $95,000 USD", manager: "Jean-Paul Habimana",
+    screened: 52, screenedDate: "Sep 28, 2023", isCurrent: false,
+    skills: ["Kubernetes", "Terraform", "AWS", "CI/CD", "Docker", "Linux"],
+    description: "Lead our infrastructure team in building robust, scalable cloud-native deployments across multiple regions with a focus on security and automation.",
+    requirements: ["7+ years DevOps/infrastructure experience", "Deep Kubernetes & Terraform expertise", "Multi-cloud architecture", "Security-first mindset"],
+    candidates: [
+      { id: 201, rank: 1, name: "Omar Hassan", title: "Senior DevOps Engineer", match: 96, skills: ["Kubernetes", "Terraform", "AWS"], extras: 2, summary: "Infrastructure guru who has scaled systems to handle millions of requests. Security-first approach.", years: 9, strength: "Cloud Architecture", cultureFit: "High", retentionRisk: "Low", location: "Cairo, Egypt", email: "omar.h@example.com", matching: [{ label: "Kubernetes", value: 98 }, { label: "Terraform/IaC", value: 95 }, { label: "CI/CD Pipelines", value: 90 }, { label: "Security", value: 88 }], status: "interview" },
+      { id: 202, rank: 2, name: "Fatima Al-Zahra", title: "Cloud Infrastructure Lead", match: 92, skills: ["AWS", "GCP", "Docker"], extras: 1, summary: "Multi-cloud expert with a strong track record in cost optimization and high-availability systems.", years: 7, strength: "Multi-cloud Strategy", cultureFit: "High", retentionRisk: "Low", location: "Remote (MENA)", email: "fatima.z@example.com", matching: [{ label: "Kubernetes", value: 88 }, { label: "Terraform/IaC", value: 92 }, { label: "CI/CD Pipelines", value: 85 }, { label: "Security", value: 90 }], status: "interview" },
+      { id: 203, rank: 3, name: "Kwame Asante", title: "SRE Engineer", match: 85, skills: ["Linux", "Prometheus", "Ansible"], extras: 2, summary: "SRE specialist who reduced incident response times by 60% at his previous organization.", years: 6, strength: "Observability", cultureFit: "Medium", retentionRisk: "Medium", location: "Accra, Ghana", email: "kwame.a@example.com", matching: [{ label: "Kubernetes", value: 80 }, { label: "Terraform/IaC", value: 78 }, { label: "CI/CD Pipelines", value: 92 }, { label: "Security", value: 75 }], status: "shortlisted" },
+      { id: 204, rank: 4, name: "Ingrid Müller", title: "Platform Engineer", match: 79, skills: ["Terraform", "GitOps", "ArgoCD"], extras: 1, summary: "GitOps advocate with deep experience in declarative infrastructure and platform engineering.", years: 5, strength: "GitOps Pipelines", cultureFit: "High", retentionRisk: "Low", location: "Berlin, Germany", email: "ingrid.m@example.com", matching: [{ label: "Kubernetes", value: 75 }, { label: "Terraform/IaC", value: 90 }, { label: "CI/CD Pipelines", value: 82 }, { label: "Security", value: 68 }], status: "shortlisted" },
+    ],
+  },
 ];
 
 type SortKey = "rank" | "match" | "name" | "years";
-type FilterStatus = "all" | "shortlisted" | "interview" | "rejected";
+type FilterStatus = "all" | "shortlisted" | "interview" | "exam" | "assessment" | "practical" | "rejected" | "advanced";
+
+const advanceOptions = [
+  { key: "interview" as const, label: "Interview", icon: Calendar, desc: "Schedule a screening or panel interview" },
+  { key: "exam" as const, label: "Technical Exam", icon: ClipboardCheck, desc: "Assign a written or online technical test" },
+  { key: "assessment" as const, label: "Assessment", icon: GraduationCap, desc: "Behavioral or competency assessment" },
+  { key: "practical" as const, label: "Practical Test", icon: Wrench, desc: "Hands-on project or take-home assignment" },
+];
+
+type AdvanceStatus = typeof advanceOptions[number]["key"];
 type ExportFormat = "csv" | "pdf" | "json";
 const PAGE_SIZE = 5;
-
-const jobDetails = {
-  id: "SF-204", title: "Senior Full Stack Developer", dept: "Product Engineering",
-  location: "Remote (Africa / Europe)", type: "Full-time Permanent",
-  salary: "$70,000 – $110,000 USD", manager: "Marcus Chen",
-  screened: 124, shortlisted: 20,
-  skills: ["React", "Node.js", "TypeScript", "AWS", "PostgreSQL", "System Design"],
-  description: "We are looking for a senior full stack developer to join our core product team. The ideal candidate has 5+ years of experience building scalable SaaS applications and is comfortable owning both frontend and backend systems.",
-  requirements: ["5+ years full stack experience", "Strong React & Node.js skills", "Experience with cloud infrastructure (AWS/GCP)", "Excellent communication skills"],
-};
 
 interface NoteEntry { author: string; text: string; time: string; }
 
 export default function ShortlistsPage() {
-  const [candidates, setCandidates] = useState<Candidate[]>(initialCandidates);
-  const [selectedId, setSelectedId] = useState<number>(1);
+  const [activeJobId, setActiveJobId] = useState(screeningJobs[0].id);
+  const activeJob = screeningJobs.find((j) => j.id === activeJobId) ?? screeningJobs[0];
+
+  const [candidatesByJob, setCandidatesByJob] = useState<Record<string, Candidate[]>>(
+    Object.fromEntries(screeningJobs.map((j) => [j.id, j.candidates]))
+  );
+  const candidates = candidatesByJob[activeJobId] ?? [];
+
+  const [selectedId, setSelectedId] = useState<number>(candidates[0]?.id ?? 0);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("rank");
   const [sortAsc, setSortAsc] = useState(true);
@@ -67,13 +133,34 @@ export default function ShortlistsPage() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
-  const [compareIds, setCompareIds] = useState<number[]>([1, 2]);
+  const [showJobPicker, setShowJobPicker] = useState(false);
+  const [advanceDropdownId, setAdvanceDropdownId] = useState<number | null>(null);
+  const [compareIds, setCompareIds] = useState<number[]>([candidates[0]?.id ?? 0, candidates[1]?.id ?? 0]);
   const [exportFormat, setExportFormat] = useState<ExportFormat>("csv");
   const [exportDone, setExportDone] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [notes, setNotes] = useState<Record<number, NoteEntry[]>>({
     1: [{ author: "HR Sarah", text: "Candidate was very communicative during the initial phone screen. Excited about the team culture.", time: "2 days ago" }],
+    101: [{ author: "Lisa U.", text: "Portfolio is very impressive. Strong culture fit. Schedule panel interview ASAP.", time: "5 days ago" }],
+    201: [{ author: "JP Habimana", text: "Exceptional Kubernetes depth. Passed technical challenge with flying colors.", time: "2 weeks ago" }],
   });
+
+  function handleSwitchJob(jobId: string) {
+    setActiveJobId(jobId);
+    const job = screeningJobs.find((j) => j.id === jobId);
+    const jobCandidates = candidatesByJob[jobId] ?? job?.candidates ?? [];
+    setSelectedId(jobCandidates[0]?.id ?? 0);
+    setCompareIds([jobCandidates[0]?.id ?? 0, jobCandidates[1]?.id ?? 0]);
+    setSearch("");
+    setSortKey("rank");
+    setSortAsc(true);
+    setFilterStatus("all");
+    setPage(1);
+  }
+
+  function setCandidates(updater: (prev: Candidate[]) => Candidate[]) {
+    setCandidatesByJob((prev) => ({ ...prev, [activeJobId]: updater(prev[activeJobId] ?? []) }));
+  }
 
   function handleExport() {
     const exportable = candidates.filter((c) => c.status !== "rejected");
@@ -109,7 +196,10 @@ export default function ShortlistsPage() {
     let list = candidates.filter((c) => {
       const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
         c.skills.some((s) => s.toLowerCase().includes(search.toLowerCase()));
-      const matchesStatus = filterStatus === "all" || c.status === filterStatus;
+      let matchesStatus: boolean;
+      if (filterStatus === "all") matchesStatus = true;
+      else if (filterStatus === "advanced") matchesStatus = c.status !== "shortlisted" && c.status !== "rejected";
+      else matchesStatus = c.status === filterStatus;
       return matchesSearch && matchesStatus;
     });
     list = [...list].sort((a, b) => {
@@ -127,10 +217,11 @@ export default function ShortlistsPage() {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const selected = candidates.find((c) => c.id === selectedId) ?? candidates[0];
 
-  function handleAction(id: number, action: "interview" | "rejected") {
+  function handleAction(id: number, action: AdvanceStatus | "rejected") {
     setCandidates((prev) => prev.map((c) => c.id === id ? { ...c, status: action } : c));
     const next = candidates.find((c) => c.id !== id && c.status === "shortlisted");
     if (next) setSelectedId(next.id);
+    setAdvanceDropdownId(null);
   }
 
   function handleSort(key: SortKey) {
@@ -149,7 +240,11 @@ export default function ShortlistsPage() {
 
   const statusCounts = {
     shortlisted: candidates.filter((c) => c.status === "shortlisted").length,
+    advanced: candidates.filter((c) => ["interview", "exam", "assessment", "practical"].includes(c.status)).length,
     interview: candidates.filter((c) => c.status === "interview").length,
+    exam: candidates.filter((c) => c.status === "exam").length,
+    assessment: candidates.filter((c) => c.status === "assessment").length,
+    practical: candidates.filter((c) => c.status === "practical").length,
     rejected: candidates.filter((c) => c.status === "rejected").length,
   };
 
@@ -169,17 +264,81 @@ export default function ShortlistsPage() {
     <div className="w-full px-6 py-5">
       {/* Job context header */}
       <Card className="mb-5 p-5">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">
-              <Briefcase className="h-3.5 w-3.5" /> Current Job Context
-              <Badge tone="success" pill>Active</Badge>
-            </p>
-            <h1 className="mt-1 font-display text-xl font-bold text-ink">Senior Full Stack Developer (SF-204)</h1>
-            <div className="mt-2 flex flex-wrap gap-4 text-xs text-ink-muted">
-              <span>Screened: <strong className="text-ink">124 Applicants</strong></span>
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div className="flex-1">
+            {/* Job selector trigger */}
+            <div className="relative">
+              <button
+                onClick={() => setShowJobPicker((v) => !v)}
+                className="group flex w-full items-center gap-3 rounded-lg border border-line bg-white p-3 text-left transition-all hover:border-brand/40 hover:shadow-sm"
+              >
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand/10">
+                  <Briefcase className="h-5 w-5 text-brand" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h1 className="font-display text-lg font-bold text-ink truncate">{activeJob.title}</h1>
+                    {activeJob.isCurrent ? (
+                      <Badge tone="success" pill>Current</Badge>
+                    ) : (
+                      <Badge tone="neutral" pill>{activeJob.screenedDate}</Badge>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-xs text-ink-muted">{activeJob.dept} · {activeJob.location} · {activeJob.id}</p>
+                </div>
+                <ChevronDown className={`h-4 w-4 shrink-0 text-ink-muted transition-transform ${showJobPicker ? "rotate-180" : ""}`} />
+              </button>
+
+              {/* Job picker dropdown */}
+              {showJobPicker && (
+                <div className="absolute left-0 top-[calc(100%+4px)] z-20 w-full rounded-lg border border-line bg-white shadow-xl">
+                  <p className="px-4 pt-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Switch Screening Job</p>
+                  <ul className="max-h-64 overflow-y-auto pb-2">
+                    {screeningJobs.map((j) => {
+                      const jobCandidates = candidatesByJob[j.id] ?? j.candidates;
+                      const isActive = j.id === activeJobId;
+                      return (
+                        <li key={j.id}>
+                          <button
+                            onClick={() => { handleSwitchJob(j.id); setShowJobPicker(false); }}
+                            className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
+                              isActive ? "bg-brand-soft/30" : "hover:bg-surface-soft"
+                            }`}
+                          >
+                            <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${
+                              isActive ? "bg-brand/10" : "bg-surface-soft"
+                            }`}>
+                              <Briefcase className={`h-4 w-4 ${isActive ? "text-brand" : "text-ink-muted"}`} />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className={`text-sm font-semibold truncate ${isActive ? "text-brand" : "text-ink"}`}>{j.title}</p>
+                                {j.isCurrent && <Badge tone="success" pill className="text-[9px]">Current</Badge>}
+                              </div>
+                              <p className="text-[11px] text-ink-muted">
+                                {j.dept} · {j.screened} screened · {j.screenedDate}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-xs font-bold text-ink">{jobCandidates.length}</p>
+                              <p className="text-[9px] text-ink-muted">shortlisted</p>
+                            </div>
+                            {isActive && <Check className="h-4 w-4 shrink-0 text-brand" />}
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            {/* Status stats row */}
+            <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-ink-muted">
+              <span>Screened: <strong className="text-ink">{activeJob.screened} Applicants</strong></span>
+              <span className="text-line">|</span>
               <button onClick={() => { setFilterStatus("shortlisted"); setPage(1); }} className="hover:text-brand transition-colors">Shortlisted: <strong className="text-ink">{statusCounts.shortlisted}</strong></button>
-              <button onClick={() => { setFilterStatus("interview"); setPage(1); }} className="hover:text-brand transition-colors">Interview: <strong className="text-success">{statusCounts.interview}</strong></button>
+              <button onClick={() => { setFilterStatus("advanced"); setPage(1); }} className="hover:text-brand transition-colors">Advanced: <strong className="text-success">{statusCounts.advanced}</strong></button>
               <button onClick={() => { setFilterStatus("rejected"); setPage(1); }} className="hover:text-brand transition-colors">Rejected: <strong className="text-danger">{statusCounts.rejected}</strong></button>
               {filterStatus !== "all" && (
                 <button onClick={() => { setFilterStatus("all"); setPage(1); }} className="flex items-center gap-1 text-brand hover:underline">
@@ -195,6 +354,11 @@ export default function ShortlistsPage() {
           </div>
         </div>
       </Card>
+
+      {/* Close job picker on outside click */}
+      {showJobPicker && (
+        <div className="fixed inset-0 z-[15]" onClick={() => setShowJobPicker(false)} />
+      )}
 
       {/* Metrics row */}
       <section className="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
@@ -219,8 +383,8 @@ export default function ShortlistsPage() {
         <Card className="p-4">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs text-ink-muted">Ready for Interview</p>
-              <p className="mt-1 font-display text-2xl font-bold text-ink">{statusCounts.interview}</p>
+              <p className="text-xs text-ink-muted">Advanced to Next Step</p>
+              <p className="mt-1 font-display text-2xl font-bold text-ink">{statusCounts.advanced}</p>
             </div>
             <span className="flex h-8 w-8 items-center justify-center rounded-md bg-success/10"><Calendar className="h-4 w-4 text-success" /></span>
           </div>
@@ -271,12 +435,19 @@ export default function ShortlistsPage() {
                 </Button>
                 {showFilter && (
                   <div className="absolute right-0 top-9 z-10 w-44 rounded-md border border-line bg-white shadow-card">
-                    {(["all", "shortlisted", "interview", "rejected"] as FilterStatus[]).map((s) => (
+                    {(["all", "shortlisted", "advanced", "interview", "exam", "assessment", "practical", "rejected"] as FilterStatus[]).map((s) => {
+                      const labels: Record<FilterStatus, string> = {
+                        all: "All", shortlisted: "Shortlisted", advanced: "All Advanced",
+                        interview: "Interview", exam: "Technical Exam",
+                        assessment: "Assessment", practical: "Practical Test", rejected: "Rejected",
+                      };
+                      return (
                       <button key={s} onClick={() => { setFilterStatus(s); setShowFilter(false); setPage(1); }}
-                        className={`flex w-full items-center justify-between px-3 py-2 text-sm capitalize hover:bg-surface-soft ${filterStatus === s ? "text-brand font-medium" : "text-ink"}`}>
-                        {s} {filterStatus === s && <Check className="h-3.5 w-3.5" />}
+                        className={`flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-surface-soft ${filterStatus === s ? "text-brand font-medium" : "text-ink"} ${s === "advanced" ? "border-b border-line" : ""}`}>
+                        {labels[s]} {filterStatus === s && <Check className="h-3.5 w-3.5" />}
                       </button>
-                    ))}
+                    );
+                    })}
                   </div>
                 )}
               </div>
@@ -325,6 +496,9 @@ export default function ShortlistsPage() {
                         {c.rank === 1 && <Badge tone="success" pill><Trophy className="h-3 w-3" /> Top Pick</Badge>}
                         {c.rank === 2 && <Badge tone="brand" pill><Star className="h-3 w-3" /> Runner Up</Badge>}
                         {c.status === "interview" && <Badge tone="success" pill>Interview</Badge>}
+                        {c.status === "exam" && <Badge tone="brand" pill>Technical Exam</Badge>}
+                        {c.status === "assessment" && <Badge tone="brand" pill>Assessment</Badge>}
+                        {c.status === "practical" && <Badge tone="brand" pill>Practical Test</Badge>}
                         {c.status === "rejected" && <Badge tone="danger" pill>Rejected</Badge>}
                         <span className={`ml-auto text-sm font-bold ${c.match >= 90 ? "text-success" : c.match >= 80 ? "text-brand" : "text-ink-muted"}`}>
                           {c.match}% Match
@@ -356,11 +530,32 @@ export default function ShortlistsPage() {
                         disabled={c.status === "rejected"}>
                         Reject
                       </Button>
-                      <Button size="sm" leftIcon={<Check className="h-3.5 w-3.5" />}
-                        onClick={() => handleAction(c.id, "interview")}
-                        disabled={c.status === "interview"}>
-                        Interview
-                      </Button>
+
+                      {/* Advance dropdown */}
+                      <div className="relative">
+                        <Button size="sm" leftIcon={<Check className="h-3.5 w-3.5" />}
+                          onClick={() => setAdvanceDropdownId(advanceDropdownId === c.id ? null : c.id)}
+                          disabled={c.status !== "shortlisted"}>
+                          Advance ▾
+                        </Button>
+                        {advanceDropdownId === c.id && (
+                          <div className="absolute right-0 top-9 z-20 w-56 rounded-lg border border-line bg-white shadow-xl">
+                            <p className="px-3 pt-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Advance to</p>
+                            {advanceOptions.map((opt) => (
+                              <button key={opt.key}
+                                onClick={() => handleAction(c.id, opt.key)}
+                                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-surface-soft transition-colors">
+                                <opt.icon className="h-4 w-4 shrink-0 text-brand" />
+                                <div>
+                                  <p className="text-sm font-medium text-ink">{opt.label}</p>
+                                  <p className="text-[10px] text-ink-muted">{opt.desc}</p>
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
                       <Link href={`/candidates/${c.id}`} onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="sm" leftIcon={<Eye className="h-3.5 w-3.5" />}>
                           Profile
@@ -489,42 +684,42 @@ export default function ShortlistsPage() {
         </aside>
       </div>
 
-      {(showSort || showFilter) && (
-        <div className="fixed inset-0 z-[5]" onClick={() => { setShowSort(false); setShowFilter(false); }} />
+      {(showSort || showFilter || advanceDropdownId !== null) && (
+        <div className="fixed inset-0 z-[5]" onClick={() => { setShowSort(false); setShowFilter(false); setAdvanceDropdownId(null); }} />
       )}
 
       {/* Job Details Modal */}
       <Modal open={showJobModal} onClose={() => setShowJobModal(false)} size="lg">
-        <ModalHeader title={jobDetails.title} subtitle={`${jobDetails.dept} · ${jobDetails.id}`} onClose={() => setShowJobModal(false)}>
+        <ModalHeader title={activeJob.title} subtitle={`${activeJob.dept} · ${activeJob.id}`} onClose={() => setShowJobModal(false)}>
           <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink-muted">Job Details</p>
         </ModalHeader>
         <ModalBody className="flex flex-col gap-5">
           <dl className="grid grid-cols-2 gap-4 text-sm">
             <div className="flex items-start gap-2">
               <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted" />
-              <div><dt className="text-xs text-ink-muted">Location</dt><dd className="font-medium text-ink">{jobDetails.location}</dd></div>
+              <div><dt className="text-xs text-ink-muted">Location</dt><dd className="font-medium text-ink">{activeJob.location}</dd></div>
             </div>
             <div className="flex items-start gap-2">
               <Briefcase className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted" />
-              <div><dt className="text-xs text-ink-muted">Type</dt><dd className="font-medium text-ink">{jobDetails.type}</dd></div>
+              <div><dt className="text-xs text-ink-muted">Type</dt><dd className="font-medium text-ink">{activeJob.type}</dd></div>
             </div>
             <div className="flex items-start gap-2">
               <Users className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted" />
-              <div><dt className="text-xs text-ink-muted">Hiring Manager</dt><dd className="font-medium text-ink">{jobDetails.manager}</dd></div>
+              <div><dt className="text-xs text-ink-muted">Hiring Manager</dt><dd className="font-medium text-ink">{activeJob.manager}</dd></div>
             </div>
             <div className="flex items-start gap-2">
               <Clock className="mt-0.5 h-4 w-4 shrink-0 text-ink-muted" />
-              <div><dt className="text-xs text-ink-muted">Salary Band</dt><dd className="font-medium text-ink">{jobDetails.salary}</dd></div>
+              <div><dt className="text-xs text-ink-muted">Salary Band</dt><dd className="font-medium text-ink">{activeJob.salary}</dd></div>
             </div>
           </dl>
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">Description</p>
-            <p className="text-sm leading-6 text-ink">{jobDetails.description}</p>
+            <p className="text-sm leading-6 text-ink">{activeJob.description}</p>
           </div>
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">Requirements</p>
             <ul className="space-y-1.5">
-              {jobDetails.requirements.map((r) => (
+              {activeJob.requirements.map((r) => (
                 <li key={r} className="flex items-start gap-2 text-sm text-ink">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />{r}
                 </li>
@@ -534,7 +729,7 @@ export default function ShortlistsPage() {
           <div>
             <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">Required Skills</p>
             <div className="flex flex-wrap gap-1.5">
-              {jobDetails.skills.map((s) => <span key={s} className="rounded-md bg-surface-soft px-2.5 py-1 text-xs font-medium text-ink">{s}</span>)}
+              {activeJob.skills.map((s) => <span key={s} className="rounded-md bg-surface-soft px-2.5 py-1 text-xs font-medium text-ink">{s}</span>)}
             </div>
           </div>
         </ModalBody>

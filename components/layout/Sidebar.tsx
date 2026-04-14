@@ -18,10 +18,10 @@ import { cn } from "@/lib/cn";
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Jobs", href: "/jobs", icon: Briefcase },
-  { label: "Candidates", href: "/candidates", icon: Users },
   { label: "Ingest Applicants", href: "/ingest", icon: UserPlus },
   { label: "Screening", href: "/screening", icon: ShieldCheck },
   { label: "Shortlists", href: "/shortlists", icon: ListOrdered },
+  { label: "Candidates", href: "/candidates", icon: Users },
   { label: "Exports", href: "/exports", icon: FileOutput },
   { label: "History & Settings", href: "/history", icon: Settings },
 ] as const;

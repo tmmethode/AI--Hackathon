@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   Search, Filter, ArrowDownUp, Check, Users, Eye,
   Download, MoreHorizontal, Mail, Calendar,
+  Briefcase, ChevronDown, Send, Video, Phone, X,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +13,8 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Progress } from "@/components/ui/Progress";
+import { Field, Input, Textarea, Select } from "@/components/ui/Input";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
 
 interface Candidate {
   id: string;
@@ -56,6 +59,8 @@ const statusLabels: Record<Candidate["status"], string> = {
 
 type SortKey = "matchScore" | "name" | "appliedDate";
 type FilterStatus = "all" | "shortlisted" | "interview" | "rejected" | "new";
+
+const jobList = Array.from(new Set(allCandidates.map((c) => c.job)));
 const PAGE_SIZE = 6;
 
 export default function CandidatesPage() {
@@ -63,12 +68,23 @@ export default function CandidatesPage() {
   const [sortKey, setSortKey] = useState<SortKey>("matchScore");
   const [sortAsc, setSortAsc] = useState(false);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
+  const [filterJob, setFilterJob] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [showSort, setShowSort] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
+  const [showJobPicker, setShowJobPicker] = useState(false);
+  const [emailTarget, setEmailTarget] = useState<Candidate | null>(null);
+  const [scheduleTarget, setScheduleTarget] = useState<Candidate | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
+  const [scheduleSent, setScheduleSent] = useState(false);
+
+  const jobFiltered = useMemo(() =>
+    filterJob === "all" ? allCandidates : allCandidates.filter((c) => c.job === filterJob),
+    [filterJob]
+  );
 
   const filtered = useMemo(() => {
-    let list = allCandidates.filter((c) => {
+    let list = jobFiltered.filter((c) => {
       const matchesSearch =
         c.name.toLowerCase().includes(search.toLowerCase()) ||
         c.title.toLowerCase().includes(search.toLowerCase()) ||
@@ -84,7 +100,7 @@ export default function CandidatesPage() {
       return sortAsc ? val : -val;
     });
     return list;
-  }, [search, sortKey, sortAsc, filterStatus]);
+  }, [jobFiltered, search, sortKey, sortAsc, filterStatus]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -97,12 +113,20 @@ export default function CandidatesPage() {
   }
 
   const counts = {
-    all: allCandidates.length,
-    shortlisted: allCandidates.filter((c) => c.status === "shortlisted").length,
-    interview: allCandidates.filter((c) => c.status === "interview").length,
-    rejected: allCandidates.filter((c) => c.status === "rejected").length,
-    new: allCandidates.filter((c) => c.status === "new").length,
+    all: jobFiltered.length,
+    shortlisted: jobFiltered.filter((c) => c.status === "shortlisted").length,
+    interview: jobFiltered.filter((c) => c.status === "interview").length,
+    rejected: jobFiltered.filter((c) => c.status === "rejected").length,
+    new: jobFiltered.filter((c) => c.status === "new").length,
   };
+
+  function handleJobSwitch(job: string) {
+    setFilterJob(job);
+    setFilterStatus("all");
+    setSearch("");
+    setPage(1);
+    setShowJobPicker(false);
+  }
 
   return (
     <div className="w-full px-6 py-5">
@@ -117,8 +141,78 @@ export default function CandidatesPage() {
         }
       />
 
+      {/* Job selector */}
+      <div className="relative mt-6">
+        <button
+          onClick={() => setShowJobPicker((v) => !v)}
+          className="flex w-full items-center gap-3 rounded-lg border border-line bg-white p-3 text-left transition-all hover:border-brand/40 hover:shadow-sm"
+        >
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand/10">
+            <Briefcase className="h-4 w-4 text-brand" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Showing candidates for</p>
+            <p className="font-display text-sm font-bold text-ink truncate">
+              {filterJob === "all" ? "All Jobs" : filterJob}
+            </p>
+          </div>
+          <Badge tone="neutral" pill>{counts.all} candidates</Badge>
+          <ChevronDown className={`h-4 w-4 shrink-0 text-ink-muted transition-transform ${showJobPicker ? "rotate-180" : ""}`} />
+        </button>
+
+        {showJobPicker && (
+          <div className="absolute left-0 top-[calc(100%+4px)] z-20 w-full rounded-lg border border-line bg-white shadow-xl">
+            <p className="px-4 pt-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Filter by job</p>
+            <ul className="max-h-56 overflow-y-auto pb-2">
+              <li>
+                <button
+                  onClick={() => handleJobSwitch("all")}
+                  className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
+                    filterJob === "all" ? "bg-brand-soft/30" : "hover:bg-surface-soft"
+                  }`}
+                >
+                  <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${filterJob === "all" ? "bg-brand/10" : "bg-surface-soft"}`}>
+                    <Users className={`h-4 w-4 ${filterJob === "all" ? "text-brand" : "text-ink-muted"}`} />
+                  </span>
+                  <div className="flex-1">
+                    <p className={`text-sm font-semibold ${filterJob === "all" ? "text-brand" : "text-ink"}`}>All Jobs</p>
+                    <p className="text-[11px] text-ink-muted">View candidates across all positions</p>
+                  </div>
+                  <p className="text-xs font-bold text-ink">{allCandidates.length}</p>
+                  {filterJob === "all" && <Check className="h-4 w-4 shrink-0 text-brand" />}
+                </button>
+              </li>
+              {jobList.map((j) => {
+                const jobCount = allCandidates.filter((c) => c.job === j).length;
+                const isActive = filterJob === j;
+                return (
+                  <li key={j}>
+                    <button
+                      onClick={() => handleJobSwitch(j)}
+                      className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
+                        isActive ? "bg-brand-soft/30" : "hover:bg-surface-soft"
+                      }`}
+                    >
+                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${isActive ? "bg-brand/10" : "bg-surface-soft"}`}>
+                        <Briefcase className={`h-4 w-4 ${isActive ? "text-brand" : "text-ink-muted"}`} />
+                      </span>
+                      <div className="flex-1">
+                        <p className={`text-sm font-semibold ${isActive ? "text-brand" : "text-ink"}`}>{j}</p>
+                      </div>
+                      <p className="text-xs font-bold text-ink">{jobCount}</p>
+                      {isActive && <Check className="h-4 w-4 shrink-0 text-brand" />}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+      </div>
+      {showJobPicker && <div className="fixed inset-0 z-[15]" onClick={() => setShowJobPicker(false)} />}
+
       {/* Stats row */}
-      <section className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <section className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {([
           { label: "Total Candidates", value: counts.all, tone: "brand" },
           { label: "Shortlisted", value: counts.shortlisted, tone: "brand" },
@@ -239,8 +333,8 @@ export default function CandidatesPage() {
                       View Profile
                     </Button>
                   </Link>
-                  <Button variant="ghost" size="sm" leftIcon={<Mail className="h-3.5 w-3.5" />} />
-                  <Button variant="ghost" size="sm" leftIcon={<Calendar className="h-3.5 w-3.5" />} />
+                  <Button variant="ghost" size="sm" leftIcon={<Mail className="h-3.5 w-3.5" />} onClick={() => setEmailTarget(c)} />
+                  <Button variant="ghost" size="sm" leftIcon={<Calendar className="h-3.5 w-3.5" />} onClick={() => setScheduleTarget(c)} />
                 </div>
               </div>
             ))}
@@ -265,6 +359,87 @@ export default function CandidatesPage() {
       {(showSort || showFilter) && (
         <div className="fixed inset-0 z-[5]" onClick={() => { setShowSort(false); setShowFilter(false); }} />
       )}
+
+      {/* Email Modal */}
+      <Modal open={!!emailTarget} onClose={() => setEmailTarget(null)} size="md">
+        <ModalHeader title="Email Candidate" subtitle={emailTarget ? `Send a message to ${emailTarget.name}` : ""} onClose={() => setEmailTarget(null)} />
+        <ModalBody className="flex flex-col gap-4">
+          {emailTarget && (
+            <>
+              <div className="flex items-center gap-3 rounded-md border border-line bg-surface-soft/30 p-3">
+                <Avatar name={emailTarget.name} size={36} />
+                <div>
+                  <p className="text-sm font-medium text-ink">{emailTarget.name}</p>
+                  <p className="text-xs text-ink-muted">{emailTarget.title} · {emailTarget.matchScore}% Match</p>
+                </div>
+              </div>
+              <Field label="To"><Input defaultValue={`${emailTarget.name.toLowerCase().replace(/ /g, ".")}@example.com`} readOnly className="bg-surface-soft/50" /></Field>
+              <Field label="Subject"><Input defaultValue={`Next Steps — ${emailTarget.job} Position at Umurava`} /></Field>
+              <Field label="Message">
+                <Textarea rows={5} defaultValue={`Hi ${emailTarget.name.split(" ")[0]},\n\nThank you for your application for the ${emailTarget.job} position. We were impressed with your profile and would like to discuss next steps.\n\nPlease let us know your availability for a brief call.\n\nBest regards,\nUmurava Hiring Team`} />
+              </Field>
+            </>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setEmailTarget(null)}>Cancel</Button>
+          <Button leftIcon={emailSent ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+            onClick={() => { setEmailSent(true); setTimeout(() => { setEmailSent(false); setEmailTarget(null); }, 1500); }}>
+            {emailSent ? "Sent!" : "Send Email"}
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Schedule Interview Modal */}
+      <Modal open={!!scheduleTarget} onClose={() => setScheduleTarget(null)} size="md">
+        <ModalHeader title="Schedule Interview" subtitle={scheduleTarget ? `For ${scheduleTarget.name}` : ""} onClose={() => setScheduleTarget(null)}>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink-muted">Interview Setup</p>
+        </ModalHeader>
+        <ModalBody className="flex flex-col gap-5">
+          {scheduleTarget && (
+            <>
+              <div className="flex items-center gap-3 rounded-md border border-line bg-surface-soft/30 p-3">
+                <Avatar name={scheduleTarget.name} size={36} />
+                <div>
+                  <p className="text-sm font-medium text-ink">{scheduleTarget.name}</p>
+                  <p className="text-xs text-ink-muted">{scheduleTarget.title} · {scheduleTarget.job}</p>
+                </div>
+                <Badge tone={scheduleTarget.matchScore >= 90 ? "success" : "brand"} pill className="ml-auto">{scheduleTarget.matchScore}% Match</Badge>
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Field label="Interview Type">
+                  <div className="flex gap-2">
+                    {([{ icon: Video, label: "Video" }, { icon: Phone, label: "Phone" }, { icon: Users, label: "In Person" }] as const).map((type, i) => (
+                      <button key={type.label} className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border p-2.5 text-xs font-medium transition-colors ${i === 0 ? "border-brand bg-brand-soft/30 text-brand" : "border-line text-ink-muted hover:bg-surface-soft"}`}>
+                        <type.icon className="h-3.5 w-3.5" />{type.label}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+                <Field label="Round">
+                  <Select defaultValue="technical">
+                    <option value="phone">Phone Screen</option>
+                    <option value="technical">Technical</option>
+                    <option value="behavioral">Behavioral</option>
+                    <option value="final">Final / Panel</option>
+                  </Select>
+                </Field>
+                <Field label="Date"><Input type="date" defaultValue="2026-04-18" /></Field>
+                <Field label="Time"><Input type="time" defaultValue="14:00" /></Field>
+              </div>
+              <Field label="Meeting Link"><Input placeholder="https://meet.google.com/..." /></Field>
+              <Field label="Notes"><Textarea rows={2} placeholder="Areas to focus on..." /></Field>
+            </>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setScheduleTarget(null)}>Cancel</Button>
+          <Button leftIcon={scheduleSent ? <Check className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
+            onClick={() => { setScheduleSent(true); setTimeout(() => { setScheduleSent(false); setScheduleTarget(null); }, 1500); }}>
+            {scheduleSent ? "Scheduled!" : "Send Invite"}
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 }

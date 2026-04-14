@@ -182,11 +182,11 @@ export default function IngestPage() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Ingest Applicants</h1>
-          <p className="mt-1 text-sm text-ink-muted">Upload and parse candidate data into the screening pipeline.</p>
+          <p className="mt-1 text-sm text-ink-muted">Upload and parse candidate data into your talent pool.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary">Cancel</Button>
-          <Button>Confirm &amp; Start Screening</Button>
+          <Button>Import Candidates</Button>
         </div>
       </div>
 
