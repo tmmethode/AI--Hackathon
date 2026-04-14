@@ -45,7 +45,7 @@ function SliderRow({ label, value }: { label: string; value: number }) {
 
 export default function NewJobPage() {
   return (
-    <div className="mx-auto w-full max-w-[960px] px-4 py-8 md:px-8">
+    <div className="w-full px-6 py-5">
       <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Create New Screening Job</h1>

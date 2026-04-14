@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 
 export default function ExportsPage() {
   return (
-    <div className="mx-auto w-full max-w-[1184px] px-4 py-8 md:px-8">
+    <div className="w-full px-6 py-5">
       <PageHeader
         title="Exports"
         description="Generate and download reports from screening runs."

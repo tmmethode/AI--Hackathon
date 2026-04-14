@@ -1,82 +1,188 @@
+"use client";
+
+import { useState, useRef, useMemo } from "react";
 import {
-  Database,
-  FileText,
-  Table as TableIcon,
-  Link2,
-  CloudUpload,
-  AlertCircle,
-  Info,
-  Briefcase,
+  Database, FileText, Table as TableIcon, Link2, CloudUpload,
+  AlertCircle, Info, Briefcase, X, File, Link as LinkIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 
+/* ── Types ── */
 interface Applicant {
-  name: string;
-  source: string;
-  experience: string;
-  skills: string[];
-  tag: { label: string; tone: "info" | "brand" | "success" };
-  flagged?: boolean;
+  name: string; source: string; experience: string;
+  skills: string[]; tag: { label: string; tone: "info" | "brand" | "success" }; flagged?: boolean;
 }
+interface UploadedFile { id: string; name: string; size: number; }
+
+/* ── Static data ── */
+const jobs = [
+  { id: "JOB-001", title: "Senior Frontend Engineer", dept: "Product Engineering" },
+  { id: "JOB-002", title: "Fullstack Developer (Node.js)", dept: "Core Services" },
+  { id: "JOB-003", title: "Product Designer", dept: "UX/UI Team" },
+  { id: "JOB-004", title: "QA Automation Lead", dept: "Quality Assurance" },
+];
 
 const applicants: Applicant[] = [
-  {
-    name: "Sarah Jenkins",
-    source: "Umurava Platform",
-    experience: "6 Years",
-    skills: ["React", "TypeScript", "Node.js"],
-    tag: { label: "Senior Level", tone: "brand" },
-  },
-  {
-    name: "Michael Chen",
-    source: "Umurava Platform",
-    experience: "4 Years",
-    skills: ["Vue.js", "JavaScript", "Tailwind"],
-    tag: { label: "Mid Level", tone: "info" },
-  },
-  {
-    name: "Elena Rodriguez",
-    source: "Umurava Platform",
-    experience: "3 Years",
-    skills: ["React Native", "Firebase", "Redux"],
-    tag: { label: "Mobile Specialist", tone: "info" },
-    flagged: true,
-  },
-  {
-    name: "David Okafor",
-    source: "Umurava Platform",
-    experience: "8 Years",
-    skills: ["Angular", "RxJS", "SASS"],
-    tag: { label: "Lead Potential", tone: "brand" },
-  },
-  {
-    name: "Julie Tran",
-    source: "Umurava Platform",
-    experience: "5 Years",
-    skills: ["Next.js", "AWS", "PostgreSQL"],
-    tag: { label: "Fullstack", tone: "success" },
-  },
+  { name: "Sarah Jenkins", source: "Umurava Platform", experience: "6 Years", skills: ["React", "TypeScript", "Node.js"], tag: { label: "Senior Level", tone: "brand" } },
+  { name: "Michael Chen", source: "Umurava Platform", experience: "4 Years", skills: ["Vue.js", "JavaScript", "Tailwind"], tag: { label: "Mid Level", tone: "info" } },
+  { name: "Elena Rodriguez", source: "Umurava Platform", experience: "3 Years", skills: ["React Native", "Firebase", "Redux"], tag: { label: "Mobile Specialist", tone: "info" }, flagged: true },
+  { name: "David Okafor", source: "Umurava Platform", experience: "8 Years", skills: ["Angular", "RxJS", "SASS"], tag: { label: "Lead Potential", tone: "brand" } },
+  { name: "Julie Tran", source: "Umurava Platform", experience: "5 Years", skills: ["Next.js", "AWS", "PostgreSQL"], tag: { label: "Fullstack", tone: "success" } },
+  { name: "Amara Diallo", source: "CSV Import", experience: "2 Years", skills: ["HTML", "CSS", "JavaScript"], tag: { label: "Junior", tone: "info" } },
+  { name: "Kevin Mwangi", source: "PDF Upload", experience: "7 Years", skills: ["Python", "Django", "PostgreSQL"], tag: { label: "Senior Level", tone: "brand" } },
 ];
 
 const tabs = [
-  { label: "Umurava Platform", icon: Database },
-  { label: "PDF/Docx Upload", icon: FileText, active: true },
-  { label: "CSV Import", icon: TableIcon },
-  { label: "Paste Links", icon: Link2 },
-];
+  { id: "platform", label: "Umurava Platform", icon: Database },
+  { id: "pdf", label: "PDF/Docx Upload", icon: FileText },
+  { id: "csv", label: "CSV Import", icon: TableIcon },
+  { id: "links", label: "Paste Links", icon: Link2 },
+] as const;
 
-export default function IngestPage() {
+type TabId = typeof tabs[number]["id"];
+const PAGE_SIZE = 5;
+
+function formatBytes(b: number) {
+  return b < 1024 * 1024 ? `${(b / 1024).toFixed(1)} KB` : `${(b / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/* ── Tab content components ── */
+function PlatformTab() {
   return (
-    <div className="mx-auto w-full max-w-[1184px] px-4 py-8 md:px-8">
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Badge tone="info" className="rounded-full font-mono">Job ID: SR-FE-2024</Badge>
-          <p className="text-sm text-ink-muted">
-            Ingesting candidates for <span className="font-semibold text-ink">&ldquo;Senior Frontend Engineer&rdquo;</span>
-          </p>
+    <div className="p-6">
+      <p className="mb-4 text-sm text-ink-muted">Browse and select candidates directly from the Umurava talent pool.</p>
+      <div className="rounded-md border border-line bg-surface-soft/30 p-4 text-center text-sm text-ink-muted">
+        <Database className="mx-auto mb-2 h-8 w-8 text-brand/40" />
+        Connect your Umurava account to browse candidates.
+        <div className="mt-3"><Button variant="secondary" size="sm">Connect Umurava</Button></div>
+      </div>
+    </div>
+  );
+}
+
+function PdfTab({ files, onFiles, onRemove }: {
+  files: UploadedFile[]; onFiles: (f: UploadedFile[]) => void; onRemove: (id: string) => void;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function processFiles(raw: FileList | null) {
+    if (!raw) return;
+    const next: UploadedFile[] = Array.from(raw).map((f) => ({
+      id: `${f.name}-${f.size}-${Date.now()}`, name: f.name, size: f.size,
+    }));
+    onFiles(next);
+  }
+
+  return (
+    <div className="p-6 flex flex-col gap-4">
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => { e.preventDefault(); setDragging(false); processFiles(e.dataTransfer.files); }}
+        onClick={() => inputRef.current?.click()}
+        className={`cursor-pointer rounded-lg border-2 border-dashed py-12 text-center transition-colors ${
+          dragging ? "border-brand bg-brand-soft/40" : "border-line-strong bg-surface-soft/20 hover:border-brand/50 hover:bg-surface-soft/40"
+        }`}
+      >
+        <div className={`mx-auto flex h-11 w-11 items-center justify-center rounded-full ${dragging ? "bg-brand text-white" : "bg-brand-soft"}`}>
+          <CloudUpload className={`h-6 w-6 ${dragging ? "text-white" : "text-brand"}`} />
+        </div>
+        <h3 className="mt-4 text-base font-semibold text-ink">
+          {dragging ? "Drop files here" : "Drag and drop PDF resumes"}
+        </h3>
+        <p className="mt-1 text-sm text-ink-muted">Supports .pdf, .docx, .txt · Max 50 files</p>
+        <div className="mt-4" onClick={(e) => e.stopPropagation()}>
+          <Button variant="secondary" onClick={() => inputRef.current?.click()}>Browse Files</Button>
+        </div>
+        <input ref={inputRef} type="file" multiple accept=".pdf,.docx,.txt" className="hidden"
+          onChange={(e) => processFiles(e.target.files)} />
+      </div>
+
+      {files.length > 0 && (
+        <ul className="flex flex-col gap-2">
+          {files.map((f) => (
+            <li key={f.id} className="flex items-center justify-between rounded-md border border-line bg-white px-3 py-2 text-sm">
+              <div className="flex items-center gap-2">
+                <File className="h-4 w-4 shrink-0 text-brand" />
+                <span className="font-medium text-ink">{f.name}</span>
+                <span className="text-xs text-ink-muted">{formatBytes(f.size)}</span>
+              </div>
+              <button onClick={() => onRemove(f.id)} className="rounded p-1 text-ink-muted hover:bg-surface-soft hover:text-danger">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function CsvTab() {
+  return (
+    <div className="p-6">
+      <p className="mb-4 text-sm text-ink-muted">Upload a CSV file with candidate data. Download the template to get started.</p>
+      <div className="rounded-lg border-2 border-dashed border-line-strong bg-surface-soft/20 py-12 text-center">
+        <TableIcon className="mx-auto mb-2 h-8 w-8 text-brand/40" />
+        <p className="text-sm text-ink-muted">Drop a .csv file here or</p>
+        <div className="mt-3 flex justify-center gap-2">
+          <Button variant="secondary" size="sm">Browse CSV</Button>
+          <Button variant="ghost" size="sm">Download Template</Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LinksTab() {
+  const [links, setLinks] = useState("");
+  return (
+    <div className="p-6 flex flex-col gap-4">
+      <p className="text-sm text-ink-muted">Paste LinkedIn or portfolio URLs, one per line.</p>
+      <textarea
+        value={links}
+        onChange={(e) => setLinks(e.target.value)}
+        placeholder={"https://linkedin.com/in/candidate-1\nhttps://linkedin.com/in/candidate-2"}
+        className="min-h-[140px] w-full rounded-md border border-line bg-white px-3 py-2.5 font-mono text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand/40"
+      />
+      <div className="flex items-center gap-2">
+        <LinkIcon className="h-4 w-4 text-ink-muted" />
+        <span className="text-xs text-ink-muted">{links.split("\n").filter(Boolean).length} URL(s) detected</span>
+        <Button size="sm" className="ml-auto">Parse Links</Button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Main page ── */
+export default function IngestPage() {
+  const [activeTab, setActiveTab] = useState<TabId>("pdf");
+  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [selectedJob, setSelectedJob] = useState(jobs[0].id);
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(applicants.length / PAGE_SIZE));
+  const paginated = useMemo(() => applicants.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [page]);
+  const job = jobs.find((j) => j.id === selectedJob)!;
+
+  function addFiles(newFiles: UploadedFile[]) {
+    setFiles((prev) => [...prev, ...newFiles]);
+  }
+  function removeFile(id: string) {
+    setFiles((prev) => prev.filter((f) => f.id !== id));
+  }
+
+  return (
+    <div className="w-full px-6 py-5">
+      {/* Header */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Ingest Applicants</h1>
+          <p className="mt-1 text-sm text-ink-muted">Upload and parse candidate data into the screening pipeline.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary">Cancel</Button>
@@ -84,46 +190,38 @@ export default function IngestPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
         <div className="flex flex-col gap-6">
+          {/* Source tabs */}
           <Card className="overflow-hidden">
-            <div role="tablist" aria-label="Ingestion source" className="flex items-center gap-1 border-b border-line p-2">
+            <div role="tablist" className="flex items-center gap-1 border-b border-line p-2">
               {tabs.map((t) => {
                 const Icon = t.icon;
                 return (
-                  <button
-                    key={t.label}
-                    role="tab"
-                    aria-selected={t.active}
-                    className={`flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2 text-xs font-medium ${
-                      t.active ? "bg-surface-soft text-ink" : "text-ink-muted hover:bg-surface-soft/50"
+                  <button key={t.id} role="tab" aria-selected={activeTab === t.id}
+                    onClick={() => setActiveTab(t.id)}
+                    title={t.label}
+                    className={`flex flex-1 items-center justify-center gap-2 rounded-md px-2 py-2 text-xs font-medium transition-colors sm:px-4 ${
+                      activeTab === t.id ? "bg-brand text-white" : "text-ink-muted hover:bg-surface-soft"
                     }`}
                   >
-                    <Icon className="h-4 w-4" aria-hidden /> {t.label}
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="hidden sm:inline">{t.label}</span>
                   </button>
                 );
               })}
             </div>
-            <div className="p-6">
-              <div className="rounded-lg border border-dashed border-line-strong bg-surface-soft/20 py-14 text-center">
-                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-brand-soft" aria-hidden>
-                  <CloudUpload className="h-6 w-6 text-brand" />
-                </div>
-                <h3 className="mt-4 text-base font-semibold text-ink">Drag and drop PDF resumes</h3>
-                <p className="mt-1 text-sm text-ink-muted">
-                  Supports .pdf, .docx, and .txt files. Max 50 files per batch for optimal AI parsing.
-                </p>
-                <div className="mt-4">
-                  <Button variant="secondary">Browse Files</Button>
-                </div>
-              </div>
-            </div>
+            {activeTab === "platform" && <PlatformTab />}
+            {activeTab === "pdf" && <PdfTab files={files} onFiles={addFiles} onRemove={removeFile} />}
+            {activeTab === "csv" && <CsvTab />}
+            {activeTab === "links" && <LinksTab />}
           </Card>
 
+          {/* Applicant preview table */}
           <Card>
-            <div className="flex items-center justify-between border-b border-line px-6 py-5">
+            <div className="flex items-center justify-between border-b border-line px-6 py-4">
               <div>
-                <h3 className="font-display text-lg font-semibold text-ink">Extracted Applicant Preview</h3>
+                <h3 className="font-display text-base font-semibold text-ink">Extracted Applicant Preview</h3>
                 <p className="text-sm text-ink-muted">Review and verify data before final ingestion.</p>
               </div>
               <div className="flex gap-2">
@@ -131,6 +229,7 @@ export default function IngestPage() {
                 <Button variant="ghost" size="sm">Discard All</Button>
               </div>
             </div>
+
             <div role="table">
               <div role="row" className="hidden grid-cols-[1.4fr_0.7fr_1.5fr_1fr] gap-4 bg-surface-soft/30 px-6 py-3 text-[11px] uppercase tracking-wider text-ink-muted md:grid">
                 <span role="columnheader">Candidate</span>
@@ -139,53 +238,71 @@ export default function IngestPage() {
                 <span role="columnheader">Job Match Tags</span>
               </div>
               <ul className="divide-y divide-line">
-                {applicants.map((a) => (
-                  <li
-                    key={a.name}
-                    className="grid grid-cols-1 gap-3 px-6 py-4 text-sm md:grid-cols-[1.4fr_0.7fr_1.5fr_1fr] md:items-center md:gap-4"
-                  >
+                {paginated.map((a) => (
+                  <li key={a.name} className="grid grid-cols-1 gap-3 px-6 py-4 text-sm md:grid-cols-[1.4fr_0.7fr_1.5fr_1fr] md:items-center md:gap-4">
                     <div className="flex items-center gap-3">
                       <Avatar name={a.name} size={32} />
                       <div>
                         <p className="flex items-center gap-1.5 font-medium text-ink">
                           {a.name}
-                          {a.flagged && <Info className="h-3.5 w-3.5 text-danger" aria-label="Flagged" />}
+                          {a.flagged && <Info className="h-3.5 w-3.5 text-danger" />}
                         </p>
                         <p className="text-xs text-ink-muted">Source: {a.source}</p>
                       </div>
                     </div>
                     <p className="text-ink">{a.experience}</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {a.skills.map((s) => (
-                        <Badge key={s} tone="neutral">{s}</Badge>
-                      ))}
+                      {a.skills.map((s) => <Badge key={s} tone="neutral">{s}</Badge>)}
                     </div>
-                    <div>
-                      <Badge tone={a.tag.tone} pill>{a.tag.label}</Badge>
-                    </div>
+                    <Badge tone={a.tag.tone} pill>{a.tag.label}</Badge>
                   </li>
                 ))}
               </ul>
             </div>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-between border-t border-line px-6 py-3 text-sm text-ink-muted">
+              <p>Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, applicants.length)} of {applicants.length}</p>
+              <nav className="flex gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button key={p} onClick={() => setPage(p)}
+                    className={`h-8 w-8 rounded-md border text-xs transition-colors ${
+                      p === page ? "border-brand bg-brand text-white" : "border-line text-ink hover:bg-surface-soft"
+                    }`}
+                  >{p}</button>
+                ))}
+              </nav>
+            </div>
           </Card>
         </div>
 
+        {/* Sidebar */}
         <aside className="flex flex-col gap-5">
+          {/* Target job selector */}
           <Card className="p-5">
-            <h3 className="text-sm font-semibold text-ink">Active Pipeline</h3>
+            <h3 className="text-sm font-semibold text-ink">Target Job</h3>
             <p className="mt-1 text-xs text-ink-muted">Destination for these candidates</p>
-            <div className="mt-3 flex items-center gap-3 rounded-md border border-line p-3">
+            <select
+              value={selectedJob}
+              onChange={(e) => setSelectedJob(e.target.value)}
+              className="mt-3 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand/40"
+            >
+              {jobs.map((j) => (
+                <option key={j.id} value={j.id}>{j.title}</option>
+              ))}
+            </select>
+            <div className="mt-3 flex items-center gap-3 rounded-md border border-line bg-surface-soft/30 p-3">
               <span className="flex h-9 w-9 items-center justify-center rounded-md bg-brand/10">
                 <Briefcase className="h-4 w-4 text-brand" />
               </span>
               <div>
-                <p className="text-sm font-medium text-ink">Senior Frontend Engineer</p>
-                <p className="text-xs text-ink-muted">Engineering Dept · Kigali, RW</p>
+                <p className="text-sm font-medium text-ink">{job.title}</p>
+                <p className="text-xs text-ink-muted">{job.dept} · {job.id}</p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" className="mt-3 w-full">Change Target Job</Button>
           </Card>
 
+          {/* Parsing status */}
           <Card className="p-5">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-semibold text-ink">Parsing Status</h3>
@@ -199,9 +316,7 @@ export default function IngestPage() {
               <span className="text-xs font-semibold text-ink">68%</span>
             </div>
             <p className="mt-2 text-xs text-ink-muted">Analyzing 34 of 50 resumes…</p>
-
-            <p className="mt-5 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">Statistics</p>
-            <div className="mt-2 grid grid-cols-2 gap-3">
+            <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-md border border-line p-3">
                 <p className="text-xs text-ink-muted">Successful</p>
                 <p className="mt-1 font-display text-xl font-bold text-ink">32</p>
@@ -211,18 +326,17 @@ export default function IngestPage() {
                 <p className="mt-1 font-display text-xl font-bold text-danger">2</p>
               </div>
             </div>
-
-            <p className="mt-5 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">Recent Issues</p>
-            <div className="mt-2 flex items-start gap-2 rounded-md bg-danger/5 p-3 text-xs">
+            <div className="mt-4 flex items-start gap-2 rounded-md bg-danger/5 p-3 text-xs">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-danger" />
               <div>
-                <p className="font-semibold text-danger">Corrupted File: resume_final_v2.pdf</p>
-                <p className="mt-0.5 text-ink-muted">The PDF header could not be read. Please re-upload.</p>
+                <p className="font-semibold text-danger">Corrupted: resume_final_v2.pdf</p>
+                <p className="mt-0.5 text-ink-muted">PDF header could not be read.</p>
               </div>
             </div>
             <Button variant="secondary" size="sm" fullWidth className="mt-3">View Detailed Logs</Button>
           </Card>
 
+          {/* Guidelines */}
           <Card className="bg-brand-soft/60 p-5">
             <div className="flex items-center gap-2">
               <Info className="h-4 w-4 text-info-deep" />

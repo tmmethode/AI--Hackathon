@@ -59,13 +59,13 @@ const spotlight = [
 
 export default function DashboardPage() {
   return (
-    <div className="mx-auto w-full max-w-[1184px] px-4 py-8 md:px-8">
+    <div className="w-full px-6 py-5">
       <PageHeader
         title="Recruiter Dashboard"
         description="Welcome back. Here's what's happening with your hiring pipeline."
         actions={
           <>
-            <Button variant="secondary" leftIcon={<Briefcase className="h-4 w-4" />}>Manage Jobs</Button>
+            <Link href="/jobs"><Button variant="secondary" leftIcon={<Briefcase className="h-4 w-4" />}>Manage Jobs</Button></Link>
             <Button leftIcon={<Plus className="h-4 w-4" />}>Create New Job</Button>
           </>
         }

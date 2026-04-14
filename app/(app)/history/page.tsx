@@ -45,7 +45,7 @@ Output your reasoning in JSON format with keys: "score", "strengths", "gaps", an
 
 export default function HistoryPage() {
   return (
-    <div className="mx-auto w-full max-w-[1184px] px-4 py-8 md:px-8">
+    <div className="w-full px-6 py-5">
       <PageHeader
         title="History & Settings"
         description="Monitor past screenings and manage AI logic configurations."

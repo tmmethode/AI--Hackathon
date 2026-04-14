@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 
 export default function ScreeningPage() {
   return (
-    <div className="mx-auto w-full max-w-[1184px] px-4 py-8 md:px-8">
+    <div className="w-full px-6 py-5">
       <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Screening Confirmation</h1>
