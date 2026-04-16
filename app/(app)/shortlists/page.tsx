@@ -108,7 +108,7 @@ const advanceOptions = [
 
 type AdvanceStatus = typeof advanceOptions[number]["key"];
 type ExportFormat = "csv" | "pdf" | "json";
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 10;
 
 interface NoteEntry { author: string; text: string; time: string; }
 

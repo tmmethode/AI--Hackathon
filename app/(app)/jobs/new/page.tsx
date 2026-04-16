@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { X, Play, Save, Briefcase, UserRound, Cpu, Settings2, ChevronDown, Upload, CheckCircle2, ArrowRight, Sparkles } from "lucide-react";
+import { X, Play, Save, Briefcase, UserRound, Cpu, Upload, CheckCircle2, ArrowRight, Sparkles, FileText } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, Input, Select, Textarea } from "@/components/ui/Input";
-import { Badge } from "@/components/ui/Badge";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
 
 interface SectionProps {
@@ -33,27 +32,109 @@ function Section({ icon: Icon, title, description, children }: SectionProps) {
   );
 }
 
-function SliderRow({ label, value }: { label: string; value: number }) {
+interface WeightCriterion {
+  id: string;
+  label: string;
+  value: number;
+}
+
+function WeightRow({
+  criterion,
+  onLabelChange,
+  onValueChange,
+  onRemove,
+  canRemove,
+}: {
+  criterion: WeightCriterion;
+  onLabelChange: (id: string, label: string) => void;
+  onValueChange: (id: string, value: number) => void;
+  onRemove: (id: string) => void;
+  canRemove: boolean;
+}) {
   return (
     <Card className="border border-line p-4 shadow-none">
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-sm font-medium text-ink">{label}</span>
-        <span className="text-sm font-semibold text-brand">{value}%</span>
+      <div className="mb-4 flex items-start gap-3">
+        <div className="flex-1">
+          <Input
+            value={criterion.label}
+            onChange={(e) => onLabelChange(criterion.id, e.target.value)}
+            placeholder="Scoring criterion"
+          />
+        </div>
+        <div className="w-24">
+          <Input
+            type="number"
+            min={0}
+            max={100}
+            value={criterion.value}
+            onChange={(e) => onValueChange(criterion.id, Number(e.target.value))}
+          />
+        </div>
+        <div className="pt-1 text-sm font-semibold text-brand">%</div>
+        {canRemove ? (
+          <Button type="button" variant="ghost" onClick={() => onRemove(criterion.id)}>
+            Remove
+          </Button>
+        ) : null}
       </div>
-      <div className="h-1.5 w-full rounded-full bg-surface-soft">
-        <div className="h-full rounded-full bg-brand" style={{ width: `${value}%` }} />
+      <div className="flex items-center gap-3">
+        <input
+          type="range"
+          min={0}
+          max={100}
+          value={criterion.value}
+          onChange={(e) => onValueChange(criterion.id, Number(e.target.value))}
+          className="h-2 w-full cursor-pointer appearance-none rounded-full bg-surface-soft accent-brand"
+        />
+        <span className="w-12 text-right text-sm font-semibold text-brand">{criterion.value}%</span>
       </div>
-      <p className="mt-2 text-xs text-ink-muted">Adjusts relative weight of this category in ranking.</p>
+      <p className="mt-2 text-xs text-ink-muted">Adjust this criterion to reflect how important it is for this role.</p>
     </Card>
   );
 }
 
 export default function NewJobPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [weightCriteria, setWeightCriteria] = useState<WeightCriterion[]>([
+    { id: "technical-skills", label: "Technical Skills", value: 40 },
+    { id: "experience", label: "Years of Experience", value: 30 },
+    { id: "soft-skills", label: "Culture & Soft Skills", value: 20 },
+    { id: "education", label: "Educational Background", value: 10 },
+  ]);
+
+  const totalWeight = weightCriteria.reduce((sum, criterion) => sum + criterion.value, 0);
 
   function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setShowSuccessModal(true);
+  }
+
+  function updateWeightLabel(id: string, label: string) {
+    setWeightCriteria((current) =>
+      current.map((criterion) => (criterion.id === id ? { ...criterion, label } : criterion))
+    );
+  }
+
+  function updateWeightValue(id: string, value: number) {
+    const normalizedValue = Number.isNaN(value) ? 0 : Math.min(100, Math.max(0, value));
+    setWeightCriteria((current) =>
+      current.map((criterion) => (criterion.id === id ? { ...criterion, value: normalizedValue } : criterion))
+    );
+  }
+
+  function addWeightCriterion() {
+    setWeightCriteria((current) => [
+      ...current,
+      {
+        id: `criterion-${Date.now()}`,
+        label: `Custom Criterion ${current.length - 3}`,
+        value: 0,
+      },
+    ]);
+  }
+
+  function removeWeightCriterion(id: string) {
+    setWeightCriteria((current) => current.filter((criterion) => criterion.id !== id));
   }
 
   return (
@@ -103,130 +184,163 @@ export default function NewJobPage() {
             <Field label="Target Salary Band (Annual)">
               <Input defaultValue="$70,000 - $110,000 USD" />
             </Field>
+            <Field label="Application Deadline">
+              <Input type="date" defaultValue="2026-05-30" />
+            </Field>
+            <Field label="Number of Openings">
+              <Input type="number" defaultValue={1} />
+            </Field>
+            <Field label="Hiring Urgency">
+              <Select defaultValue="normal">
+                <option value="urgent">Urgent — ASAP</option>
+                <option value="high">High — Within 2 weeks</option>
+                <option value="normal">Normal — Within 1 month</option>
+                <option value="low">Low — No rush</option>
+              </Select>
+            </Field>
           </div>
         </Section>
 
         <Section
-          icon={UserRound}
-          title="Candidate Profile & Requirements"
-          description="Define the specific qualifications and technical skills required for this role."
+          icon={FileText}
+          title="Job Description & Details"
+          description="Provide a comprehensive description of the role, responsibilities, and what the job entails."
         >
-          <Field label="Required Hard Skills">
-            <div className="flex min-h-[44px] flex-wrap items-center gap-2 rounded-md border border-line bg-white p-2">
-              {["TypeScript", "React", "Tailwind CSS", "Next.js", "System Design"].map((s) => (
-                <Badge key={s} tone="neutral" className="gap-1.5">
-                  {s}
-                  <button type="button" aria-label={`Remove ${s}`} className="text-ink-muted hover:text-ink">×</button>
-                </Badge>
-              ))}
-              <button type="button" className="ml-auto text-xs font-medium text-brand hover:underline">
-                + Add Skill
-              </button>
-            </div>
+          <Field label="Job Summary" className="mb-5">
+            <Textarea
+              rows={4}
+              defaultValue="We are seeking a talented Senior Frontend Engineer to join our Product Engineering team. You will be responsible for building and maintaining high-quality web applications that serve thousands of users daily. This is a key role that influences both the technical direction and user experience of our platform."
+            />
+            <span className="mt-1 block text-xs text-ink-muted">A brief overview of the role visible to candidates at the top of the job posting.</span>
           </Field>
 
-          <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-3">
-            <Field label="Min. Experience">
-              <Select defaultValue="5">
-                <option value="0">0+ Years</option>
-                <option value="3">3+ Years</option>
-                <option value="5">5+ Years</option>
-                <option value="8">8+ Years</option>
-              </Select>
+          <Field label="Key Responsibilities" className="mb-5">
+            <Textarea
+              rows={8}
+              defaultValue={"• Architect, build, and maintain scalable frontend applications using React, TypeScript, and Next.js\n• Collaborate closely with designers, product managers, and backend engineers to deliver exceptional user experiences\n• Lead code reviews and establish engineering best practices across the frontend codebase\n• Mentor junior developers and contribute to a culture of continuous learning\n• Optimize application performance, accessibility, and SEO\n• Participate in sprint planning, technical design discussions, and architecture reviews\n• Write comprehensive unit and integration tests using Testing Library and Cypress\n• Contribute to our design system and component library"}
+            />
+            <span className="mt-1 block text-xs text-ink-muted">List the primary duties and day-to-day tasks. Use bullet points (•) for readability.</span>
+          </Field>
+
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <Field label="Must-have Qualifications">
+              <Textarea
+                rows={8}
+                defaultValue={"• 5+ years of professional frontend development experience\n• Strong proficiency in React, TypeScript, and modern CSS (Tailwind preferred)\n• Experience with server-side rendering (Next.js) and state management\n• Solid understanding of web performance optimization techniques\n• Excellent communication skills and ability to work in distributed teams"}
+              />
+              <span className="mt-1 block text-xs text-ink-muted">List the non-negotiable requirements candidates must meet.</span>
             </Field>
-            <Field label="Min. Education">
-              <Select defaultValue="bs">
-                <option value="hs">High School</option>
-                <option value="bs">Bachelor&apos;s Degree</option>
-                <option value="ms">Master&apos;s Degree</option>
-              </Select>
+            <Field label="Nice-to-have Qualifications">
+              <Textarea
+                rows={8}
+                defaultValue={"• Experience with GraphQL, REST API design, or backend technologies (Node.js)\n• Familiarity with CI/CD pipelines and deployment automation\n• Contributions to open-source projects\n• Experience in a high-growth SaaS environment"}
+              />
+              <span className="mt-1 block text-xs text-ink-muted">Capture bonus qualifications that strengthen a candidate profile.</span>
             </Field>
-            <Field label="Certifications">
-              <Input placeholder="AWS, PMP, etc." />
+          </div>
+        </Section>
+
+
+        <Section
+          icon={UserRound}
+          title="Candidate Profile & Requirements"
+          description="Describe the profile you want to target so screening is tailored to this specific role."
+        >
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <Field label="Core Hard Skills">
+              <Textarea
+                rows={5}
+                defaultValue={"• TypeScript\n• React\n• Next.js\n• Tailwind CSS\n• Frontend architecture\n• Component-driven development"}
+              />
+              <span className="mt-1 block text-xs text-ink-muted">List the technical skills a strong candidate should already have.</span>
+            </Field>
+            <Field label="Preferred / Bonus Skills">
+              <Textarea
+                rows={5}
+                defaultValue={"• GraphQL\n• Design systems\n• Testing Library / Cypress\n• Performance optimization\n• Accessibility auditing\n• Mentoring or tech leadership"}
+              />
+              <span className="mt-1 block text-xs text-ink-muted">Capture tools or experience that would make a candidate stand out.</span>
             </Field>
           </div>
 
-          <Field label="Ideal Candidate Summary (AI Prompt Context)" className="mt-5">
-            <Textarea
-              rows={4}
-              defaultValue="We are looking for a frontend leader who deeply understands React ecosystems and can navigate complex architectural decisions. The ideal candidate has experience working in distributed teams and possesses a strong eye for UX/UI detail. They should be comfortable mentoring junior devs."
-            />
-          </Field>
+          <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
+            <Field label="Core Soft Skills">
+              <Textarea
+                rows={4}
+                defaultValue={"• Clear written and verbal communication\n• Ownership and accountability\n• Cross-functional collaboration\n• Mentorship mindset\n• Product thinking"}
+              />
+            </Field>
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-3">
+            <Field label="Experience">
+              <Select defaultValue="5">
+                <option value="0">0+ Years</option>
+                <option value="1">1+ Years</option>
+                <option value="2">2+ Years</option>
+                <option value="3">3+ Years</option>
+                <option value="4">4+ Years</option>
+                <option value="5">5+ Years</option>
+                <option value="6">6+ Years</option>
+                <option value="7">7+ Years</option>
+                <option value="8">8+ Years</option>
+                <option value="10">10+ Years</option>
+                <option value="12">12+ Years</option>
+                <option value="15">15+ Years</option>
+              </Select>
+            </Field>
+            <Field label="Seniority Level">
+              <Select defaultValue="senior">
+                <option value="junior">Junior</option>
+                <option value="mid">Mid-level</option>
+                <option value="senior">Senior</option>
+                <option value="lead">Lead</option>
+                <option value="manager">Manager</option>
+              </Select>
+            </Field>
+            <Field label="Education Level">
+              <Select defaultValue="bs">
+                <option value="none">No formal degree required</option>
+                <option value="hs">High School</option>
+                <option value="associate">Associate Degree</option>
+                <option value="bs">Bachelor&apos;s Degree</option>
+                <option value="ms">Master&apos;s Degree</option>
+                <option value="mba">MBA</option>
+                <option value="phd">PhD / Doctorate</option>
+                <option value="professional">Professional Certification Equivalent</option>
+              </Select>
+            </Field>
+          </div>
         </Section>
 
         <Section
           icon={Cpu}
           title="AI Weighting & Prioritization"
-          description="Adjust the importance of each category. These weights directly influence the AI's matching score."
+          description="Adjust the importance of each category. Add or remove criteria so the scoring model fits the specific job."
         >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <SliderRow label="Technical Skills" value={40} />
-            <SliderRow label="Years of Experience" value={30} />
-            <SliderRow label="Culture & Soft Skills" value={20} />
-            <SliderRow label="Educational Background" value={10} />
+            {weightCriteria.map((criterion) => (
+              <WeightRow
+                key={criterion.id}
+                criterion={criterion}
+                onLabelChange={updateWeightLabel}
+                onValueChange={updateWeightValue}
+                onRemove={removeWeightCriterion}
+                canRemove={weightCriteria.length > 1}
+              />
+            ))}
+          </div>
+          <div className="mt-4 flex justify-start">
+            <Button type="button" variant="secondary" onClick={addWeightCriterion}>
+              Add Criterion
+            </Button>
           </div>
           <p className="mt-4 rounded-md bg-brand-soft/60 px-4 py-3 text-xs text-info-deep">
-            <strong className="font-semibold">Total: 100%</strong> — Your current configuration favors technical mastery.
-            Ensure your &ldquo;Ideal Candidate&rdquo; summary aligns with these weights for the best results.
+            <strong className="font-semibold">Total: {totalWeight}%</strong> {totalWeight === 100 ? "— Your weighting is balanced and ready for scoring." : "— Aim for a total of 100% so the AI scoring stays consistent."}
+            {" "}Match these criteria to the role so each job can be evaluated on what matters most.
           </p>
         </Section>
 
-        <Section
-          icon={Settings2}
-          title="Advanced AI Configuration"
-          description="Fine-tune how the AI processes applicants and presents findings."
-        >
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-ink">Tuning Parameters</h3>
-            <ChevronDown className="h-4 w-4 text-ink-muted" aria-hidden />
-          </div>
-          <div className="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2">
-            <Field label="AI Explanation Depth">
-              <div role="tablist" className="flex rounded-md bg-surface-soft p-1 text-xs font-medium">
-                {["Brief", "Standard", "Detailed"].map((v, i) => (
-                  <button
-                    key={v}
-                    type="button"
-                    role="tab"
-                    aria-selected={i === 0}
-                    className={`flex-1 rounded px-3 py-1.5 ${
-                      i === 0 ? "bg-white text-ink shadow-card" : "text-ink-muted"
-                    }`}
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-1.5 text-xs text-ink-muted">&ldquo;Detailed&rdquo; provides bullet points for every async component.</p>
-            </Field>
-
-            <fieldset>
-              <legend className="mb-1.5 text-[13px] font-medium text-ink">Blackout Settings</legend>
-              <div className="space-y-2 text-sm">
-                {["Exclude Competitor Staff", "Prioritize Internal Referrals", "AI-Anonymized Initial Review"].map(
-                  (l, i) => (
-                    <label key={l} className="flex items-center gap-2 text-ink">
-                      <input type="checkbox" defaultChecked={i !== 1} className="h-4 w-4 rounded border-line text-brand focus:ring-brand/40" />
-                      {l}
-                    </label>
-                  )
-                )}
-              </div>
-            </fieldset>
-
-            <Field label="Target Shortlist Size">
-              <Input type="number" defaultValue={15} />
-              <span className="mt-1 block text-xs text-ink-muted">Top-ranked candidates to return in results.</span>
-            </Field>
-
-            <Field label="Excluded Companies (Blacklist)" className="md:col-span-2">
-              <Input placeholder="Enter company names separated by commas (e.g. Meta, Google, Amazon)" />
-              <span className="mt-1 block text-xs text-ink-muted">
-                Candidates currently at these firms will be flagged for omission based on policy.
-              </span>
-            </Field>
-          </div>
-        </Section>
 
         <div className="flex items-center justify-end gap-3">
           <Button type="button" variant="ghost">Discard Changes</Button>

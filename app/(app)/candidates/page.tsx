@@ -4,8 +4,9 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Search, Filter, ArrowDownUp, Check, Users, Eye,
-  Download, MoreHorizontal, Mail, Calendar,
+  Download, Mail, Calendar,
   Briefcase, ChevronDown, Send, Video, Phone, X,
+  ClipboardCheck, GraduationCap, Wrench, ChevronRight,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -16,6 +17,9 @@ import { Progress } from "@/components/ui/Progress";
 import { Field, Input, Textarea, Select } from "@/components/ui/Input";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
 
+/* ── Types ── */
+type CandidateStatus = "shortlisted" | "interview" | "exam" | "assessment" | "practical" | "rejected" | "new";
+
 interface Candidate {
   id: string;
   name: string;
@@ -25,45 +29,122 @@ interface Candidate {
   experience: string;
   location: string;
   source: string;
-  status: "shortlisted" | "interview" | "rejected" | "new";
+  status: CandidateStatus;
   job: string;
   appliedDate: string;
 }
 
-const allCandidates: Candidate[] = [
+/* ── Advance options (same as Shortlists) ── */
+const advanceOptions = [
+  { key: "interview" as const, label: "Interview", icon: Calendar, desc: "Schedule a screening or panel interview" },
+  { key: "exam" as const, label: "Technical Exam", icon: ClipboardCheck, desc: "Assign a written or online technical test" },
+  { key: "assessment" as const, label: "Assessment", icon: GraduationCap, desc: "Behavioral or competency assessment" },
+  { key: "practical" as const, label: "Practical Test", icon: Wrench, desc: "Hands-on project or take-home assignment" },
+];
+
+type AdvanceKey = typeof advanceOptions[number]["key"];
+
+/* ── Static data ── */
+const initialCandidates: Candidate[] = [
   { id: "C-001", name: "Sarah Jenkins", title: "Senior Full Stack Engineer", matchScore: 98, skills: ["React", "Node.js", "AWS"], experience: "8 Years", location: "Remote (GMT+2)", source: "Umurava Platform", status: "shortlisted", job: "Senior Frontend Engineer", appliedDate: "2023-10-24" },
   { id: "C-002", name: "Michael Chen", title: "Technical Product Lead", matchScore: 94, skills: ["Agile", "Python", "Product"], experience: "6 Years", location: "Kigali, Rwanda", source: "CSV Import", status: "interview", job: "Senior Frontend Engineer", appliedDate: "2023-10-23" },
-  { id: "C-003", name: "Elena Rodriguez", title: "DevOps & Infrastructure Specialist", matchScore: 91, skills: ["Kubernetes", "Terraform", "CI/CD"], experience: "7 Years", location: "Remote (US)", source: "PDF Upload", status: "shortlisted", job: "DevOps Architect", appliedDate: "2023-10-22" },
+  { id: "C-003", name: "Elena Rodriguez", title: "DevOps & Infrastructure Specialist", matchScore: 91, skills: ["Kubernetes", "Terraform", "CI/CD"], experience: "7 Years", location: "Remote (US)", source: "PDF Upload", status: "exam", job: "DevOps Architect", appliedDate: "2023-10-22" },
   { id: "C-004", name: "David Okafor", title: "Backend Architect", matchScore: 88, skills: ["Java", "Spring Boot", "Kafka"], experience: "9 Years", location: "Lagos, Nigeria", source: "Umurava Platform", status: "new", job: "Fullstack Developer", appliedDate: "2023-10-21" },
-  { id: "C-005", name: "Aisha Gupta", title: "Frontend Developer", matchScore: 85, skills: ["TypeScript", "Tailwind", "Next.js"], experience: "4 Years", location: "Remote (EU)", source: "Linked Profile", status: "shortlisted", job: "Senior Frontend Engineer", appliedDate: "2023-10-20" },
+  { id: "C-005", name: "Aisha Gupta", title: "Frontend Developer", matchScore: 85, skills: ["TypeScript", "Tailwind", "Next.js"], experience: "4 Years", location: "Remote (EU)", source: "Linked Profile", status: "assessment", job: "Senior Frontend Engineer", appliedDate: "2023-10-20" },
   { id: "C-006", name: "James Osei", title: "Cloud Engineer", matchScore: 80, skills: ["GCP", "Docker", "Python"], experience: "5 Years", location: "Accra, Ghana", source: "Umurava Platform", status: "rejected", job: "DevOps Architect", appliedDate: "2023-10-19" },
   { id: "C-007", name: "Priya Nair", title: "Data Engineer", matchScore: 76, skills: ["Spark", "SQL", "Airflow"], experience: "5 Years", location: "Bangalore, India", source: "CSV Import", status: "new", job: "Data Scientist", appliedDate: "2023-10-18" },
-  { id: "C-008", name: "Kevin Mwangi", title: "Full Stack Developer", matchScore: 72, skills: ["Python", "Django", "PostgreSQL"], experience: "7 Years", location: "Nairobi, Kenya", source: "PDF Upload", status: "interview", job: "Fullstack Developer", appliedDate: "2023-10-17" },
+  { id: "C-008", name: "Kevin Mwangi", title: "Full Stack Developer", matchScore: 72, skills: ["Python", "Django", "PostgreSQL"], experience: "7 Years", location: "Nairobi, Kenya", source: "PDF Upload", status: "practical", job: "Fullstack Developer", appliedDate: "2023-10-17" },
   { id: "C-009", name: "Julie Tran", title: "Product Designer", matchScore: 89, skills: ["Figma", "User Research", "Prototyping"], experience: "5 Years", location: "Ho Chi Minh, Vietnam", source: "Umurava Platform", status: "shortlisted", job: "Product Designer", appliedDate: "2023-10-16" },
   { id: "C-010", name: "Amara Diallo", title: "Junior Frontend Developer", matchScore: 65, skills: ["HTML", "CSS", "JavaScript"], experience: "2 Years", location: "Dakar, Senegal", source: "Linked Profile", status: "new", job: "Senior Frontend Engineer", appliedDate: "2023-10-15" },
 ];
 
-const statusTone: Record<Candidate["status"], React.ComponentProps<typeof Badge>["tone"]> = {
+const statusTone: Record<CandidateStatus, React.ComponentProps<typeof Badge>["tone"]> = {
   shortlisted: "brand",
   interview: "success",
+  exam: "brand",
+  assessment: "brand",
+  practical: "brand",
   rejected: "danger",
   new: "neutral",
 };
 
-const statusLabels: Record<Candidate["status"], string> = {
+const statusLabels: Record<CandidateStatus, string> = {
   shortlisted: "Shortlisted",
   interview: "Interview",
+  exam: "Technical Exam",
+  assessment: "Assessment",
+  practical: "Practical Test",
   rejected: "Rejected",
   new: "New",
 };
 
 type SortKey = "matchScore" | "name" | "appliedDate";
-type FilterStatus = "all" | "shortlisted" | "interview" | "rejected" | "new";
+type FilterStatus = "all" | "shortlisted" | "advanced" | "interview" | "exam" | "assessment" | "practical" | "rejected" | "new";
 
-const jobList = Array.from(new Set(allCandidates.map((c) => c.job)));
-const PAGE_SIZE = 6;
+const ADVANCED_STATUSES: CandidateStatus[] = ["interview", "exam", "assessment", "practical"];
 
+const jobList = Array.from(new Set(initialCandidates.map((c) => c.job)));
+const PAGE_SIZE = 10;
+
+/* ── Context-aware helpers ── */
+function getEmailSubject(c: Candidate): string {
+  switch (c.status) {
+    case "interview": return `Interview Invitation — ${c.job} Position at Umurava`;
+    case "exam": return `Technical Exam Assignment — ${c.job} Position at Umurava`;
+    case "assessment": return `Assessment Invitation — ${c.job} Position at Umurava`;
+    case "practical": return `Practical Test Assignment — ${c.job} Position at Umurava`;
+    default: return `Next Steps — ${c.job} Position at Umurava`;
+  }
+}
+
+function getEmailBody(c: Candidate): string {
+  const first = c.name.split(" ")[0];
+  switch (c.status) {
+    case "interview":
+      return `Hi ${first},\n\nWe're pleased to invite you to an interview for the ${c.job} position at Umurava. Your profile stood out among our candidates, and we'd love to learn more about your experience.\n\nPlease find the interview details below and let us know if the scheduled time works for you.\n\nBest regards,\nUmurava Hiring Team`;
+    case "exam":
+      return `Hi ${first},\n\nCongratulations on progressing to the technical exam stage for the ${c.job} position at Umurava!\n\nYou'll receive a link to an online technical assessment. Please complete it within the allotted time. The exam covers core skills relevant to the role.\n\nGood luck!\nUmurava Hiring Team`;
+    case "assessment":
+      return `Hi ${first},\n\nWe'd like to invite you to complete a behavioral and competency assessment as part of your application for the ${c.job} position.\n\nThe assessment helps us understand your working style and cultural alignment. It should take approximately 30-45 minutes.\n\nBest regards,\nUmurava Hiring Team`;
+    case "practical":
+      return `Hi ${first},\n\nWe're excited to move you forward to the practical test stage for the ${c.job} position at Umurava!\n\nYou'll receive a take-home project with detailed requirements. You'll have 48-72 hours to complete it. Focus on code quality, architecture, and documentation.\n\nBest regards,\nUmurava Hiring Team`;
+    default:
+      return `Hi ${first},\n\nThank you for your application for the ${c.job} position. We were impressed with your profile and would like to discuss next steps.\n\nPlease let us know your availability for a brief call.\n\nBest regards,\nUmurava Hiring Team`;
+  }
+}
+
+function getScheduleTitle(c: Candidate): string {
+  switch (c.status) {
+    case "interview": return "Schedule Interview";
+    case "exam": return "Schedule Technical Exam";
+    case "assessment": return "Schedule Assessment";
+    case "practical": return "Schedule Practical Test";
+    default: return "Schedule Meeting";
+  }
+}
+
+function getScheduleSubtitle(c: Candidate): string {
+  return `${statusLabels[c.status]} for ${c.name}`;
+}
+
+function getScheduleDefaults(c: Candidate): { round: string; notes: string; duration: string } {
+  switch (c.status) {
+    case "interview":
+      return { round: "technical", notes: "Focus areas: system design, coding, behavioral questions", duration: "60 min" };
+    case "exam":
+      return { round: "exam", notes: "Online proctored exam. Ensure candidate has stable internet connection.", duration: "120 min" };
+    case "assessment":
+      return { round: "assessment", notes: "Behavioral & competency evaluation. Prepare rubric in advance.", duration: "45 min" };
+    case "practical":
+      return { round: "practical", notes: "Hands-on project review session. Candidate presents their solution.", duration: "90 min" };
+    default:
+      return { round: "phone", notes: "", duration: "30 min" };
+  }
+}
+
+/* ── Main Page ── */
 export default function CandidatesPage() {
+  const [candidates, setCandidates] = useState<Candidate[]>(initialCandidates);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("matchScore");
   const [sortAsc, setSortAsc] = useState(false);
@@ -77,10 +158,11 @@ export default function CandidatesPage() {
   const [scheduleTarget, setScheduleTarget] = useState<Candidate | null>(null);
   const [emailSent, setEmailSent] = useState(false);
   const [scheduleSent, setScheduleSent] = useState(false);
+  const [advanceDropdownId, setAdvanceDropdownId] = useState<string | null>(null);
 
   const jobFiltered = useMemo(() =>
-    filterJob === "all" ? allCandidates : allCandidates.filter((c) => c.job === filterJob),
-    [filterJob]
+    filterJob === "all" ? candidates : candidates.filter((c) => c.job === filterJob),
+    [filterJob, candidates]
   );
 
   const filtered = useMemo(() => {
@@ -89,7 +171,10 @@ export default function CandidatesPage() {
         c.name.toLowerCase().includes(search.toLowerCase()) ||
         c.title.toLowerCase().includes(search.toLowerCase()) ||
         c.skills.some((s) => s.toLowerCase().includes(search.toLowerCase()));
-      const matchesStatus = filterStatus === "all" || c.status === filterStatus;
+      let matchesStatus: boolean;
+      if (filterStatus === "all") matchesStatus = true;
+      else if (filterStatus === "advanced") matchesStatus = ADVANCED_STATUSES.includes(c.status);
+      else matchesStatus = c.status === filterStatus;
       return matchesSearch && matchesStatus;
     });
     list = [...list].sort((a, b) => {
@@ -112,10 +197,19 @@ export default function CandidatesPage() {
     setPage(1);
   }
 
+  function handleAdvance(id: string, status: AdvanceKey | "rejected") {
+    setCandidates((prev) => prev.map((c) => c.id === id ? { ...c, status } : c));
+    setAdvanceDropdownId(null);
+  }
+
   const counts = {
     all: jobFiltered.length,
     shortlisted: jobFiltered.filter((c) => c.status === "shortlisted").length,
+    advanced: jobFiltered.filter((c) => ADVANCED_STATUSES.includes(c.status)).length,
     interview: jobFiltered.filter((c) => c.status === "interview").length,
+    exam: jobFiltered.filter((c) => c.status === "exam").length,
+    assessment: jobFiltered.filter((c) => c.status === "assessment").length,
+    practical: jobFiltered.filter((c) => c.status === "practical").length,
     rejected: jobFiltered.filter((c) => c.status === "rejected").length,
     new: jobFiltered.filter((c) => c.status === "new").length,
   };
@@ -127,6 +221,18 @@ export default function CandidatesPage() {
     setPage(1);
     setShowJobPicker(false);
   }
+
+  const filterLabels: Record<FilterStatus, string> = {
+    all: "All",
+    shortlisted: "Shortlisted",
+    advanced: "All Advanced",
+    interview: "Interview",
+    exam: "Technical Exam",
+    assessment: "Assessment",
+    practical: "Practical Test",
+    rejected: "Rejected",
+    new: "New",
+  };
 
   return (
     <div className="w-full px-6 py-5">
@@ -178,12 +284,12 @@ export default function CandidatesPage() {
                     <p className={`text-sm font-semibold ${filterJob === "all" ? "text-brand" : "text-ink"}`}>All Jobs</p>
                     <p className="text-[11px] text-ink-muted">View candidates across all positions</p>
                   </div>
-                  <p className="text-xs font-bold text-ink">{allCandidates.length}</p>
+                  <p className="text-xs font-bold text-ink">{candidates.length}</p>
                   {filterJob === "all" && <Check className="h-4 w-4 shrink-0 text-brand" />}
                 </button>
               </li>
               {jobList.map((j) => {
-                const jobCount = allCandidates.filter((c) => c.job === j).length;
+                const jobCount = candidates.filter((c) => c.job === j).length;
                 const isActive = filterJob === j;
                 return (
                   <li key={j}>
@@ -212,17 +318,18 @@ export default function CandidatesPage() {
       {showJobPicker && <div className="fixed inset-0 z-[15]" onClick={() => setShowJobPicker(false)} />}
 
       {/* Stats row */}
-      <section className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <section className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-5">
         {([
-          { label: "Total Candidates", value: counts.all, tone: "brand" },
+          { label: "Total", value: counts.all, tone: "brand" },
           { label: "Shortlisted", value: counts.shortlisted, tone: "brand" },
-          { label: "In Interview", value: counts.interview, tone: "success" },
-          { label: "New / Unreviewed", value: counts.new, tone: "neutral" },
+          { label: "Advanced", value: counts.advanced, tone: "success" },
+          { label: "New", value: counts.new, tone: "neutral" },
+          { label: "Rejected", value: counts.rejected, tone: "danger" },
         ] as const).map((s) => (
           <Card key={s.label} className="p-4">
             <p className="text-xs text-ink-muted">{s.label}</p>
             <p className={`mt-1 font-display text-2xl font-bold ${
-              s.tone === "success" ? "text-success" : s.tone === "brand" ? "text-brand" : "text-ink"
+              s.tone === "success" ? "text-success" : s.tone === "brand" ? "text-brand" : s.tone === "danger" ? "text-danger" : "text-ink"
             }`}>{s.value}</p>
           </Card>
         ))}
@@ -253,13 +360,13 @@ export default function CandidatesPage() {
                 Filter
               </Button>
               {showFilter && (
-                <div className="absolute right-0 top-9 z-10 w-44 rounded-md border border-line bg-white shadow-card">
-                  {(["all", "shortlisted", "interview", "rejected", "new"] as FilterStatus[]).map((s) => (
+                <div className="absolute right-0 top-9 z-10 w-48 rounded-md border border-line bg-white shadow-card">
+                  {(["all", "shortlisted", "advanced", "interview", "exam", "assessment", "practical", "rejected", "new"] as FilterStatus[]).map((s) => (
                     <button key={s} onClick={() => { setFilterStatus(s); setShowFilter(false); setPage(1); }}
-                      className={`flex w-full items-center justify-between px-3 py-2 text-sm capitalize hover:bg-surface-soft ${
+                      className={`flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-surface-soft ${
                         filterStatus === s ? "text-brand font-medium" : "text-ink"
-                      }`}>
-                      {s} ({counts[s]}) {filterStatus === s && <Check className="h-3.5 w-3.5" />}
+                      } ${s === "advanced" ? "border-b border-line" : ""}`}>
+                      {filterLabels[s]} {filterStatus === s && <Check className="h-3.5 w-3.5" />}
                     </button>
                   ))}
                 </div>
@@ -290,54 +397,156 @@ export default function CandidatesPage() {
 
         {/* Candidates grid */}
         {paginated.length === 0 ? (
-          <div className="px-5 py-12 text-center text-sm text-ink-muted">
+          <div className="px-5 py-16 text-center text-sm text-ink-muted">
             No candidates match your filters.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-px bg-line md:grid-cols-2">
-            {paginated.map((c) => (
-              <div
-                key={c.id}
-                className={`flex flex-col gap-3 bg-white p-5 ${c.status === "rejected" ? "opacity-60" : ""}`}
-              >
-                <div className="flex items-start gap-3">
-                  <Avatar name={c.name} size={40} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold text-ink">{c.name}</h3>
-                      <Badge tone={statusTone[c.status]} pill>{statusLabels[c.status]}</Badge>
+          <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2">
+            {paginated.map((c) => {
+              const matchColor = c.matchScore >= 90 ? "text-success" : c.matchScore >= 80 ? "text-brand" : "text-ink-muted";
+              const ringColor = c.matchScore >= 90 ? "#22c55e" : c.matchScore >= 80 ? "var(--color-brand)" : "#94a3b8";
+              const ringBg = c.matchScore >= 90 ? "rgba(34,197,94,0.1)" : c.matchScore >= 80 ? "rgba(59,130,246,0.1)" : "rgba(148,163,184,0.1)";
+              const barColor = c.matchScore >= 90 ? "bg-success" : c.matchScore >= 80 ? "bg-brand" : "bg-ink-muted/40";
+              const statusIcon = advanceOptions.find((o) => o.key === c.status);
+
+              return (
+                <div
+                  key={c.id}
+                  className={`group relative flex flex-col rounded-xl border border-line bg-white shadow-sm transition-all duration-200 hover:shadow-md hover:border-brand/30 hover:-translate-y-0.5 ${c.status === "rejected" ? "opacity-50 grayscale-[30%]" : ""}`}
+                >
+                  {/* Top accent bar */}
+                  <div className="h-1 rounded-t-xl" style={{ background: `linear-gradient(90deg, ${ringColor}, ${ringColor}60)` }} />
+
+                  <div className="flex flex-col gap-3.5 p-5">
+                    {/* Header row */}
+                    <div className="flex items-start gap-3.5">
+                      {/* Match score circle */}
+                      <div className="relative flex-shrink-0">
+                        <svg width="52" height="52" viewBox="0 0 52 52" className="rotate-[-90deg]">
+                          <circle cx="26" cy="26" r="22" fill="none" stroke={ringBg} strokeWidth="4" />
+                          <circle
+                            cx="26" cy="26" r="22" fill="none" stroke={ringColor} strokeWidth="4"
+                            strokeLinecap="round"
+                            strokeDasharray={`${(c.matchScore / 100) * 138.2} 138.2`}
+                          />
+                        </svg>
+                        <span className={`absolute inset-0 flex items-center justify-center font-display text-xs font-bold ${matchColor}`}>
+                          {c.matchScore}
+                        </span>
+                      </div>
+
+                      {/* Name & details */}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <h3 className="text-sm font-bold text-ink leading-tight">{c.name}</h3>
+                          <Badge tone={statusTone[c.status]} pill>
+                            {statusIcon && <statusIcon.icon className="h-2.5 w-2.5 mr-0.5" />}
+                            {statusLabels[c.status]}
+                          </Badge>
+                        </div>
+                        <p className="mt-0.5 text-xs font-medium text-ink/70">{c.title}</p>
+                        <p className="mt-0.5 text-[10px] text-ink-muted">{c.location} · {c.experience}</p>
+                      </div>
                     </div>
-                    <p className="text-xs text-ink-muted">{c.title}</p>
-                    <p className="mt-0.5 text-[10px] text-ink-muted">{c.location} · {c.experience}</p>
+
+                    {/* Skills */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {c.skills.map((s) => (
+                        <span key={s} className="rounded-md bg-surface-soft px-2 py-0.5 text-[11px] font-medium text-ink/70">
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Match bar */}
+                    <div>
+                      <div className="flex items-center justify-between text-[10px] text-ink-muted mb-1">
+                        <span>AI Match Score</span>
+                        <span className={`font-bold ${matchColor}`}>{c.matchScore}%</span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-soft">
+                        <div
+                          className={`h-full rounded-full ${barColor} transition-all duration-500`}
+                          style={{ width: `${c.matchScore}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Job & source info */}
+                    <div className="flex items-center justify-between rounded-md bg-surface-soft/50 px-3 py-2 text-[11px] text-ink-muted">
+                      <span className="flex items-center gap-1.5">
+                        <Briefcase className="h-3 w-3" />
+                        {c.job}
+                      </span>
+                      <span>{c.source}</span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className={`text-lg font-bold ${
-                      c.matchScore >= 90 ? "text-success" : c.matchScore >= 80 ? "text-brand" : "text-ink-muted"
-                    }`}>{c.matchScore}%</p>
-                    <p className="text-[9px] uppercase tracking-wider text-ink-muted">Match</p>
+
+                  {/* Action footer */}
+                  <div className="flex items-center gap-1.5 border-t border-line px-4 py-3">
+                    <Link href={`/candidates/${c.id}`} className="flex-1">
+                      <Button variant="secondary" size="sm" fullWidth leftIcon={<Eye className="h-3.5 w-3.5" />}>
+                        Profile
+                      </Button>
+                    </Link>
+
+                    {/* Advance dropdown */}
+                    <div className="relative">
+                      <Button size="sm" leftIcon={<ChevronRight className="h-3.5 w-3.5" />}
+                        onClick={() => setAdvanceDropdownId(advanceDropdownId === c.id ? null : c.id)}
+                        disabled={c.status === "rejected"}>
+                        Advance ▾
+                      </Button>
+                      {advanceDropdownId === c.id && (
+                        <div className="absolute right-0 bottom-10 z-20 w-60 rounded-lg border border-line bg-white shadow-xl">
+                          <p className="px-3 pt-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Advance to</p>
+                          {advanceOptions.map((opt) => (
+                            <button key={opt.key}
+                              onClick={() => handleAdvance(c.id, opt.key)}
+                              className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-surface-soft transition-colors ${
+                                c.status === opt.key ? "bg-brand-soft/20" : ""
+                              }`}>
+                              <opt.icon className={`h-4 w-4 shrink-0 ${c.status === opt.key ? "text-success" : "text-brand"}`} />
+                              <div>
+                                <p className="text-sm font-medium text-ink">{opt.label}</p>
+                                <p className="text-[10px] text-ink-muted">{opt.desc}</p>
+                              </div>
+                              {c.status === opt.key && <Check className="h-3.5 w-3.5 ml-auto text-success" />}
+                            </button>
+                          ))}
+                          <div className="border-t border-line">
+                            <button
+                              onClick={() => handleAdvance(c.id, "rejected")}
+                              className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-danger/5 transition-colors">
+                              <X className="h-4 w-4 shrink-0 text-danger" />
+                              <div>
+                                <p className="text-sm font-medium text-danger">Reject</p>
+                                <p className="text-[10px] text-ink-muted">Remove from pipeline</p>
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => setEmailTarget(c)}
+                      className="flex h-8 w-8 items-center justify-center rounded-md border border-line text-ink-muted transition-colors hover:bg-surface-soft hover:text-brand hover:border-brand/30"
+                      title={`Email — ${statusLabels[c.status]}`}
+                    >
+                      <Mail className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={() => setScheduleTarget(c)}
+                      className="flex h-8 w-8 items-center justify-center rounded-md border border-line text-ink-muted transition-colors hover:bg-surface-soft hover:text-brand hover:border-brand/30"
+                      title={`Schedule ${statusLabels[c.status]}`}
+                    >
+                      <Calendar className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex flex-wrap gap-1.5">
-                  {c.skills.map((s) => <Badge key={s} tone="neutral">{s}</Badge>)}
-                </div>
-
-                <div className="flex items-center justify-between border-t border-line pt-3 text-xs text-ink-muted">
-                  <span>Job: {c.job}</span>
-                  <span>{c.source}</span>
-                </div>
-
-                <div className="flex gap-2">
-                  <Link href={`/candidates/${c.id}`} className="flex-1">
-                    <Button variant="secondary" size="sm" fullWidth leftIcon={<Eye className="h-3.5 w-3.5" />}>
-                      View Profile
-                    </Button>
-                  </Link>
-                  <Button variant="ghost" size="sm" leftIcon={<Mail className="h-3.5 w-3.5" />} onClick={() => setEmailTarget(c)} />
-                  <Button variant="ghost" size="sm" leftIcon={<Calendar className="h-3.5 w-3.5" />} onClick={() => setScheduleTarget(c)} />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -356,27 +565,36 @@ export default function CandidatesPage() {
       </Card>
 
       {/* Close dropdowns */}
-      {(showSort || showFilter) && (
-        <div className="fixed inset-0 z-[5]" onClick={() => { setShowSort(false); setShowFilter(false); }} />
+      {(showSort || showFilter || advanceDropdownId !== null) && (
+        <div className="fixed inset-0 z-[5]" onClick={() => { setShowSort(false); setShowFilter(false); setAdvanceDropdownId(null); }} />
       )}
 
-      {/* Email Modal */}
+      {/* Context-aware Email Modal */}
       <Modal open={!!emailTarget} onClose={() => setEmailTarget(null)} size="md">
-        <ModalHeader title="Email Candidate" subtitle={emailTarget ? `Send a message to ${emailTarget.name}` : ""} onClose={() => setEmailTarget(null)} />
+        <ModalHeader
+          title={emailTarget ? `Email — ${statusLabels[emailTarget.status]}` : "Email Candidate"}
+          subtitle={emailTarget ? `Send ${statusLabels[emailTarget.status].toLowerCase()} notification to ${emailTarget.name}` : ""}
+          onClose={() => setEmailTarget(null)}
+        >
+          {emailTarget && ADVANCED_STATUSES.includes(emailTarget.status) && (
+            <Badge tone={statusTone[emailTarget.status]} pill className="mb-2">{statusLabels[emailTarget.status]} Stage</Badge>
+          )}
+        </ModalHeader>
         <ModalBody className="flex flex-col gap-4">
           {emailTarget && (
             <>
               <div className="flex items-center gap-3 rounded-md border border-line bg-surface-soft/30 p-3">
                 <Avatar name={emailTarget.name} size={36} />
-                <div>
+                <div className="flex-1">
                   <p className="text-sm font-medium text-ink">{emailTarget.name}</p>
                   <p className="text-xs text-ink-muted">{emailTarget.title} · {emailTarget.matchScore}% Match</p>
                 </div>
+                <Badge tone={statusTone[emailTarget.status]} pill>{statusLabels[emailTarget.status]}</Badge>
               </div>
               <Field label="To"><Input defaultValue={`${emailTarget.name.toLowerCase().replace(/ /g, ".")}@example.com`} readOnly className="bg-surface-soft/50" /></Field>
-              <Field label="Subject"><Input defaultValue={`Next Steps — ${emailTarget.job} Position at Umurava`} /></Field>
+              <Field label="Subject"><Input key={emailTarget.id + emailTarget.status} defaultValue={getEmailSubject(emailTarget)} /></Field>
               <Field label="Message">
-                <Textarea rows={5} defaultValue={`Hi ${emailTarget.name.split(" ")[0]},\n\nThank you for your application for the ${emailTarget.job} position. We were impressed with your profile and would like to discuss next steps.\n\nPlease let us know your availability for a brief call.\n\nBest regards,\nUmurava Hiring Team`} />
+                <Textarea key={emailTarget.id + emailTarget.status} rows={6} defaultValue={getEmailBody(emailTarget)} />
               </Field>
             </>
           )}
@@ -390,53 +608,119 @@ export default function CandidatesPage() {
         </ModalFooter>
       </Modal>
 
-      {/* Schedule Interview Modal */}
+      {/* Context-aware Schedule Modal */}
       <Modal open={!!scheduleTarget} onClose={() => setScheduleTarget(null)} size="md">
-        <ModalHeader title="Schedule Interview" subtitle={scheduleTarget ? `For ${scheduleTarget.name}` : ""} onClose={() => setScheduleTarget(null)}>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink-muted">Interview Setup</p>
+        <ModalHeader
+          title={scheduleTarget ? getScheduleTitle(scheduleTarget) : "Schedule"}
+          subtitle={scheduleTarget ? getScheduleSubtitle(scheduleTarget) : ""}
+          onClose={() => setScheduleTarget(null)}
+        >
+          {scheduleTarget && (
+            <Badge tone={statusTone[scheduleTarget.status]} pill className="mb-2">{statusLabels[scheduleTarget.status]} Stage</Badge>
+          )}
         </ModalHeader>
         <ModalBody className="flex flex-col gap-5">
-          {scheduleTarget && (
-            <>
-              <div className="flex items-center gap-3 rounded-md border border-line bg-surface-soft/30 p-3">
-                <Avatar name={scheduleTarget.name} size={36} />
-                <div>
-                  <p className="text-sm font-medium text-ink">{scheduleTarget.name}</p>
-                  <p className="text-xs text-ink-muted">{scheduleTarget.title} · {scheduleTarget.job}</p>
-                </div>
-                <Badge tone={scheduleTarget.matchScore >= 90 ? "success" : "brand"} pill className="ml-auto">{scheduleTarget.matchScore}% Match</Badge>
-              </div>
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Field label="Interview Type">
-                  <div className="flex gap-2">
-                    {([{ icon: Video, label: "Video" }, { icon: Phone, label: "Phone" }, { icon: Users, label: "In Person" }] as const).map((type, i) => (
-                      <button key={type.label} className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border p-2.5 text-xs font-medium transition-colors ${i === 0 ? "border-brand bg-brand-soft/30 text-brand" : "border-line text-ink-muted hover:bg-surface-soft"}`}>
-                        <type.icon className="h-3.5 w-3.5" />{type.label}
-                      </button>
-                    ))}
+          {scheduleTarget && (() => {
+            const defaults = getScheduleDefaults(scheduleTarget);
+            return (
+              <>
+                <div className="flex items-center gap-3 rounded-md border border-line bg-surface-soft/30 p-3">
+                  <Avatar name={scheduleTarget.name} size={36} />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-ink">{scheduleTarget.name}</p>
+                    <p className="text-xs text-ink-muted">{scheduleTarget.title} · {scheduleTarget.job}</p>
                   </div>
+                  <Badge tone={scheduleTarget.matchScore >= 90 ? "success" : "brand"} pill className="ml-auto">{scheduleTarget.matchScore}% Match</Badge>
+                </div>
+
+                {/* Session type visual indicator */}
+                <div className="flex items-center gap-3 rounded-md border border-brand/20 bg-brand-soft/20 p-3">
+                  {(() => {
+                    const opt = advanceOptions.find((o) => o.key === scheduleTarget.status);
+                    const Icon = opt?.icon ?? Calendar;
+                    return (
+                      <>
+                        <Icon className="h-5 w-5 text-brand" />
+                        <div>
+                          <p className="text-sm font-semibold text-ink">{opt?.label ?? "Meeting"}</p>
+                          <p className="text-xs text-ink-muted">{opt?.desc ?? "Schedule a session"} · {defaults.duration}</p>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {scheduleTarget.status === "interview" && (
+                    <Field label="Interview Type">
+                      <div className="flex gap-2">
+                        {([{ icon: Video, label: "Video" }, { icon: Phone, label: "Phone" }, { icon: Users, label: "In Person" }] as const).map((type, i) => (
+                          <button key={type.label} className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border p-2.5 text-xs font-medium transition-colors ${i === 0 ? "border-brand bg-brand-soft/30 text-brand" : "border-line text-ink-muted hover:bg-surface-soft"}`}>
+                            <type.icon className="h-3.5 w-3.5" />{type.label}
+                          </button>
+                        ))}
+                      </div>
+                    </Field>
+                  )}
+                  <Field label={scheduleTarget.status === "interview" ? "Round" : "Session Type"}>
+                    <Select key={scheduleTarget.id + scheduleTarget.status} defaultValue={defaults.round}>
+                      {scheduleTarget.status === "interview" ? (
+                        <>
+                          <option value="phone">Phone Screen</option>
+                          <option value="technical">Technical</option>
+                          <option value="behavioral">Behavioral</option>
+                          <option value="final">Final / Panel</option>
+                        </>
+                      ) : scheduleTarget.status === "exam" ? (
+                        <>
+                          <option value="exam">Online Proctored</option>
+                          <option value="take-home">Take-Home Exam</option>
+                          <option value="live">Live Coding</option>
+                        </>
+                      ) : scheduleTarget.status === "assessment" ? (
+                        <>
+                          <option value="assessment">Behavioral Assessment</option>
+                          <option value="competency">Competency Evaluation</option>
+                          <option value="personality">Personality Profile</option>
+                        </>
+                      ) : scheduleTarget.status === "practical" ? (
+                        <>
+                          <option value="practical">Project Presentation</option>
+                          <option value="pair">Pair Programming</option>
+                          <option value="design">Design Challenge</option>
+                        </>
+                      ) : (
+                        <>
+                          <option value="phone">Initial Call</option>
+                          <option value="intro">Introduction Meeting</option>
+                        </>
+                      )}
+                    </Select>
+                  </Field>
+                  <Field label="Date"><Input type="date" defaultValue="2026-04-18" /></Field>
+                  <Field label="Time"><Input type="time" defaultValue="14:00" /></Field>
+                </div>
+                {scheduleTarget.status === "interview" && (
+                  <Field label="Meeting Link"><Input placeholder="https://meet.google.com/..." /></Field>
+                )}
+                {scheduleTarget.status === "exam" && (
+                  <Field label="Exam Platform Link"><Input placeholder="https://hackerrank.com/test/..." /></Field>
+                )}
+                {scheduleTarget.status === "practical" && (
+                  <Field label="Project Repository / Brief"><Input placeholder="https://github.com/company/take-home-..." /></Field>
+                )}
+                <Field label="Notes">
+                  <Textarea key={scheduleTarget.id + scheduleTarget.status} rows={2} defaultValue={defaults.notes} />
                 </Field>
-                <Field label="Round">
-                  <Select defaultValue="technical">
-                    <option value="phone">Phone Screen</option>
-                    <option value="technical">Technical</option>
-                    <option value="behavioral">Behavioral</option>
-                    <option value="final">Final / Panel</option>
-                  </Select>
-                </Field>
-                <Field label="Date"><Input type="date" defaultValue="2026-04-18" /></Field>
-                <Field label="Time"><Input type="time" defaultValue="14:00" /></Field>
-              </div>
-              <Field label="Meeting Link"><Input placeholder="https://meet.google.com/..." /></Field>
-              <Field label="Notes"><Textarea rows={2} placeholder="Areas to focus on..." /></Field>
-            </>
-          )}
+              </>
+            );
+          })()}
         </ModalBody>
         <ModalFooter>
           <Button variant="secondary" onClick={() => setScheduleTarget(null)}>Cancel</Button>
           <Button leftIcon={scheduleSent ? <Check className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
             onClick={() => { setScheduleSent(true); setTimeout(() => { setScheduleSent(false); setScheduleTarget(null); }, 1500); }}>
-            {scheduleSent ? "Scheduled!" : "Send Invite"}
+            {scheduleSent ? "Scheduled!" : scheduleTarget ? `Schedule ${statusLabels[scheduleTarget.status]}` : "Send Invite"}
           </Button>
         </ModalFooter>
       </Modal>
