@@ -8,6 +8,8 @@ import { ProtectedAuthController } from './../controllers/ProtectedAuthControlle
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { HelloWorldController } from './../controllers/HelloWorldController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { GeminiController } from './../controllers/GeminiController';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { AuthController } from './../controllers/AuthController';
 import type { Request as ExRequest, Response as ExResponse, RequestHandler, Router } from 'express';
 
@@ -52,6 +54,89 @@ const models: TsoaRoute.Models = {
         "dataType": "refObject",
         "properties": {
             "userId": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiUsageMetadata": {
+        "dataType": "refObject",
+        "properties": {
+            "promptTokenCount": {"dataType":"double"},
+            "candidatesTokenCount": {"dataType":"double"},
+            "totalTokenCount": {"dataType":"double"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiGenerateResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "text": {"dataType":"string","required":true},
+            "model": {"dataType":"string","required":true},
+            "usage": {"ref":"GeminiUsageMetadata"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiGenerateRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "prompt": {"dataType":"string","required":true},
+            "systemInstruction": {"dataType":"string"},
+            "temperature": {"dataType":"double"},
+            "maxOutputTokens": {"dataType":"double"},
+            "responseMimeType": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["text/plain"]},{"dataType":"enum","enums":["application/json"]}]},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiCandidateScreenResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "recommendation": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["strong_yes"]},{"dataType":"enum","enums":["yes"]},{"dataType":"enum","enums":["maybe"]},{"dataType":"enum","enums":["no"]}],"required":true},
+            "score": {"dataType":"double","required":true},
+            "summary": {"dataType":"string","required":true},
+            "strengths": {"dataType":"array","array":{"dataType":"string"},"required":true},
+            "concerns": {"dataType":"array","array":{"dataType":"string"},"required":true},
+            "evidence": {"dataType":"array","array":{"dataType":"string"},"required":true},
+            "raw": {"dataType":"string","required":true},
+            "model": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiJobContext": {
+        "dataType": "refObject",
+        "properties": {
+            "title": {"dataType":"string","required":true},
+            "mustHaveQualifications": {"dataType":"array","array":{"dataType":"string"}},
+            "niceToHaveQualifications": {"dataType":"array","array":{"dataType":"string"}},
+            "hardSkills": {"dataType":"array","array":{"dataType":"string"}},
+            "softSkills": {"dataType":"array","array":{"dataType":"string"}},
+            "experience": {"dataType":"string"},
+            "seniorityLevel": {"dataType":"string"},
+            "educationLevel": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiCandidateContext": {
+        "dataType": "refObject",
+        "properties": {
+            "fullName": {"dataType":"string"},
+            "summary": {"dataType":"string"},
+            "resumeText": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiCandidateScreenRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "job": {"ref":"GeminiJobContext","required":true},
+            "candidate": {"ref":"GeminiCandidateContext","required":true},
+            "instructions": {"dataType":"string"},
+            "temperature": {"dataType":"double"},
         },
         "additionalProperties": false,
     },
@@ -220,6 +305,95 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'createHelloWorld',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsGeminiController_health: Record<string, TsoaRoute.ParameterSchema> = {
+        };
+        app.get('/gemini/health',
+            ...(fetchMiddlewares<RequestHandler>(GeminiController)),
+            ...(fetchMiddlewares<RequestHandler>(GeminiController.prototype.health)),
+
+            async function GeminiController_health(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsGeminiController_health, request, response });
+
+                const controller = new GeminiController();
+
+              await templateService.apiHandler({
+                methodName: 'health',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsGeminiController_generate: Record<string, TsoaRoute.ParameterSchema> = {
+                requestBody: {"in":"body","name":"requestBody","required":true,"ref":"GeminiGenerateRequest"},
+        };
+        app.post('/gemini/generate',
+            ...(fetchMiddlewares<RequestHandler>(GeminiController)),
+            ...(fetchMiddlewares<RequestHandler>(GeminiController.prototype.generate)),
+
+            async function GeminiController_generate(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsGeminiController_generate, request, response });
+
+                const controller = new GeminiController();
+
+              await templateService.apiHandler({
+                methodName: 'generate',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsGeminiController_screenCandidate: Record<string, TsoaRoute.ParameterSchema> = {
+                requestBody: {"in":"body","name":"requestBody","required":true,"ref":"GeminiCandidateScreenRequest"},
+        };
+        app.post('/gemini/screen-candidate',
+            ...(fetchMiddlewares<RequestHandler>(GeminiController)),
+            ...(fetchMiddlewares<RequestHandler>(GeminiController.prototype.screenCandidate)),
+
+            async function GeminiController_screenCandidate(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsGeminiController_screenCandidate, request, response });
+
+                const controller = new GeminiController();
+
+              await templateService.apiHandler({
+                methodName: 'screenCandidate',
                 controller,
                 response,
                 next,

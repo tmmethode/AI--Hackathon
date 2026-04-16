@@ -92,6 +92,215 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"GeminiUsageMetadata": {
+				"properties": {
+					"promptTokenCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"candidatesTokenCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"totalTokenCount": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiGenerateResponse": {
+				"properties": {
+					"text": {
+						"type": "string"
+					},
+					"model": {
+						"type": "string"
+					},
+					"usage": {
+						"$ref": "#/components/schemas/GeminiUsageMetadata"
+					}
+				},
+				"required": [
+					"text",
+					"model"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiGenerateRequest": {
+				"properties": {
+					"prompt": {
+						"type": "string"
+					},
+					"systemInstruction": {
+						"type": "string"
+					},
+					"temperature": {
+						"type": "number",
+						"format": "double"
+					},
+					"maxOutputTokens": {
+						"type": "number",
+						"format": "double"
+					},
+					"responseMimeType": {
+						"type": "string",
+						"enum": [
+							"text/plain",
+							"application/json"
+						]
+					}
+				},
+				"required": [
+					"prompt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiCandidateScreenResponse": {
+				"properties": {
+					"recommendation": {
+						"type": "string",
+						"enum": [
+							"strong_yes",
+							"yes",
+							"maybe",
+							"no"
+						]
+					},
+					"score": {
+						"type": "number",
+						"format": "double"
+					},
+					"summary": {
+						"type": "string"
+					},
+					"strengths": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"concerns": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"evidence": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"raw": {
+						"type": "string"
+					},
+					"model": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"recommendation",
+					"score",
+					"summary",
+					"strengths",
+					"concerns",
+					"evidence",
+					"raw",
+					"model"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiJobContext": {
+				"properties": {
+					"title": {
+						"type": "string"
+					},
+					"mustHaveQualifications": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"niceToHaveQualifications": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"hardSkills": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"softSkills": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"experience": {
+						"type": "string"
+					},
+					"seniorityLevel": {
+						"type": "string"
+					},
+					"educationLevel": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"title"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiCandidateContext": {
+				"properties": {
+					"fullName": {
+						"type": "string"
+					},
+					"summary": {
+						"type": "string"
+					},
+					"resumeText": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"resumeText"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiCandidateScreenRequest": {
+				"properties": {
+					"job": {
+						"$ref": "#/components/schemas/GeminiJobContext"
+					},
+					"candidate": {
+						"$ref": "#/components/schemas/GeminiCandidateContext"
+					},
+					"instructions": {
+						"type": "string"
+					},
+					"temperature": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"job",
+					"candidate"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"AuthResponse": {
 				"properties": {
 					"user": {
@@ -309,6 +518,104 @@
 				],
 				"security": [],
 				"parameters": []
+			}
+		},
+		"/gemini/health": {
+			"get": {
+				"operationId": "Health",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"model": {
+											"type": "string"
+										},
+										"configured": {
+											"type": "boolean"
+										}
+									},
+									"required": [
+										"model",
+										"configured"
+									],
+									"type": "object"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Gemini"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
+		"/gemini/generate": {
+			"post": {
+				"operationId": "Generate",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/GeminiGenerateResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Gemini"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/GeminiGenerateRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/gemini/screen-candidate": {
+			"post": {
+				"operationId": "ScreenCandidate",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/GeminiCandidateScreenResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Gemini"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/GeminiCandidateScreenRequest"
+							}
+						}
+					}
+				}
 			}
 		},
 		"/auth/register": {

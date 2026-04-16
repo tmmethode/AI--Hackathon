@@ -24,9 +24,10 @@ Copy the environment example file:
 cp .env.example .env
 ```
 
-Update the `.env` file with your MongoDB connection string:
+Update the `.env` file with your MongoDB connection string and Gemini credentials:
 ```
 MONGODB_URI=mongodb://localhost:27017/helloworld
+GEMINI_API_KEY=your-gemini-api-key
 ```
 
 ## Available Scripts
@@ -42,6 +43,12 @@ MONGODB_URI=mongodb://localhost:27017/helloworld
 - `GET /hello/` - Get the latest Hello World message
 - `GET /hello/create` - Create a new Hello World message in the database
 
+### Gemini
+
+- `GET /gemini/health` - Check whether Gemini is configured and which model is active
+- `POST /gemini/generate` - Send a generic prompt to Gemini
+- `POST /gemini/screen-candidate` - Score a candidate against structured job requirements
+
 ### Documentation
 
 - `GET /docs` - Swagger UI documentation
@@ -54,7 +61,13 @@ backend_api/
 ├── config/
 │   └── database.ts       # MongoDB connection
 ├── controllers/
+│   ├── GeminiController.ts      # Gemini API endpoints
 │   └── HelloWorldController.ts  # API controllers
+├── gemini/
+│   ├── client.ts         # Gemini REST client
+│   ├── prompts.ts        # Screening prompt builders
+│   ├── screening.ts      # Candidate screening service
+│   └── types.ts          # Gemini request/response types
 ├── models/
 │   └── HelloWorld.ts     # Mongoose models
 ├── generated/           # Auto-generated tsoa routes

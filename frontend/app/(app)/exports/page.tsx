@@ -3,16 +3,17 @@
 import { useState } from "react";
 import {
   Download, FileText, Sheet, FileJson, CheckCircle2,
-  Calendar, Filter, Search, Clock, Briefcase, Users,
-  Eye, Trash2, Check, X,
+  Filter, Search, Clock, Briefcase, Users,
+  Eye, Check, Sparkles,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
-import { Card, CardHeader } from "@/components/ui/Card";
+import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
 
 type ExportFormat = "csv" | "pdf" | "json";
+type ExportStatus = "ready" | "generating" | "expired";
 
 interface ExportRecord {
   id: string;
@@ -22,7 +23,7 @@ interface ExportRecord {
   candidates: number;
   createdAt: string;
   size: string;
-  status: "ready" | "generating" | "expired";
+  status: ExportStatus;
 }
 
 const exports: ExportRecord[] = [
@@ -45,16 +46,35 @@ const formatLabels: Record<ExportFormat, string> = {
   json: "JSON Data",
 };
 
+const statusLabels: Record<ExportStatus, string> = {
+  ready: "Ready",
+  generating: "Generating",
+  expired: "Expired",
+};
+
 export default function ExportsPage() {
   const [showNewExport, setShowNewExport] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>("csv");
   const [exportDone, setExportDone] = useState(false);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ExportStatus | "all">("all");
+  const [formatFilter, setFormatFilter] = useState<ExportFormat | "all">("all");
 
-  const filtered = exports.filter((e) =>
-    e.name.toLowerCase().includes(search.toLowerCase()) ||
-    e.job.toLowerCase().includes(search.toLowerCase())
-  );
+  const totalCandidates = exports.reduce((sum, exp) => sum + exp.candidates, 0);
+  const readyExports = exports.filter((exp) => exp.status === "ready").length;
+  const latestExport = exports[0];
+  const latestExportTone =
+    latestExport.status === "ready" ? "success" : latestExport.status === "generating" ? "brand" : "neutral";
+
+  const filtered = exports.filter((exp) => {
+    const matchesSearch =
+      exp.name.toLowerCase().includes(search.toLowerCase()) ||
+      exp.job.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === "all" || exp.status === statusFilter;
+    const matchesFormat = formatFilter === "all" || exp.format === formatFilter;
+
+    return matchesSearch && matchesStatus && matchesFormat;
+  });
 
   function handleGenerateExport() {
     setExportDone(true);
@@ -76,115 +96,206 @@ export default function ExportsPage() {
         }
       />
 
-      {/* Stats */}
-      <section className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Card className="p-4">
-          <p className="text-xs text-ink-muted">Total Exports</p>
-          <p className="mt-1 font-display text-2xl font-bold text-ink">{exports.length}</p>
+      <section className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]">
+        <Card className="overflow-hidden p-0">
+          <div className="bg-gradient-to-r from-brand-soft via-white to-surface-soft/80 p-6">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-[560px]">
+                <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-brand">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Export Hub
+                </div>
+                <h2 className="mt-4 font-display text-2xl font-bold text-ink">Package shortlist decisions into shareable hiring outputs</h2>
+                <p className="mt-2 text-sm leading-6 text-ink-muted">
+                  Create recruiter-friendly exports for hiring managers, finance, or downstream systems without leaving the workflow.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 sm:min-w-[320px]">
+                <div className="rounded-xl border border-line bg-white/85 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Total Exports</p>
+                  <p className="mt-2 font-display text-2xl font-bold text-ink">{exports.length}</p>
+                </div>
+                <div className="rounded-xl border border-line bg-white/85 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Ready to Download</p>
+                  <p className="mt-2 font-display text-2xl font-bold text-success">{readyExports}</p>
+                </div>
+                <div className="rounded-xl border border-line bg-white/85 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Candidates Exported</p>
+                  <p className="mt-2 font-display text-2xl font-bold text-brand">{totalCandidates}</p>
+                </div>
+                <div className="rounded-xl border border-line bg-white/85 p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Expired</p>
+                  <p className="mt-2 font-display text-2xl font-bold text-ink-muted">
+                    {exports.filter((exp) => exp.status === "expired").length}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </Card>
-        <Card className="p-4">
-          <p className="text-xs text-ink-muted">Ready to Download</p>
-          <p className="mt-1 font-display text-2xl font-bold text-success">
-            {exports.filter((e) => e.status === "ready").length}
-          </p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs text-ink-muted">Total Candidates Exported</p>
-          <p className="mt-1 font-display text-2xl font-bold text-brand">
-            {exports.reduce((sum, e) => sum + e.candidates, 0)}
-          </p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-xs text-ink-muted">Expired</p>
-          <p className="mt-1 font-display text-2xl font-bold text-ink-muted">
-            {exports.filter((e) => e.status === "expired").length}
-          </p>
+
+        <Card className="p-5">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Latest Export</p>
+          <div className="mt-4 rounded-xl border border-line bg-surface-soft/30 p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand/10">
+                <Download className="h-4 w-4 text-brand" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-ink">{latestExport.name}</p>
+                <p className="mt-1 text-xs text-ink-muted">{latestExport.job} · {latestExport.createdAt}</p>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Badge tone={latestExportTone} pill>{statusLabels[latestExport.status]}</Badge>
+              <Badge tone="brand" pill>{formatLabels[latestExport.format]}</Badge>
+              <Badge tone="neutral" pill>{latestExport.candidates} Candidates</Badge>
+            </div>
+            <Button variant="secondary" fullWidth className="mt-4" leftIcon={<Eye className="h-4 w-4" />}>
+              Preview Export
+            </Button>
+          </div>
         </Card>
       </section>
 
-      {/* Export list */}
-      <Card className="mt-6">
-        <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-4">
-          <h2 className="font-display text-base font-semibold text-ink">Export History</h2>
-          <div className="relative ml-auto">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-muted" />
-            <input
-              placeholder="Search exports…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-8 w-52 rounded-md border border-line bg-white pl-8 pr-3 text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand/40"
-            />
+      <Card className="mt-6 p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <h2 className="font-display text-lg font-semibold text-ink">Export History</h2>
+            <p className="mt-1 text-sm text-ink-muted">Search, filter, and reopen previously generated exports.</p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-[220px_auto] lg:min-w-[520px]">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-muted" />
+              <input
+                placeholder="Search exports…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-10 w-full rounded-md border border-line bg-white pl-8 pr-3 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand/40"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <div className="inline-flex items-center gap-2 rounded-md border border-line bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                <Filter className="h-3.5 w-3.5" />
+                Filters
+              </div>
+              {(["all", "ready", "generating", "expired"] as const).map((status) => (
+                <button
+                  key={status}
+                  type="button"
+                  onClick={() => setStatusFilter(status)}
+                  className={`rounded-full px-3 py-2 text-xs font-semibold transition-colors ${
+                    statusFilter === status ? "bg-brand text-white" : "bg-surface-soft text-ink-muted hover:bg-brand-soft hover:text-brand"
+                  }`}
+                >
+                  {status === "all" ? "All Statuses" : statusLabels[status]}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
-        {/* Table */}
-        <div role="table">
-          <div role="row" className="hidden grid-cols-[2fr_0.8fr_1fr_0.7fr_0.7fr_0.7fr_120px] gap-4 bg-surface-soft/40 px-5 py-3 text-xs uppercase tracking-wider text-ink-muted md:grid">
-            <span role="columnheader">Export Name</span>
-            <span role="columnheader">Format</span>
-            <span role="columnheader">Created</span>
-            <span role="columnheader">Candidates</span>
-            <span role="columnheader">Size</span>
-            <span role="columnheader">Status</span>
-            <span role="columnheader" className="text-right">Actions</span>
-          </div>
-          {filtered.length === 0 ? (
-            <div className="px-5 py-12 text-center text-sm text-ink-muted">
-              No exports found.
-            </div>
-          ) : (
-            <ul className="divide-y divide-line">
-              {filtered.map((exp, i) => {
-                const FormatIcon = formatIcons[exp.format];
-                return (
-                  <li
-                    key={exp.id}
-                    className={`grid grid-cols-2 gap-3 px-5 py-4 text-sm md:grid-cols-[2fr_0.8fr_1fr_0.7fr_0.7fr_0.7fr_120px] md:items-center md:gap-4 ${
-                      i % 2 === 1 ? "bg-surface-soft/30" : "bg-white"
-                    }`}
-                  >
-                    <div>
-                      <p className="font-medium text-ink">{exp.name}</p>
-                      <p className="mt-0.5 text-[10px] uppercase tracking-wider text-ink-muted">{exp.id} · {exp.job}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <FormatIcon className="h-4 w-4 text-brand" />
-                      <span className="text-xs uppercase text-ink">{exp.format}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs text-ink-muted">
-                      <Clock className="h-3 w-3" />
-                      {exp.createdAt}
-                    </div>
-                    <p className="font-semibold text-ink">{exp.candidates}</p>
-                    <p className="text-ink-muted">{exp.size}</p>
-                    <div>
-                      <Badge
-                        tone={exp.status === "ready" ? "success" : exp.status === "generating" ? "brand" : "neutral"}
-                        pill
-                      >
-                        {exp.status === "ready" ? "Ready" : exp.status === "generating" ? "Generating" : "Expired"}
-                      </Badge>
-                    </div>
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        leftIcon={<Download className="h-3.5 w-3.5" />}
-                        disabled={exp.status === "expired"}
-                      />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        leftIcon={<Eye className="h-3.5 w-3.5" />}
-                      />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+        <div className="mt-4 flex flex-wrap gap-2">
+          {(["all", "csv", "pdf", "json"] as const).map((format) => (
+            <button
+              key={format}
+              type="button"
+              onClick={() => setFormatFilter(format)}
+              className={`rounded-full px-3 py-2 text-xs font-semibold transition-colors ${
+                formatFilter === format ? "bg-brand text-white" : "bg-surface-soft text-ink-muted hover:bg-brand-soft hover:text-brand"
+              }`}
+            >
+              {format === "all" ? "All Formats" : formatLabels[format]}
+            </button>
+          ))}
         </div>
       </Card>
+
+      <div className="mt-6 grid gap-4">
+        {filtered.length === 0 ? (
+          <Card className="p-10 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-soft/40">
+              <Search className="h-6 w-6 text-brand" />
+            </div>
+            <h3 className="mt-4 font-display text-lg font-semibold text-ink">No matching exports</h3>
+            <p className="mt-2 text-sm text-ink-muted">
+              Try a different search term or clear some filters to see more export history.
+            </p>
+          </Card>
+        ) : (
+          filtered.map((exp) => {
+            const FormatIcon = formatIcons[exp.format];
+            const statusTone =
+              exp.status === "ready" ? "success" : exp.status === "generating" ? "brand" : "neutral";
+
+            return (
+              <Card key={exp.id} className="p-5">
+                <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand/10">
+                      <FormatIcon className="h-5 w-5 text-brand" />
+                    </div>
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-display text-lg font-semibold text-ink">{exp.name}</h3>
+                        <Badge tone={statusTone} pill>{statusLabels[exp.status]}</Badge>
+                        <Badge tone="brand" pill>{formatLabels[exp.format]}</Badge>
+                      </div>
+                      <p className="mt-1 text-sm text-ink-muted">{exp.id} · {exp.job}</p>
+
+                      <div className="mt-4 grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+                        <div className="rounded-lg border border-line bg-surface-soft/30 p-3">
+                          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+                            <Briefcase className="h-3.5 w-3.5" />
+                            Job
+                          </div>
+                          <p className="mt-2 font-medium text-ink">{exp.job}</p>
+                        </div>
+                        <div className="rounded-lg border border-line bg-surface-soft/30 p-3">
+                          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+                            <Users className="h-3.5 w-3.5" />
+                            Candidates
+                          </div>
+                          <p className="mt-2 font-medium text-ink">{exp.candidates}</p>
+                        </div>
+                        <div className="rounded-lg border border-line bg-surface-soft/30 p-3">
+                          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+                            <Clock className="h-3.5 w-3.5" />
+                            Created
+                          </div>
+                          <p className="mt-2 font-medium text-ink">{exp.createdAt}</p>
+                        </div>
+                        <div className="rounded-lg border border-line bg-surface-soft/30 p-3">
+                          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+                            <FileText className="h-3.5 w-3.5" />
+                            File Size
+                          </div>
+                          <p className="mt-2 font-medium text-ink">{exp.size}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 lg:w-[220px] lg:flex-col">
+                    <Button
+                      leftIcon={<Download className="h-4 w-4" />}
+                      disabled={exp.status === "expired"}
+                      fullWidth
+                    >
+                      Download
+                    </Button>
+                    <Button variant="secondary" leftIcon={<Eye className="h-4 w-4" />} fullWidth>
+                      Preview
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            );
+          })
+        )}
+      </div>
 
       {/* New Export Modal */}
       <Modal open={showNewExport} onClose={() => setShowNewExport(false)} size="sm">
