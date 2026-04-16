@@ -40,12 +40,14 @@ interface WeightCriterion {
 
 function WeightRow({
   criterion,
+  maxValue,
   onLabelChange,
   onValueChange,
   onRemove,
   canRemove,
 }: {
   criterion: WeightCriterion;
+  maxValue: number;
   onLabelChange: (id: string, label: string) => void;
   onValueChange: (id: string, value: number) => void;
   onRemove: (id: string) => void;
@@ -65,7 +67,7 @@ function WeightRow({
           <Input
             type="number"
             min={0}
-            max={100}
+            max={maxValue}
             value={criterion.value}
             onChange={(e) => onValueChange(criterion.id, Number(e.target.value))}
           />
@@ -81,14 +83,16 @@ function WeightRow({
         <input
           type="range"
           min={0}
-          max={100}
+          max={maxValue}
           value={criterion.value}
           onChange={(e) => onValueChange(criterion.id, Number(e.target.value))}
           className="h-2 w-full cursor-pointer appearance-none rounded-full bg-surface-soft accent-brand"
         />
         <span className="w-12 text-right text-sm font-semibold text-brand">{criterion.value}%</span>
       </div>
-      <p className="mt-2 text-xs text-ink-muted">Adjust this criterion to reflect how important it is for this role.</p>
+      <p className="mt-2 text-xs text-ink-muted">
+        Adjust this criterion to reflect how important it is for this role. Maximum available here: {maxValue}%.
+      </p>
     </Card>
   );
 }
@@ -103,9 +107,14 @@ export default function NewJobPage() {
   ]);
 
   const totalWeight = weightCriteria.reduce((sum, criterion) => sum + criterion.value, 0);
+  const remainingWeight = 100 - totalWeight;
+  const isWeightBalanced = remainingWeight === 0;
 
   function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    if (!isWeightBalanced) {
+      return;
+    }
     setShowSuccessModal(true);
   }
 
@@ -116,10 +125,23 @@ export default function NewJobPage() {
   }
 
   function updateWeightValue(id: string, value: number) {
-    const normalizedValue = Number.isNaN(value) ? 0 : Math.min(100, Math.max(0, value));
-    setWeightCriteria((current) =>
-      current.map((criterion) => (criterion.id === id ? { ...criterion, value: normalizedValue } : criterion))
-    );
+    setWeightCriteria((current) => {
+      const otherTotal = current.reduce((sum, criterion) => (
+        criterion.id === id ? sum : sum + criterion.value
+      ), 0);
+      const maxAllowed = Math.max(0, 100 - otherTotal);
+      const normalizedValue = Number.isNaN(value) ? 0 : Math.min(maxAllowed, Math.max(0, value));
+
+      return current.map((criterion) => (criterion.id === id ? { ...criterion, value: normalizedValue } : criterion));
+    });
+  }
+
+  function getMaxWeightValue(id: string) {
+    const otherTotal = weightCriteria.reduce((sum, criterion) => (
+      criterion.id === id ? sum : sum + criterion.value
+    ), 0);
+
+    return Math.max(0, 100 - otherTotal);
   }
 
   function addWeightCriterion() {
@@ -147,7 +169,7 @@ export default function NewJobPage() {
         <div className="flex flex-wrap gap-2">
           <Link href="/jobs"><Button variant="secondary" leftIcon={<X className="h-4 w-4" />}>Cancel</Button></Link>
           <Button variant="secondary" leftIcon={<Save className="h-4 w-4" />} onClick={() => setShowSuccessModal(true)}>Save as Draft</Button>
-          <Button leftIcon={<Play className="h-4 w-4" />} onClick={handleSave}>Save Job</Button>
+          <Button leftIcon={<Play className="h-4 w-4" />} onClick={handleSave} disabled={!isWeightBalanced}>Save Job</Button>
         </div>
       </div>
 
@@ -183,20 +205,6 @@ export default function NewJobPage() {
             </Field>
             <Field label="Target Salary Band (Annual)">
               <Input defaultValue="$70,000 - $110,000 USD" />
-            </Field>
-            <Field label="Application Deadline">
-              <Input type="date" defaultValue="2026-05-30" />
-            </Field>
-            <Field label="Number of Openings">
-              <Input type="number" defaultValue={1} />
-            </Field>
-            <Field label="Hiring Urgency">
-              <Select defaultValue="normal">
-                <option value="urgent">Urgent — ASAP</option>
-                <option value="high">High — Within 2 weeks</option>
-                <option value="normal">Normal — Within 1 month</option>
-                <option value="low">Low — No rush</option>
-              </Select>
             </Field>
           </div>
         </Section>
@@ -323,6 +331,7 @@ export default function NewJobPage() {
               <WeightRow
                 key={criterion.id}
                 criterion={criterion}
+                maxValue={getMaxWeightValue(criterion.id)}
                 onLabelChange={updateWeightLabel}
                 onValueChange={updateWeightValue}
                 onRemove={removeWeightCriterion}
@@ -336,8 +345,11 @@ export default function NewJobPage() {
             </Button>
           </div>
           <p className="mt-4 rounded-md bg-brand-soft/60 px-4 py-3 text-xs text-info-deep">
-            <strong className="font-semibold">Total: {totalWeight}%</strong> {totalWeight === 100 ? "— Your weighting is balanced and ready for scoring." : "— Aim for a total of 100% so the AI scoring stays consistent."}
-            {" "}Match these criteria to the role so each job can be evaluated on what matters most.
+            <strong className="font-semibold">Total: {totalWeight}%</strong>
+            {isWeightBalanced
+              ? " — Your weighting is balanced and ready for scoring."
+              : ` — Assign the remaining ${remainingWeight}% before saving the job.`}
+            {" "}Each criterion is capped by the percentage left after the others are allocated, so the total cannot go above 100%.
           </p>
         </Section>
 
@@ -345,7 +357,7 @@ export default function NewJobPage() {
         <div className="flex items-center justify-end gap-3">
           <Button type="button" variant="ghost">Discard Changes</Button>
           <Button type="button" variant="secondary" leftIcon={<Save className="h-4 w-4" />} onClick={() => setShowSuccessModal(true)}>Save as Draft</Button>
-          <Button type="submit" leftIcon={<Play className="h-4 w-4" />}>Save Job</Button>
+          <Button type="submit" leftIcon={<Play className="h-4 w-4" />} disabled={!isWeightBalanced}>Save Job</Button>
         </div>
       </form>
 
