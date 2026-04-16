@@ -92,6 +92,105 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"GeminiFrontendConfigResponse": {
+				"properties": {
+					"configured": {
+						"type": "boolean"
+					},
+					"model": {
+						"type": "string"
+					},
+					"defaults": {
+						"properties": {
+							"maxOutputTokens": {
+								"type": "number",
+								"format": "double"
+							},
+							"temperature": {
+								"type": "number",
+								"format": "double"
+							},
+							"maxShortlistSize": {
+								"type": "number",
+								"format": "double"
+							},
+							"minShortlistSize": {
+								"type": "number",
+								"format": "double"
+							},
+							"shortlistSize": {
+								"type": "number",
+								"format": "double"
+							}
+						},
+						"required": [
+							"maxOutputTokens",
+							"temperature",
+							"maxShortlistSize",
+							"minShortlistSize",
+							"shortlistSize"
+						],
+						"type": "object"
+					},
+					"contracts": {
+						"properties": {
+							"candidateFields": {
+								"items": {
+									"type": "string"
+								},
+								"type": "array"
+							},
+							"jobFields": {
+								"items": {
+									"type": "string"
+								},
+								"type": "array"
+							}
+						},
+						"required": [
+							"candidateFields",
+							"jobFields"
+						],
+						"type": "object"
+					},
+					"endpoints": {
+						"properties": {
+							"frontendConfig": {
+								"type": "string"
+							},
+							"screenRun": {
+								"type": "string"
+							},
+							"screenCandidate": {
+								"type": "string"
+							},
+							"generate": {
+								"type": "string"
+							},
+							"health": {
+								"type": "string"
+							}
+						},
+						"required": [
+							"frontendConfig",
+							"screenRun",
+							"screenCandidate",
+							"generate",
+							"health"
+						],
+						"type": "object"
+					}
+				},
+				"required": [
+					"configured",
+					"model",
+					"defaults",
+					"contracts",
+					"endpoints"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"GeminiUsageMetadata": {
 				"properties": {
 					"promptTokenCount": {
@@ -159,6 +258,44 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"GeminiCriterionAssessment": {
+				"properties": {
+					"label": {
+						"type": "string"
+					},
+					"weightPct": {
+						"type": "number",
+						"format": "double"
+					},
+					"score": {
+						"type": "number",
+						"format": "double"
+					},
+					"weightedScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"summary": {
+						"type": "string"
+					},
+					"evidence": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"label",
+					"weightPct",
+					"score",
+					"weightedScore",
+					"summary",
+					"evidence"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"GeminiCandidateScreenResponse": {
 				"properties": {
 					"recommendation": {
@@ -171,6 +308,14 @@
 						]
 					},
 					"score": {
+						"type": "number",
+						"format": "double"
+					},
+					"mustHaveMatchScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"dataCompletenessScore": {
 						"type": "number",
 						"format": "double"
 					},
@@ -195,6 +340,12 @@
 						},
 						"type": "array"
 					},
+					"criterionAssessments": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiCriterionAssessment"
+						},
+						"type": "array"
+					},
 					"raw": {
 						"type": "string"
 					},
@@ -205,20 +356,70 @@
 				"required": [
 					"recommendation",
 					"score",
+					"mustHaveMatchScore",
+					"dataCompletenessScore",
 					"summary",
 					"strengths",
 					"concerns",
 					"evidence",
+					"criterionAssessments",
 					"raw",
 					"model"
 				],
 				"type": "object",
 				"additionalProperties": false
 			},
+			"GeminiRankingCriterion": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"label": {
+						"type": "string"
+					},
+					"pct": {
+						"type": "number",
+						"format": "double"
+					},
+					"description": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"label",
+					"pct"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"GeminiJobContext": {
 				"properties": {
+					"id": {
+						"type": "string"
+					},
 					"title": {
 						"type": "string"
+					},
+					"department": {
+						"type": "string"
+					},
+					"locationPolicy": {
+						"type": "string"
+					},
+					"employmentType": {
+						"type": "string"
+					},
+					"salaryBand": {
+						"type": "string"
+					},
+					"summary": {
+						"type": "string"
+					},
+					"responsibilities": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
 					},
 					"mustHaveQualifications": {
 						"items": {
@@ -238,7 +439,25 @@
 						},
 						"type": "array"
 					},
+					"coreHardSkills": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"preferredBonusSkills": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
 					"softSkills": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"coreSoftSkills": {
 						"items": {
 							"type": "string"
 						},
@@ -252,6 +471,12 @@
 					},
 					"educationLevel": {
 						"type": "string"
+					},
+					"rankingCriteria": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiRankingCriterion"
+						},
+						"type": "array"
 					}
 				},
 				"required": [
@@ -260,8 +485,50 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"GeminiImportedCandidateData": {
+				"properties": {
+					"source": {
+						"type": "string"
+					},
+					"extractedSkills": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"experience": {
+						"type": "string"
+					},
+					"educationLevel": {
+						"type": "string"
+					},
+					"tags": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"certifications": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"notes": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
 			"GeminiCandidateContext": {
 				"properties": {
+					"id": {
+						"type": "string"
+					},
 					"fullName": {
 						"type": "string"
 					},
@@ -270,6 +537,9 @@
 					},
 					"resumeText": {
 						"type": "string"
+					},
+					"importedData": {
+						"$ref": "#/components/schemas/GeminiImportedCandidateData"
 					}
 				},
 				"required": [
@@ -297,6 +567,180 @@
 				"required": [
 					"job",
 					"candidate"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiFrontendScreeningResult": {
+				"properties": {
+					"recommendation": {
+						"type": "string",
+						"enum": [
+							"strong_yes",
+							"yes",
+							"maybe",
+							"no"
+						]
+					},
+					"score": {
+						"type": "number",
+						"format": "double"
+					},
+					"mustHaveMatchScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"dataCompletenessScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"summary": {
+						"type": "string"
+					},
+					"strengths": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"concerns": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"evidence": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"criterionAssessments": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiCriterionAssessment"
+						},
+						"type": "array"
+					},
+					"raw": {
+						"type": "string"
+					},
+					"model": {
+						"type": "string"
+					},
+					"candidateId": {
+						"type": "string"
+					},
+					"candidateName": {
+						"type": "string"
+					},
+					"shortlisted": {
+						"type": "boolean"
+					},
+					"rank": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"recommendation",
+					"score",
+					"mustHaveMatchScore",
+					"dataCompletenessScore",
+					"summary",
+					"strengths",
+					"concerns",
+					"evidence",
+					"criterionAssessments",
+					"raw",
+					"model",
+					"shortlisted",
+					"rank"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiFrontendScreeningRunResponse": {
+				"properties": {
+					"runName": {
+						"type": "string"
+					},
+					"jobTitle": {
+						"type": "string"
+					},
+					"totalCandidates": {
+						"type": "number",
+						"format": "double"
+					},
+					"shortlistSize": {
+						"type": "number",
+						"format": "double"
+					},
+					"shortlistedCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"model": {
+						"type": "string"
+					},
+					"rankingCriteria": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiRankingCriterion"
+						},
+						"type": "array"
+					},
+					"summary": {
+						"type": "string"
+					},
+					"results": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiFrontendScreeningResult"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"runName",
+					"jobTitle",
+					"totalCandidates",
+					"shortlistSize",
+					"shortlistedCount",
+					"model",
+					"summary",
+					"results"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiFrontendScreeningRunRequest": {
+				"properties": {
+					"runName": {
+						"type": "string"
+					},
+					"job": {
+						"$ref": "#/components/schemas/GeminiJobContext"
+					},
+					"candidates": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiCandidateContext"
+						},
+						"type": "array"
+					},
+					"shortlistSize": {
+						"type": "number",
+						"format": "double"
+					},
+					"instructions": {
+						"type": "string"
+					},
+					"temperature": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"runName",
+					"job",
+					"candidates"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -554,6 +998,28 @@
 				"parameters": []
 			}
 		},
+		"/gemini/frontend-config": {
+			"get": {
+				"operationId": "FrontendConfig",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/GeminiFrontendConfigResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Gemini"
+				],
+				"security": [],
+				"parameters": []
+			}
+		},
 		"/gemini/generate": {
 			"post": {
 				"operationId": "Generate",
@@ -612,6 +1078,38 @@
 						"application/json": {
 							"schema": {
 								"$ref": "#/components/schemas/GeminiCandidateScreenRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/gemini/screen-run": {
+			"post": {
+				"operationId": "ScreenRun",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/GeminiFrontendScreeningRunResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Gemini"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/GeminiFrontendScreeningRunRequest"
 							}
 						}
 					}

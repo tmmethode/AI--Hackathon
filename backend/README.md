@@ -30,6 +30,16 @@ MONGODB_URI=mongodb://localhost:27017/helloworld
 GEMINI_API_KEY=your-gemini-api-key
 ```
 
+Optional Gemini tuning for frontend-driven screening:
+```
+GEMINI_MODEL=gemini-1.5-flash
+GEMINI_DEFAULT_TEMPERATURE=0.2
+GEMINI_MAX_OUTPUT_TOKENS=1200
+GEMINI_FRONTEND_DEFAULT_SHORTLIST_SIZE=10
+GEMINI_FRONTEND_MIN_SHORTLIST_SIZE=5
+GEMINI_FRONTEND_MAX_SHORTLIST_SIZE=50
+```
+
 ## Available Scripts
 
 - `npm run dev` - Start development server with hot reload
@@ -46,8 +56,10 @@ GEMINI_API_KEY=your-gemini-api-key
 ### Gemini
 
 - `GET /gemini/health` - Check whether Gemini is configured and which model is active
+- `GET /gemini/frontend-config` - Return frontend-facing Gemini defaults, limits, and endpoint paths
 - `POST /gemini/generate` - Send a generic prompt to Gemini
 - `POST /gemini/screen-candidate` - Score a candidate against structured job requirements
+- `POST /gemini/screen-run` - Process a frontend screening run across multiple candidates and return ranked results
 
 ### Documentation
 
@@ -64,7 +76,9 @@ backend_api/
 │   ├── GeminiController.ts      # Gemini API endpoints
 │   └── HelloWorldController.ts  # API controllers
 ├── gemini/
+│   ├── config.ts         # Centralized Gemini environment and frontend defaults
 │   ├── client.ts         # Gemini REST client
+│   ├── frontend.ts       # Frontend-facing screening run service
 │   ├── prompts.ts        # Screening prompt builders
 │   ├── screening.ts      # Candidate screening service
 │   └── types.ts          # Gemini request/response types

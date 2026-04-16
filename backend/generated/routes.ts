@@ -58,6 +58,18 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiFrontendConfigResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "configured": {"dataType":"boolean","required":true},
+            "model": {"dataType":"string","required":true},
+            "defaults": {"dataType":"nestedObjectLiteral","nestedProperties":{"maxOutputTokens":{"dataType":"double","required":true},"temperature":{"dataType":"double","required":true},"maxShortlistSize":{"dataType":"double","required":true},"minShortlistSize":{"dataType":"double","required":true},"shortlistSize":{"dataType":"double","required":true}},"required":true},
+            "contracts": {"dataType":"nestedObjectLiteral","nestedProperties":{"candidateFields":{"dataType":"array","array":{"dataType":"string"},"required":true},"jobFields":{"dataType":"array","array":{"dataType":"string"},"required":true}},"required":true},
+            "endpoints": {"dataType":"nestedObjectLiteral","nestedProperties":{"frontendConfig":{"dataType":"string","required":true},"screenRun":{"dataType":"string","required":true},"screenCandidate":{"dataType":"string","required":true},"generate":{"dataType":"string","required":true},"health":{"dataType":"string","required":true}},"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "GeminiUsageMetadata": {
         "dataType": "refObject",
         "properties": {
@@ -90,17 +102,44 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiCriterionAssessment": {
+        "dataType": "refObject",
+        "properties": {
+            "label": {"dataType":"string","required":true},
+            "weightPct": {"dataType":"double","required":true},
+            "score": {"dataType":"double","required":true},
+            "weightedScore": {"dataType":"double","required":true},
+            "summary": {"dataType":"string","required":true},
+            "evidence": {"dataType":"array","array":{"dataType":"string"},"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "GeminiCandidateScreenResponse": {
         "dataType": "refObject",
         "properties": {
             "recommendation": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["strong_yes"]},{"dataType":"enum","enums":["yes"]},{"dataType":"enum","enums":["maybe"]},{"dataType":"enum","enums":["no"]}],"required":true},
             "score": {"dataType":"double","required":true},
+            "mustHaveMatchScore": {"dataType":"double","required":true},
+            "dataCompletenessScore": {"dataType":"double","required":true},
             "summary": {"dataType":"string","required":true},
             "strengths": {"dataType":"array","array":{"dataType":"string"},"required":true},
             "concerns": {"dataType":"array","array":{"dataType":"string"},"required":true},
             "evidence": {"dataType":"array","array":{"dataType":"string"},"required":true},
+            "criterionAssessments": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiCriterionAssessment"},"required":true},
             "raw": {"dataType":"string","required":true},
             "model": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiRankingCriterion": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"string"},
+            "label": {"dataType":"string","required":true},
+            "pct": {"dataType":"double","required":true},
+            "description": {"dataType":"string"},
         },
         "additionalProperties": false,
     },
@@ -108,14 +147,39 @@ const models: TsoaRoute.Models = {
     "GeminiJobContext": {
         "dataType": "refObject",
         "properties": {
+            "id": {"dataType":"string"},
             "title": {"dataType":"string","required":true},
+            "department": {"dataType":"string"},
+            "locationPolicy": {"dataType":"string"},
+            "employmentType": {"dataType":"string"},
+            "salaryBand": {"dataType":"string"},
+            "summary": {"dataType":"string"},
+            "responsibilities": {"dataType":"array","array":{"dataType":"string"}},
             "mustHaveQualifications": {"dataType":"array","array":{"dataType":"string"}},
             "niceToHaveQualifications": {"dataType":"array","array":{"dataType":"string"}},
             "hardSkills": {"dataType":"array","array":{"dataType":"string"}},
+            "coreHardSkills": {"dataType":"array","array":{"dataType":"string"}},
+            "preferredBonusSkills": {"dataType":"array","array":{"dataType":"string"}},
             "softSkills": {"dataType":"array","array":{"dataType":"string"}},
+            "coreSoftSkills": {"dataType":"array","array":{"dataType":"string"}},
             "experience": {"dataType":"string"},
             "seniorityLevel": {"dataType":"string"},
             "educationLevel": {"dataType":"string"},
+            "rankingCriteria": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiRankingCriterion"}},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiImportedCandidateData": {
+        "dataType": "refObject",
+        "properties": {
+            "source": {"dataType":"string"},
+            "extractedSkills": {"dataType":"array","array":{"dataType":"string"}},
+            "experience": {"dataType":"string"},
+            "educationLevel": {"dataType":"string"},
+            "tags": {"dataType":"array","array":{"dataType":"string"}},
+            "certifications": {"dataType":"array","array":{"dataType":"string"}},
+            "notes": {"dataType":"array","array":{"dataType":"string"}},
         },
         "additionalProperties": false,
     },
@@ -123,9 +187,11 @@ const models: TsoaRoute.Models = {
     "GeminiCandidateContext": {
         "dataType": "refObject",
         "properties": {
+            "id": {"dataType":"string"},
             "fullName": {"dataType":"string"},
             "summary": {"dataType":"string"},
             "resumeText": {"dataType":"string","required":true},
+            "importedData": {"ref":"GeminiImportedCandidateData"},
         },
         "additionalProperties": false,
     },
@@ -135,6 +201,57 @@ const models: TsoaRoute.Models = {
         "properties": {
             "job": {"ref":"GeminiJobContext","required":true},
             "candidate": {"ref":"GeminiCandidateContext","required":true},
+            "instructions": {"dataType":"string"},
+            "temperature": {"dataType":"double"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiFrontendScreeningResult": {
+        "dataType": "refObject",
+        "properties": {
+            "recommendation": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["strong_yes"]},{"dataType":"enum","enums":["yes"]},{"dataType":"enum","enums":["maybe"]},{"dataType":"enum","enums":["no"]}],"required":true},
+            "score": {"dataType":"double","required":true},
+            "mustHaveMatchScore": {"dataType":"double","required":true},
+            "dataCompletenessScore": {"dataType":"double","required":true},
+            "summary": {"dataType":"string","required":true},
+            "strengths": {"dataType":"array","array":{"dataType":"string"},"required":true},
+            "concerns": {"dataType":"array","array":{"dataType":"string"},"required":true},
+            "evidence": {"dataType":"array","array":{"dataType":"string"},"required":true},
+            "criterionAssessments": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiCriterionAssessment"},"required":true},
+            "raw": {"dataType":"string","required":true},
+            "model": {"dataType":"string","required":true},
+            "candidateId": {"dataType":"string"},
+            "candidateName": {"dataType":"string"},
+            "shortlisted": {"dataType":"boolean","required":true},
+            "rank": {"dataType":"double","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiFrontendScreeningRunResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "runName": {"dataType":"string","required":true},
+            "jobTitle": {"dataType":"string","required":true},
+            "totalCandidates": {"dataType":"double","required":true},
+            "shortlistSize": {"dataType":"double","required":true},
+            "shortlistedCount": {"dataType":"double","required":true},
+            "model": {"dataType":"string","required":true},
+            "rankingCriteria": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiRankingCriterion"}},
+            "summary": {"dataType":"string","required":true},
+            "results": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiFrontendScreeningResult"},"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiFrontendScreeningRunRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "runName": {"dataType":"string","required":true},
+            "job": {"ref":"GeminiJobContext","required":true},
+            "candidates": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiCandidateContext"},"required":true},
+            "shortlistSize": {"dataType":"double"},
             "instructions": {"dataType":"string"},
             "temperature": {"dataType":"double"},
         },
@@ -345,6 +462,35 @@ export function RegisterRoutes(app: Router) {
             }
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsGeminiController_frontendConfig: Record<string, TsoaRoute.ParameterSchema> = {
+        };
+        app.get('/gemini/frontend-config',
+            ...(fetchMiddlewares<RequestHandler>(GeminiController)),
+            ...(fetchMiddlewares<RequestHandler>(GeminiController.prototype.frontendConfig)),
+
+            async function GeminiController_frontendConfig(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsGeminiController_frontendConfig, request, response });
+
+                const controller = new GeminiController();
+
+              await templateService.apiHandler({
+                methodName: 'frontendConfig',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         const argsGeminiController_generate: Record<string, TsoaRoute.ParameterSchema> = {
                 requestBody: {"in":"body","name":"requestBody","required":true,"ref":"GeminiGenerateRequest"},
         };
@@ -394,6 +540,36 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'screenCandidate',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsGeminiController_screenRun: Record<string, TsoaRoute.ParameterSchema> = {
+                requestBody: {"in":"body","name":"requestBody","required":true,"ref":"GeminiFrontendScreeningRunRequest"},
+        };
+        app.post('/gemini/screen-run',
+            ...(fetchMiddlewares<RequestHandler>(GeminiController)),
+            ...(fetchMiddlewares<RequestHandler>(GeminiController.prototype.screenRun)),
+
+            async function GeminiController_screenRun(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsGeminiController_screenRun, request, response });
+
+                const controller = new GeminiController();
+
+              await templateService.apiHandler({
+                methodName: 'screenRun',
                 controller,
                 response,
                 next,

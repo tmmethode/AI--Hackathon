@@ -1,6 +1,11 @@
 import { GeminiClient } from "./client";
 import { buildCandidateScreeningPrompt, GEMINI_HIRING_SYSTEM_INSTRUCTION } from "./prompts";
-import { GeminiCandidateScreenRequest, GeminiCandidateScreenResponse } from "./types";
+import { buildCriterionAssessments, computeFinalWeightedScore, deriveRankingCriteria } from "./rubric";
+import {
+  GeminiCandidateScreenRequest,
+  GeminiCandidateScreenResponse,
+  GeminiModelCriterionScore,
+} from "./types";
 
 function extractJsonObject(raw: string): string {
   const trimmed = raw.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/\s*```$/i, "");
@@ -28,10 +33,28 @@ function toStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.map((item) => String(item)).filter(Boolean) : [];
 }
 
+function toCriterionScores(value: unknown): GeminiModelCriterionScore[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.map((item) => {
+    const score = typeof item === "object" && item !== null ? item as Record<string, unknown> : {};
+
+    return {
+      label: score.label ? String(score.label) : "Unknown Criterion",
+      score: typeof score.score === "number" ? score.score : Number(score.score ?? 0),
+      summary: score.summary ? String(score.summary) : "",
+      evidence: toStringArray(score.evidence),
+    };
+  });
+}
+
 export class GeminiScreeningService {
   constructor(private readonly client = new GeminiClient()) {}
 
   public async screenCandidate(request: GeminiCandidateScreenRequest): Promise<GeminiCandidateScreenResponse> {
+    const rankingCriteria = deriveRankingCriteria(request.job);
     const response = await this.client.generateText({
       prompt: buildCandidateScreeningPrompt(request),
       systemInstruction: GEMINI_HIRING_SYSTEM_INSTRUCTION,
@@ -40,7 +63,10 @@ export class GeminiScreeningService {
       maxOutputTokens: 1200,
     });
 
-    const parsed = JSON.parse(extractJsonObject(response.text)) as Partial<GeminiCandidateScreenResponse>;
+    const parsed = JSON.parse(extractJsonObject(response.text)) as Partial<GeminiCandidateScreenResponse> & {
+      criterionScores?: unknown;
+    };
+    const criterionAssessments = buildCriterionAssessments(rankingCriteria, toCriterionScores(parsed.criterionScores));
 
     const recommendation =
       parsed.recommendation === "strong_yes" ||
@@ -52,11 +78,14 @@ export class GeminiScreeningService {
 
     return {
       recommendation,
-      score: clampScore(parsed.score),
+      score: computeFinalWeightedScore(criterionAssessments),
+      mustHaveMatchScore: clampScore(parsed.mustHaveMatchScore),
+      dataCompletenessScore: clampScore(parsed.dataCompletenessScore),
       summary: parsed.summary ? String(parsed.summary) : "No summary returned by Gemini.",
       strengths: toStringArray(parsed.strengths),
       concerns: toStringArray(parsed.concerns),
       evidence: toStringArray(parsed.evidence),
+      criterionAssessments,
       raw: response.text,
       model: response.model,
     };

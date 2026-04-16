@@ -1,3 +1,4 @@
+import { getGeminiConfig, type GeminiConfig } from "./config";
 import { GeminiGenerateRequest, GeminiGenerateResponse, GeminiUsageMetadata } from "./types";
 
 interface GeminiApiResponse {
@@ -17,11 +18,16 @@ interface GeminiApiResponse {
 export class GeminiClient {
   private readonly apiKey: string;
   private readonly model: string;
-  private readonly baseUrl = "https://generativelanguage.googleapis.com/v1beta/models";
+  private readonly baseUrl: string;
+  private readonly defaultTemperature: number;
+  private readonly maxOutputTokens: number;
 
-  constructor() {
-    this.apiKey = process.env.GEMINI_API_KEY || "";
-    this.model = process.env.GEMINI_MODEL || "gemini-1.5-flash";
+  constructor(private readonly config: GeminiConfig = getGeminiConfig()) {
+    this.apiKey = config.apiKey;
+    this.model = config.model;
+    this.baseUrl = config.baseUrl;
+    this.defaultTemperature = config.defaultTemperature;
+    this.maxOutputTokens = config.maxOutputTokens;
   }
 
   public isConfigured(): boolean {
@@ -56,8 +62,8 @@ export class GeminiClient {
             }
           : undefined,
         generationConfig: {
-          temperature: request.temperature ?? 0.2,
-          maxOutputTokens: request.maxOutputTokens ?? 1024,
+          temperature: request.temperature ?? this.defaultTemperature,
+          maxOutputTokens: request.maxOutputTokens ?? this.maxOutputTokens,
           responseMimeType: request.responseMimeType ?? "text/plain",
         },
       }),
