@@ -1,0 +1,83 @@
+# Backend API
+
+A simple backend API with Hello World endpoint using TypeScript, Express, tsoa for automatic documentation, and Mongoose for MongoDB integration.
+
+## Features
+
+- **TypeScript**: Full TypeScript support with strict mode
+- **Express**: Web framework for building REST APIs
+- **tsoa**: Automatic OpenAPI/Swagger documentation generation
+- **Mongoose**: MongoDB object modeling for Node.js
+- **CORS**: Cross-origin resource sharing configured
+- **Environment variables**: Secure configuration management
+
+## Installation
+
+```bash
+npm install
+```
+
+## Environment Setup
+
+Copy the environment example file:
+```bash
+cp .env.example .env
+```
+
+Update the `.env` file with your MongoDB connection string:
+```
+MONGODB_URI=mongodb://localhost:27017/helloworld
+```
+
+## Available Scripts
+
+- `npm run dev` - Start development server with hot reload
+- `npm run build` - Build the project and generate documentation
+- `npm start` - Start production server
+
+## API Endpoints
+
+### Hello World
+
+- `GET /hello/` - Get the latest Hello World message
+- `GET /hello/create` - Create a new Hello World message in the database
+
+### Documentation
+
+- `GET /docs` - Swagger UI documentation
+- `GET /` - Redirects to documentation (if database is connected)
+
+## Project Structure
+
+```
+backend_api/
+├── config/
+│   └── database.ts       # MongoDB connection
+├── controllers/
+│   └── HelloWorldController.ts  # API controllers
+├── models/
+│   └── HelloWorld.ts     # Mongoose models
+├── generated/           # Auto-generated tsoa routes
+├── docs/               # Auto-generated swagger docs
+├── index.ts            # Application entry point
+├── server.ts           # Express server setup
+├── package.json
+├── tsconfig.json
+├── tsoa.json
+└── .env.example
+```
+
+## Development
+
+The development server will automatically:
+1. Generate tsoa routes and documentation
+2. Watch for file changes
+3. Restart the server on changes
+
+Start the development server:
+```bash
+npm run dev
+```
+
+The API will be available at `http://localhost:3001`
+Documentation will be available at `http://localhost:3001/docs`
