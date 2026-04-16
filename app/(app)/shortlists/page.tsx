@@ -8,7 +8,7 @@ import {
   MapPin, Users, Clock, CheckCircle2, FileText, Sheet, FileJson,
   Eye, TrendingUp, BarChart3, Sparkles, Calendar, Star,
   MessageSquare, Send, ChevronRight, Award, ChevronDown,
-  ClipboardCheck, GraduationCap, Wrench,
+  ClipboardCheck, GraduationCap, Wrench, ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -144,6 +144,7 @@ export default function ShortlistsPage() {
     101: [{ author: "Lisa U.", text: "Portfolio is very impressive. Strong culture fit. Schedule panel interview ASAP.", time: "5 days ago" }],
     201: [{ author: "JP Habimana", text: "Exceptional Kubernetes depth. Passed technical challenge with flying colors.", time: "2 weeks ago" }],
   });
+  const [showNextStepModal, setShowNextStepModal] = useState(false);
 
   function handleSwitchJob(jobId: string) {
     setActiveJobId(jobId);
@@ -350,7 +351,8 @@ export default function ShortlistsPage() {
           <div className="flex gap-2">
             <Button variant="secondary" leftIcon={<Briefcase className="h-4 w-4" />} onClick={() => setShowJobModal(true)}>Job Details</Button>
             <Button variant="secondary" leftIcon={<BarChart3 className="h-4 w-4" />} onClick={() => setShowCompare(true)}>Compare</Button>
-            <Button leftIcon={<Download className="h-4 w-4" />} onClick={() => setShowExportModal(true)}>Export</Button>
+            <Button variant="secondary" leftIcon={<Download className="h-4 w-4" />} onClick={() => setShowExportModal(true)}>Export</Button>
+            <Button leftIcon={<ChevronRight className="h-4 w-4" />} onClick={() => setShowNextStepModal(true)}>Continue to Candidates</Button>
           </div>
         </div>
       </Card>
@@ -890,6 +892,50 @@ export default function ShortlistsPage() {
         </ModalBody>
         <ModalFooter>
           <Button variant="secondary" onClick={() => setShowCompare(false)}>Close</Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Next Step Modal — guides user to Candidates */}
+      <Modal open={showNextStepModal} onClose={() => setShowNextStepModal(false)} size="sm">
+        <ModalBody className="flex flex-col items-center gap-5 py-8 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+            <CheckCircle2 className="h-8 w-8 text-success" />
+          </div>
+          <div>
+            <h2 className="font-display text-xl font-bold text-ink">Shortlist Reviewed!</h2>
+            <p className="mt-2 text-sm text-ink-muted">
+              Great work! You&apos;ve reviewed the shortlisted candidates. Continue to the <strong className="text-ink">Candidate Pool</strong> to manage all candidates, send emails, and schedule interviews.
+            </p>
+          </div>
+
+          <div className="w-full rounded-lg border border-line bg-surface-soft/30 p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10">
+                <Users className="h-5 w-5 text-brand" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-ink">Candidate Pool</p>
+                <p className="text-xs text-ink-muted">Manage candidates, send emails, and schedule interviews</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Workflow stepper */}
+          <div className="flex w-full items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+            <span className="rounded-full bg-success/10 px-2.5 py-1 text-success">✓ Create Job</span>
+            <ArrowRight className="h-3 w-3" />
+            <span className="rounded-full bg-success/10 px-2.5 py-1 text-success">✓ Ingest</span>
+            <ArrowRight className="h-3 w-3" />
+            <span className="rounded-full bg-success/10 px-2.5 py-1 text-success">✓ Screen</span>
+            <ArrowRight className="h-3 w-3" />
+            <span className="rounded-full bg-success/10 px-2.5 py-1 text-success">✓ Shortlist</span>
+            <ArrowRight className="h-3 w-3" />
+            <span className="rounded-full bg-brand/10 px-2.5 py-1 text-brand">Candidates</span>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setShowNextStepModal(false)}>Stay Here</Button>
+          <Link href="/candidates"><Button leftIcon={<Users className="h-4 w-4" />}>Go to Candidates</Button></Link>
         </ModalFooter>
       </Modal>
     </div>

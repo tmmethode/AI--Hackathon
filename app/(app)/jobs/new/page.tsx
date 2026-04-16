@@ -1,8 +1,13 @@
-import { X, Play, Save, Briefcase, UserRound, Cpu, Settings2, ChevronDown } from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { X, Play, Save, Briefcase, UserRound, Cpu, Settings2, ChevronDown, Upload, CheckCircle2, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, Input, Select, Textarea } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
 
 interface SectionProps {
   icon: React.ComponentType<{ className?: string }>;
@@ -44,20 +49,28 @@ function SliderRow({ label, value }: { label: string; value: number }) {
 }
 
 export default function NewJobPage() {
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setShowSuccessModal(true);
+  }
+
   return (
     <div className="w-full px-6 py-5">
       <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Create New Screening Job</h1>
+          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Create New Job Requisition</h1>
           <p className="mt-1 text-sm text-ink-muted">Drafting: Senior Frontend Engineer — Product Team</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" leftIcon={<X className="h-4 w-4" />}>Cancel</Button>
-          <Button leftIcon={<Play className="h-4 w-4" />}>Save &amp; Start Screening</Button>
+          <Link href="/jobs"><Button variant="secondary" leftIcon={<X className="h-4 w-4" />}>Cancel</Button></Link>
+          <Button variant="secondary" leftIcon={<Save className="h-4 w-4" />} onClick={() => setShowSuccessModal(true)}>Save as Draft</Button>
+          <Button leftIcon={<Play className="h-4 w-4" />} onClick={handleSave}>Save Job</Button>
         </div>
       </div>
 
-      <form className="flex flex-col gap-6">
+      <form className="flex flex-col gap-6" onSubmit={handleSave}>
         <Section
           icon={Briefcase}
           title="Role Fundamentals"
@@ -217,10 +230,52 @@ export default function NewJobPage() {
 
         <div className="flex items-center justify-end gap-3">
           <Button type="button" variant="ghost">Discard Changes</Button>
-          <Button type="button" variant="secondary" leftIcon={<Save className="h-4 w-4" />}>Save as Draft</Button>
-          <Button type="submit" leftIcon={<Play className="h-4 w-4" />}>Save &amp; Start Screening</Button>
+          <Button type="button" variant="secondary" leftIcon={<Save className="h-4 w-4" />} onClick={() => setShowSuccessModal(true)}>Save as Draft</Button>
+          <Button type="submit" leftIcon={<Play className="h-4 w-4" />}>Save Job</Button>
         </div>
       </form>
+
+      {/* Success Modal — guides user to Ingest */}
+      <Modal open={showSuccessModal} onClose={() => setShowSuccessModal(false)} size="sm">
+        <ModalBody className="flex flex-col items-center gap-5 py-8 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+            <CheckCircle2 className="h-8 w-8 text-success" />
+          </div>
+          <div>
+            <h2 className="font-display text-xl font-bold text-ink">Job Created Successfully!</h2>
+            <p className="mt-2 text-sm text-ink-muted">
+              Your job requisition has been saved. The next step is to ingest applicants so you can start reviewing candidates.
+            </p>
+          </div>
+
+          <div className="w-full rounded-lg border border-line bg-surface-soft/30 p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10">
+                <Upload className="h-5 w-5 text-brand" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-ink">Ingest Applicants</p>
+                <p className="text-xs text-ink-muted">Upload resumes, import CSVs, or connect platforms</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Workflow stepper */}
+          <div className="flex w-full items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+            <span className="rounded-full bg-success/10 px-2.5 py-1 text-success">✓ Create Job</span>
+            <ArrowRight className="h-3 w-3" />
+            <span className="rounded-full bg-brand/10 px-2.5 py-1 text-brand">Ingest</span>
+            <ArrowRight className="h-3 w-3" />
+            <span className="px-2.5 py-1">Screen</span>
+            <ArrowRight className="h-3 w-3" />
+            <span className="px-2.5 py-1">Shortlist</span>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Link href="/jobs"><Button variant="secondary">Go to Jobs</Button></Link>
+          <Link href="/ingest"><Button leftIcon={<Upload className="h-4 w-4" />}>Ingest Applicants</Button></Link>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 }

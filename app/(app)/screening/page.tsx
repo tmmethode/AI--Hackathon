@@ -3,11 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { X, Play, ShieldCheck, FileText, CheckCircle2, Briefcase, ChevronDown } from "lucide-react";
+import { X, Play, ShieldCheck, FileText, CheckCircle2, Briefcase, ChevronDown, ArrowRight, ListChecks, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, Input, Select } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { Modal, ModalBody, ModalFooter } from "@/components/ui/Modal";
 
 interface Job {
   id: string;
@@ -86,6 +87,7 @@ export default function ScreeningPage() {
   const router = useRouter();
   const [selectedJobId, setSelectedJobId] = useState(jobs[0].id);
   const selectedJob = jobs.find((j) => j.id === selectedJobId) ?? jobs[0];
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   return (
     <div className="w-full px-6 py-5">
@@ -98,7 +100,7 @@ export default function ScreeningPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" leftIcon={<X className="h-4 w-4" />} onClick={() => router.push("/jobs")}>Cancel</Button>
-          <Link href="/screening/progress"><Button leftIcon={<Play className="h-4 w-4" />}>Run Screening</Button></Link>
+          <Button leftIcon={<Play className="h-4 w-4" />} onClick={() => setShowSuccessModal(true)}>Run Screening</Button>
         </div>
       </div>
 
@@ -264,10 +266,52 @@ export default function ScreeningPage() {
           </label>
           <div className="mt-6 flex justify-end gap-2">
             <Button variant="secondary" onClick={() => router.push("/jobs")}>Back</Button>
-            <Link href="/screening/progress"><Button leftIcon={<Play className="h-4 w-4" />}>Confirm &amp; Trigger Analysis</Button></Link>
+            <Button leftIcon={<Play className="h-4 w-4" />} onClick={() => setShowSuccessModal(true)}>Confirm &amp; Trigger Analysis</Button>
           </div>
         </Card>
       </section>
+
+      {/* Success Modal — guides user to Shortlists */}
+      <Modal open={showSuccessModal} onClose={() => setShowSuccessModal(false)} size="sm">
+        <ModalBody className="flex flex-col items-center gap-5 py-8 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+            <Sparkles className="h-8 w-8 text-success" />
+          </div>
+          <div>
+            <h2 className="font-display text-xl font-bold text-ink">Screening Complete!</h2>
+            <p className="mt-2 text-sm text-ink-muted">
+              AI screening has been completed for <strong className="text-ink">{selectedJob.applicants} candidates</strong> under <strong className="text-ink">{selectedJob.title}</strong>. Review your ranked shortlist now.
+            </p>
+          </div>
+
+          <div className="w-full rounded-lg border border-line bg-surface-soft/30 p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10">
+                <ListChecks className="h-5 w-5 text-brand" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-ink">View Shortlist</p>
+                <p className="text-xs text-ink-muted">Review AI-ranked candidates and advance top picks</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Workflow stepper */}
+          <div className="flex w-full items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+            <span className="rounded-full bg-success/10 px-2.5 py-1 text-success">✓ Create Job</span>
+            <ArrowRight className="h-3 w-3" />
+            <span className="rounded-full bg-success/10 px-2.5 py-1 text-success">✓ Ingest</span>
+            <ArrowRight className="h-3 w-3" />
+            <span className="rounded-full bg-success/10 px-2.5 py-1 text-success">✓ Screen</span>
+            <ArrowRight className="h-3 w-3" />
+            <span className="rounded-full bg-brand/10 px-2.5 py-1 text-brand">Shortlist</span>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setShowSuccessModal(false)}>Stay Here</Button>
+          <Link href="/shortlists"><Button leftIcon={<ListChecks className="h-4 w-4" />}>View Shortlist</Button></Link>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 }

@@ -1,14 +1,17 @@
 "use client";
 
 import { useState, useRef, useMemo } from "react";
+import Link from "next/link";
 import {
   Database, FileText, Table as TableIcon, Link2, CloudUpload,
   AlertCircle, Info, Briefcase, X, File, Link as LinkIcon,
+  CheckCircle2, ArrowRight, Sparkles, ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
+import { Modal, ModalBody, ModalFooter } from "@/components/ui/Modal";
 
 /* ── Types ── */
 interface Applicant {
@@ -164,6 +167,7 @@ export default function IngestPage() {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [selectedJob, setSelectedJob] = useState(jobs[0].id);
   const [page, setPage] = useState(1);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(applicants.length / PAGE_SIZE));
   const paginated = useMemo(() => applicants.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [page]);
@@ -185,8 +189,8 @@ export default function IngestPage() {
           <p className="mt-1 text-sm text-ink-muted">Upload and parse candidate data into your talent pool.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary">Cancel</Button>
-          <Button>Import Candidates</Button>
+          <Link href="/jobs"><Button variant="secondary">Cancel</Button></Link>
+          <Button onClick={() => setShowSuccessModal(true)}>Import Candidates</Button>
         </div>
       </div>
 
@@ -350,6 +354,47 @@ export default function IngestPage() {
           </Card>
         </aside>
       </div>
+      {/* Success Modal — guides user to Screening */}
+      <Modal open={showSuccessModal} onClose={() => setShowSuccessModal(false)} size="sm">
+        <ModalBody className="flex flex-col items-center gap-5 py-8 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
+            <CheckCircle2 className="h-8 w-8 text-success" />
+          </div>
+          <div>
+            <h2 className="font-display text-xl font-bold text-ink">Candidates Imported!</h2>
+            <p className="mt-2 text-sm text-ink-muted">
+              <strong className="text-ink">{applicants.length} candidates</strong> have been ingested into your talent pool. The next step is to run AI screening to rank and evaluate them.
+            </p>
+          </div>
+
+          <div className="w-full rounded-lg border border-line bg-surface-soft/30 p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand/10">
+                <Sparkles className="h-5 w-5 text-brand" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold text-ink">AI Screening</p>
+                <p className="text-xs text-ink-muted">Rank candidates using AI-powered analysis</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Workflow stepper */}
+          <div className="flex w-full items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+            <span className="rounded-full bg-success/10 px-2.5 py-1 text-success">✓ Create Job</span>
+            <ArrowRight className="h-3 w-3" />
+            <span className="rounded-full bg-success/10 px-2.5 py-1 text-success">✓ Ingest</span>
+            <ArrowRight className="h-3 w-3" />
+            <span className="rounded-full bg-brand/10 px-2.5 py-1 text-brand">Screen</span>
+            <ArrowRight className="h-3 w-3" />
+            <span className="px-2.5 py-1">Shortlist</span>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setShowSuccessModal(false)}>Stay Here</Button>
+          <Link href="/screening"><Button leftIcon={<Sparkles className="h-4 w-4" />}>Start Screening</Button></Link>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 }
