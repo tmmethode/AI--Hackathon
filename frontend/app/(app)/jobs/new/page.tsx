@@ -44,8 +44,8 @@ interface JobFormState {
   title: string;
   department: string;
   location: string;
-  locationPolicy: LocationPolicy;
-  employmentType: EmploymentType;
+  locationPolicy: LocationPolicy | "";
+  employmentType: EmploymentType | "";
   salaryBand: string;
   summary: string;
   responsibilities: string;
@@ -55,8 +55,8 @@ interface JobFormState {
   preferredSkills: string;
   coreSoftSkills: string;
   experienceYears: string;
-  seniorityLevel: SeniorityLevel;
-  educationLevel: EducationLevel;
+  seniorityLevel: SeniorityLevel | "";
+  educationLevel: EducationLevel | "";
 }
 
 function Section({ icon: Icon, title, description, children }: SectionProps) {
@@ -226,6 +226,7 @@ export default function NewJobPage() {
             </Field>
             <Field label="Department / Team">
               <Select value={form.department} onChange={(event) => updateFormField("department", event.target.value)}>
+                <option value="">Select department</option>
                 <option value="Product & Engineering">Product &amp; Engineering</option>
                 <option value="Design">Design</option>
                 <option value="Operations">Operations</option>
@@ -242,6 +243,7 @@ export default function NewJobPage() {
                 value={form.locationPolicy}
                 onChange={(event) => updateFormField("locationPolicy", event.target.value as LocationPolicy)}
               >
+                <option value="">Select policy</option>
                 <option value="remote">Remote</option>
                 <option value="hybrid">Hybrid</option>
                 <option value="onsite">On-site</option>
@@ -252,6 +254,7 @@ export default function NewJobPage() {
                 value={form.employmentType}
                 onChange={(event) => updateFormField("employmentType", event.target.value as EmploymentType)}
               >
+                <option value="">Select type</option>
                 <option value="full-time">Full-time Permanent</option>
                 <option value="part-time">Part-time</option>
                 <option value="contract">Contract</option>
@@ -341,6 +344,7 @@ export default function NewJobPage() {
           <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-3">
             <Field label="Experience">
               <Select value={form.experienceYears} onChange={(event) => updateFormField("experienceYears", event.target.value)}>
+                <option value="">Select years</option>
                 <option value="0">0+ Years</option>
                 <option value="1">1+ Years</option>
                 <option value="2">2+ Years</option>
@@ -360,6 +364,7 @@ export default function NewJobPage() {
                 value={form.seniorityLevel}
                 onChange={(event) => updateFormField("seniorityLevel", event.target.value as SeniorityLevel)}
               >
+                <option value="">Select seniority</option>
                 <option value="junior">Junior</option>
                 <option value="mid">Mid-level</option>
                 <option value="senior">Senior</option>
@@ -373,6 +378,7 @@ export default function NewJobPage() {
                 value={form.educationLevel}
                 onChange={(event) => updateFormField("educationLevel", event.target.value as EducationLevel)}
               >
+                <option value="">Select education level</option>
                 <option value="none">No formal degree required</option>
                 <option value="hs">High School</option>
                 <option value="associate">Associate Degree</option>

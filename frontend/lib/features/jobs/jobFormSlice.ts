@@ -21,8 +21,8 @@ interface JobFormFields {
   title: string;
   department: string;
   location: string;
-  locationPolicy: LocationPolicy;
-  employmentType: EmploymentType;
+  locationPolicy: LocationPolicy | "";
+  employmentType: EmploymentType | "";
   salaryBand: string;
   summary: string;
   responsibilities: string;
@@ -32,8 +32,8 @@ interface JobFormFields {
   preferredSkills: string;
   coreSoftSkills: string;
   experienceYears: string;
-  seniorityLevel: SeniorityLevel;
-  educationLevel: EducationLevel;
+  seniorityLevel: SeniorityLevel | "";
+  educationLevel: EducationLevel | "";
 }
 
 interface JobFormState {
@@ -46,29 +46,22 @@ interface JobFormState {
 }
 
 const initialForm: JobFormFields = {
-  title: "Senior Frontend Engineer",
-  department: "Product & Engineering",
-  location: "Remote (Africa/Europe)",
-  locationPolicy: "remote",
-  employmentType: "full-time",
-  salaryBand: "$70,000 - $110,000 USD",
-  summary:
-    "We are seeking a talented Senior Frontend Engineer to join our Product Engineering team. You will be responsible for building and maintaining high-quality web applications that serve thousands of users daily. This is a key role that influences both the technical direction and user experience of our platform.",
-  responsibilities:
-    "• Architect, build, and maintain scalable frontend applications using React, TypeScript, and Next.js\n• Collaborate closely with designers, product managers, and backend engineers to deliver exceptional user experiences\n• Lead code reviews and establish engineering best practices across the frontend codebase\n• Mentor junior developers and contribute to a culture of continuous learning\n• Optimize application performance, accessibility, and SEO\n• Participate in sprint planning, technical design discussions, and architecture reviews\n• Write comprehensive unit and integration tests using Testing Library and Cypress\n• Contribute to our design system and component library",
-  mustHaveQualifications:
-    "• 5+ years of professional frontend development experience\n• Strong proficiency in React, TypeScript, and modern CSS (Tailwind preferred)\n• Experience with server-side rendering (Next.js) and state management\n• Solid understanding of web performance optimization techniques\n• Excellent communication skills and ability to work in distributed teams",
-  niceToHaveQualifications:
-    "• Experience with GraphQL, REST API design, or backend technologies (Node.js)\n• Familiarity with CI/CD pipelines and deployment automation\n• Contributions to open-source projects\n• Experience in a high-growth SaaS environment",
-  coreHardSkills:
-    "• TypeScript\n• React\n• Next.js\n• Tailwind CSS\n• Frontend architecture\n• Component-driven development",
-  preferredSkills:
-    "• GraphQL\n• Design systems\n• Testing Library / Cypress\n• Performance optimization\n• Accessibility auditing\n• Mentoring or tech leadership",
-  coreSoftSkills:
-    "• Clear written and verbal communication\n• Ownership and accountability\n• Cross-functional collaboration\n• Mentorship mindset\n• Product thinking",
-  experienceYears: "5",
-  seniorityLevel: "senior",
-  educationLevel: "bs",
+  title: "",
+  department: "",
+  location: "",
+  locationPolicy: "",
+  employmentType: "",
+  salaryBand: "",
+  summary: "",
+  responsibilities: "",
+  mustHaveQualifications: "",
+  niceToHaveQualifications: "",
+  coreHardSkills: "",
+  preferredSkills: "",
+  coreSoftSkills: "",
+  experienceYears: "",
+  seniorityLevel: "",
+  educationLevel: "",
 };
 
 const initialState: JobFormState = {
@@ -97,8 +90,8 @@ function buildPayload(state: JobFormState, status: CreateJobPayload["status"]): 
     department: state.form.department.trim(),
     hiringManager: authUser?.role === "recruiter" ? authUser._id : undefined,
     location: state.form.location.trim(),
-    locationPolicy: state.form.locationPolicy,
-    employmentType: state.form.employmentType,
+    locationPolicy: state.form.locationPolicy as LocationPolicy,
+    employmentType: state.form.employmentType as EmploymentType,
     salaryBand: state.form.salaryBand.trim() || undefined,
     summary: state.form.summary.trim(),
     responsibilities: state.form.responsibilities.trim(),
@@ -108,8 +101,8 @@ function buildPayload(state: JobFormState, status: CreateJobPayload["status"]): 
     preferredSkills: splitLinesToList(state.form.preferredSkills),
     coreSoftSkills: splitLinesToList(state.form.coreSoftSkills),
     experienceYears: Number(state.form.experienceYears) || 0,
-    seniorityLevel: state.form.seniorityLevel,
-    educationLevel: state.form.educationLevel,
+    seniorityLevel: state.form.seniorityLevel as SeniorityLevel,
+    educationLevel: state.form.educationLevel as EducationLevel,
     weightCriteria: state.weightCriteria
       .map((criterion) => ({
         id: criterion.id,
@@ -129,7 +122,16 @@ export const submitJob = createAsyncThunk<
   try {
     const payload = buildPayload(getState().jobForm, status);
 
-    if (!payload.title || !payload.department || !payload.location || !payload.summary) {
+    if (
+      !payload.title ||
+      !payload.department ||
+      !payload.location ||
+      !payload.summary ||
+      !getState().jobForm.form.locationPolicy ||
+      !getState().jobForm.form.employmentType ||
+      !getState().jobForm.form.seniorityLevel ||
+      !getState().jobForm.form.educationLevel
+    ) {
       throw new Error("Please complete the required job details before saving.");
     }
 
