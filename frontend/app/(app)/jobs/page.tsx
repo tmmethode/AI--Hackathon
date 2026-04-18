@@ -101,7 +101,7 @@ export default function JobsPage() {
           <>
             <Button variant="secondary" leftIcon={<Download className="h-4 w-4" />}>Export Report</Button>
             <Link href="/jobs/new">
-              <Button leftIcon={<Play className="h-4 w-4" />}>Create New Requisition</Button>
+              <Button leftIcon={<Play className="h-4 w-4" />}>Create New Job</Button>
             </Link>
           </>
         }
