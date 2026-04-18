@@ -271,7 +271,7 @@ export default function ShortlistsPage() {
             <div className="relative">
               <button
                 onClick={() => setShowJobPicker((v) => !v)}
-                className="group flex w-full items-center gap-3 rounded-lg border border-line bg-white p-3 text-left transition-all hover:border-brand/40 hover:shadow-sm"
+                className="group flex w-full items-center gap-3 rounded-lg border border-line bg-surface p-3 text-left transition-all hover:border-brand/40 hover:shadow-sm"
               >
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand/10">
                   <Briefcase className="h-5 w-5 text-brand" />
@@ -292,7 +292,7 @@ export default function ShortlistsPage() {
 
               {/* Job picker dropdown */}
               {showJobPicker && (
-                <div className="absolute left-0 top-[calc(100%+4px)] z-20 w-full rounded-lg border border-line bg-white shadow-xl">
+                <div className="absolute left-0 top-[calc(100%+4px)] z-20 w-full rounded-lg border border-line bg-surface shadow-xl">
                   <p className="px-4 pt-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Switch Screening Job</p>
                   <ul className="max-h-64 overflow-y-auto pb-2">
                     {screeningJobs.map((j) => {
@@ -426,7 +426,7 @@ export default function ShortlistsPage() {
                   placeholder="Search name or skill…"
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                  className="h-8 rounded-md border border-line bg-white pl-8 pr-3 text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand/40"
+                  className="h-8 rounded-md border border-line bg-surface pl-8 pr-3 text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand/40"
                 />
               </div>
 
@@ -436,7 +436,7 @@ export default function ShortlistsPage() {
                   Filter
                 </Button>
                 {showFilter && (
-                  <div className="absolute right-0 top-9 z-10 w-44 rounded-md border border-line bg-white shadow-card">
+                  <div className="absolute right-0 top-9 z-10 w-44 rounded-md border border-line bg-surface shadow-card">
                     {(["all", "shortlisted", "advanced", "interview", "exam", "assessment", "practical", "rejected"] as FilterStatus[]).map((s) => {
                       const labels: Record<FilterStatus, string> = {
                         all: "All", shortlisted: "Shortlisted", advanced: "All Advanced",
@@ -460,7 +460,7 @@ export default function ShortlistsPage() {
                   Sort
                 </Button>
                 {showSort && (
-                  <div className="absolute right-0 top-9 z-10 w-44 rounded-md border border-line bg-white shadow-card">
+                  <div className="absolute right-0 top-9 z-10 w-44 rounded-md border border-line bg-surface shadow-card">
                     {([["rank", "By Rank"], ["match", "By Match %"], ["name", "By Name"], ["years", "By Experience"]] as [SortKey, string][]).map(([key, label]) => (
                       <button key={key} onClick={() => handleSort(key)}
                         className={`flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-surface-soft ${sortKey === key ? "text-brand font-medium" : "text-ink"}`}>
@@ -541,7 +541,7 @@ export default function ShortlistsPage() {
                           Advance ▾
                         </Button>
                         {advanceDropdownId === c.id && (
-                          <div className="absolute right-0 top-9 z-20 w-56 rounded-lg border border-line bg-white shadow-xl">
+                          <div className="absolute right-0 top-9 z-20 w-56 rounded-lg border border-line bg-surface shadow-xl">
                             <p className="px-3 pt-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Advance to</p>
                             {advanceOptions.map((opt) => (
                               <button key={opt.key}
@@ -817,7 +817,7 @@ export default function ShortlistsPage() {
                   next[slot] = Number(e.target.value);
                   setCompareIds(next);
                 }}
-                className="flex-1 rounded-md border border-line bg-white px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand/40"
+                className="flex-1 rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand/40"
               >
                 {candidates.map((c) => (
                   <option key={c.id} value={c.id}>#{c.rank} {c.name} ({c.match}%)</option>

@@ -3,6 +3,40 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --color-brand: #1f8cf9;
+    --color-brand-hover: #1976d9;
+    --color-brand-soft: #f0f7ff;
+    --color-brand-softer: #d7ebfe;
+    --color-ink: #16181d;
+    --color-ink-soft: #1e2128;
+    --color-ink-muted: #9196a1;
+    --color-ink-subtle: #343842;
+    --color-line: #e0e2e6;
+    --color-line-strong: #bec2ca;
+    --color-surface: #ffffff;
+    --color-surface-muted: #f9fafb;
+    --color-surface-soft: #f3f4f6;
+    --color-info-deep: #03407c;
+  }
+
+  .dark {
+    --color-brand: #3b9eff;
+    --color-brand-hover: #1f8cf9;
+    --color-brand-soft: #0d1f35;
+    --color-brand-softer: #112840;
+    --color-ink: #f0f2f5;
+    --color-ink-soft: #e2e5ea;
+    --color-ink-muted: #6b7280;
+    --color-ink-subtle: #9ca3af;
+    --color-line: #2a2d35;
+    --color-line-strong: #3a3d47;
+    --color-surface: #1a1c22;
+    --color-surface-muted: #13151a;
+    --color-surface-soft: #22252e;
+    --color-info-deep: #93c5fd;
+  }
+
   html {
     -webkit-font-smoothing: antialiased;
   }
@@ -17,7 +51,7 @@
 
 @layer components {
   .card {
-    @apply bg-white rounded-card shadow-card;
+    @apply bg-surface rounded-card shadow-card border border-line;
   }
   .hairline {
     @apply border-b border-line;

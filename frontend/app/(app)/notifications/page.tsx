@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { Bell, Check, X, Search, Zap, Briefcase, FileDown, AlertCircle, Info } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -143,7 +144,7 @@ export default function NotificationsPage() {
                     <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-soft">
                       {typeIcon[n.type]}
                     </div>
-                    <div className="flex-1 cursor-pointer" onClick={() => markRead(n.id)}>
+                    <Link href={`/notifications/${n.id}`} onClick={() => markRead(n.id)} className="flex-1 min-w-0 cursor-pointer text-inherit no-underline">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className={`text-sm ${!n.read ? "font-semibold text-ink" : "font-medium text-ink"}`}>{n.title}</p>
                         <Badge tone={typeTone[n.type]} pill className="capitalize">{n.type}</Badge>
@@ -151,7 +152,7 @@ export default function NotificationsPage() {
                         <span className="ml-auto text-xs text-ink-muted">{n.time}</span>
                       </div>
                       <p className="mt-1 text-xs leading-5 text-ink-muted">{n.body}</p>
-                    </div>
+                    </Link>
                     <div className="flex shrink-0 items-center gap-1">
                       {!n.read && (
                         <button onClick={() => markRead(n.id)} title="Mark as read"

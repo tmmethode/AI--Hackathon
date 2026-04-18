@@ -26,13 +26,15 @@ const navItems = [
   { label: "History & Settings", href: "/history", icon: Settings },
 ] as const;
 
-export function Sidebar() {
+export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
 
   return (
     <aside
       aria-label="Primary navigation"
-      className="hidden md:flex w-64 shrink-0 flex-col border-r border-line bg-surface-muted"
+      className={`fixed inset-y-0 left-0 z-20 flex w-64 shrink-0 flex-col border-r border-line bg-surface-muted transition-transform duration-200 md:static md:translate-x-0 ${
+        open ? "translate-x-0" : "-translate-x-full"
+      }`}
     >
       <div className="flex-1 overflow-y-auto p-3">
         <Link
@@ -64,7 +66,7 @@ export function Sidebar() {
       </div>
 
       <div className="border-t border-line p-4">
-        <div className="rounded-card border border-line bg-white p-3 shadow-card">
+        <div className="rounded-card border border-line bg-surface p-3 shadow-card">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">Weekly Usage</p>
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-soft">
             <div className="h-full bg-brand" style={{ width: "75%" }} />

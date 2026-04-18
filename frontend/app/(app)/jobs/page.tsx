@@ -109,7 +109,7 @@ export default function JobsPage() {
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
         {/* Search & Filter — aligned to table width */}
-        <div className="flex items-center rounded-md border border-line bg-white shadow-sm">
+        <div className="flex items-center rounded-md border border-line bg-surface shadow-sm">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
             <input
@@ -190,7 +190,7 @@ export default function JobsPage() {
                         <MoreHorizontal className="h-4 w-4" />
                       </button>
                       {menuOpen === j.id && (
-                        <div className="absolute right-0 top-8 z-10 w-40 rounded-md border border-line bg-white shadow-card">
+                        <div className="absolute right-0 top-8 z-10 w-40 rounded-md border border-line bg-surface shadow-card">
                           <button
                             className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-surface-soft"
                             onClick={() => { setShowArchiveConfirm(j.id); setMenuOpen(null); }}
@@ -213,7 +213,7 @@ export default function JobsPage() {
           </div>
 
           {/* Pagination */}
-          <div className="flex items-center justify-between gap-4 border-t border-line bg-white px-5 py-4 text-sm text-ink-muted">
+          <div className="flex items-center justify-between gap-4 border-t border-line bg-surface px-5 py-4 text-sm text-ink-muted">
             <p>Showing {Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length} jobs</p>
             <nav aria-label="Pagination" className="flex items-center gap-1">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (

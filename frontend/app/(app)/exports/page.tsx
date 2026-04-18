@@ -3,7 +3,7 @@
 import { useState } from "react";
 import {
   Download, FileText, Sheet, FileJson, CheckCircle2,
-  Filter, Search, Clock, Briefcase, Users,
+  Filter, Search, Clock, Users,
   Eye, Check, Sparkles,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -59,6 +59,45 @@ export default function ExportsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ExportStatus | "all">("all");
   const [formatFilter, setFormatFilter] = useState<ExportFormat | "all">("all");
+  const [previewExp, setPreviewExp] = useState<ExportRecord | null>(null);
+
+  // Sample preview data per export
+  const previewData: Record<string, string[][]> = {
+    "EXP-001": [["Rank","Name","Match %","Skills","Status"],["1","Sarah Jenkins","98%","React, Node.js, AWS","Interview"],["2","Michael Chen","94%","Agile, Python","Shortlisted"],["3","Elena Rodriguez","91%","Kubernetes, CI/CD","Shortlisted"]],
+    "EXP-002": [["Rank","Name","Match %","Title","Status"],["1","David Okafor","88%","Backend Architect","Interview"],["2","Aisha Gupta","85%","Frontend Dev","Shortlisted"]],
+    "EXP-003": [["Rank","Name","Match %","Skills","Status"],["1","Julie Tran","92%","Figma, Prototyping","Interview"]],
+    "EXP-004": [["Rank","Name","Match %","Skills","Status"],["1","James Osei","95%","Selenium, Cypress","Interview"],["2","Priya Nair","87%","Jest, CI/CD","Shortlisted"]],
+    "EXP-005": [["Rank","Name","Match %","Skills","Status"],["1","Robert Fox","77%","AWS, Terraform","Shortlisted"]],
+  };
+
+  function handleDownload(exp: ExportRecord) {
+    const rows = previewData[exp.id] ?? [["No data available"]];
+    let content = "";
+    let mime = "text/plain";
+    let filename = exp.name.replace(/\s+/g, "_");
+
+    if (exp.format === "csv") {
+      content = rows.map((r) => r.join(",")).join("\n");
+      mime = "text/csv";
+      filename += ".csv";
+    } else if (exp.format === "json") {
+      const headers = rows[0];
+      const data = rows.slice(1).map((r) => Object.fromEntries(headers.map((h, i) => [h, r[i]])));
+      content = JSON.stringify(data, null, 2);
+      mime = "application/json";
+      filename += ".json";
+    } else {
+      content = rows.map((r) => r.join(" | ")).join("\n");
+      mime = "text/plain";
+      filename += ".txt";
+    }
+
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  }
 
   const totalCandidates = exports.reduce((sum, exp) => sum + exp.candidates, 0);
   const readyExports = exports.filter((exp) => exp.status === "ready").length;
@@ -98,10 +137,10 @@ export default function ExportsPage() {
 
       <section className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_0.7fr]">
         <Card className="overflow-hidden p-0">
-          <div className="bg-gradient-to-r from-brand-soft via-white to-surface-soft/80 p-6">
+          <div className="bg-gradient-to-r from-brand-soft via-surface to-surface-soft/80 p-6 dark:from-brand/10 dark:via-surface dark:to-surface-soft/20">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-[560px]">
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-brand">
+                <div className="inline-flex items-center gap-2 rounded-full bg-surface/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-brand">
                   <Sparkles className="h-3.5 w-3.5" />
                   Export Hub
                 </div>
@@ -112,19 +151,19 @@ export default function ExportsPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-3 sm:min-w-[320px]">
-                <div className="rounded-xl border border-line bg-white/85 p-4">
+                <div className="rounded-xl border border-line bg-surface/80 p-4">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Total Exports</p>
                   <p className="mt-2 font-display text-2xl font-bold text-ink">{exports.length}</p>
                 </div>
-                <div className="rounded-xl border border-line bg-white/85 p-4">
+                <div className="rounded-xl border border-line bg-surface/80 p-4">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Ready to Download</p>
                   <p className="mt-2 font-display text-2xl font-bold text-success">{readyExports}</p>
                 </div>
-                <div className="rounded-xl border border-line bg-white/85 p-4">
+                <div className="rounded-xl border border-line bg-surface/80 p-4">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Candidates Exported</p>
                   <p className="mt-2 font-display text-2xl font-bold text-brand">{totalCandidates}</p>
                 </div>
-                <div className="rounded-xl border border-line bg-white/85 p-4">
+                <div className="rounded-xl border border-line bg-surface/80 p-4">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Expired</p>
                   <p className="mt-2 font-display text-2xl font-bold text-ink-muted">
                     {exports.filter((exp) => exp.status === "expired").length}
@@ -173,11 +212,11 @@ export default function ExportsPage() {
                 placeholder="Search exports…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="h-10 w-full rounded-md border border-line bg-white pl-8 pr-3 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand/40"
+                className="h-10 w-full rounded-md border border-line bg-surface pl-8 pr-3 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand/40"
               />
             </div>
             <div className="flex flex-wrap gap-2">
-              <div className="inline-flex items-center gap-2 rounded-md border border-line bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+              <div className="inline-flex items-center gap-2 rounded-md border border-line bg-surface px-3 py-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">
                 <Filter className="h-3.5 w-3.5" />
                 Filters
               </div>
@@ -239,40 +278,24 @@ export default function ExportsPage() {
                     </div>
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="font-display text-lg font-semibold text-ink">{exp.name}</h3>
+                        <h3 className="font-semibold text-ink">{exp.name}</h3>
                         <Badge tone={statusTone} pill>{statusLabels[exp.status]}</Badge>
-                        <Badge tone="brand" pill>{formatLabels[exp.format]}</Badge>
+                        <Badge tone="neutral" pill>{formatLabels[exp.format]}</Badge>
                       </div>
-                      <p className="mt-1 text-sm text-ink-muted">{exp.id} · {exp.job}</p>
+                      <p className="mt-0.5 text-xs text-ink-muted">{exp.id} · {exp.job}</p>
 
-                      <div className="mt-4 grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
-                        <div className="rounded-lg border border-line bg-surface-soft/30 p-3">
-                          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
-                            <Briefcase className="h-3.5 w-3.5" />
-                            Job
-                          </div>
-                          <p className="mt-2 font-medium text-ink">{exp.job}</p>
+                      <div className="mt-3 flex flex-wrap gap-4 text-sm">
+                        <div className="flex items-center gap-1.5 text-xs text-ink-muted">
+                          <Users className="h-3.5 w-3.5" />
+                          <span><strong className="text-ink">{exp.candidates}</strong> candidates</span>
                         </div>
-                        <div className="rounded-lg border border-line bg-surface-soft/30 p-3">
-                          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
-                            <Users className="h-3.5 w-3.5" />
-                            Candidates
-                          </div>
-                          <p className="mt-2 font-medium text-ink">{exp.candidates}</p>
+                        <div className="flex items-center gap-1.5 text-xs text-ink-muted">
+                          <Clock className="h-3.5 w-3.5" />
+                          <span>{exp.createdAt}</span>
                         </div>
-                        <div className="rounded-lg border border-line bg-surface-soft/30 p-3">
-                          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
-                            <Clock className="h-3.5 w-3.5" />
-                            Created
-                          </div>
-                          <p className="mt-2 font-medium text-ink">{exp.createdAt}</p>
-                        </div>
-                        <div className="rounded-lg border border-line bg-surface-soft/30 p-3">
-                          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
-                            <FileText className="h-3.5 w-3.5" />
-                            File Size
-                          </div>
-                          <p className="mt-2 font-medium text-ink">{exp.size}</p>
+                        <div className="flex items-center gap-1.5 text-xs text-ink-muted">
+                          <FileText className="h-3.5 w-3.5" />
+                          <span>{exp.size}</span>
                         </div>
                       </div>
                     </div>
@@ -283,10 +306,12 @@ export default function ExportsPage() {
                       leftIcon={<Download className="h-4 w-4" />}
                       disabled={exp.status === "expired"}
                       fullWidth
+                      onClick={() => handleDownload(exp)}
                     >
                       Download
                     </Button>
-                    <Button variant="secondary" leftIcon={<Eye className="h-4 w-4" />} fullWidth>
+                    <Button variant="secondary" leftIcon={<Eye className="h-4 w-4" />} fullWidth
+                      onClick={() => setPreviewExp(exp)}>
                       Preview
                     </Button>
                   </div>
@@ -296,6 +321,49 @@ export default function ExportsPage() {
           })
         )}
       </div>
+
+      {/* Preview Modal */}
+      {previewExp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setPreviewExp(null)}>
+          <div className="w-full max-w-2xl rounded-xl border border-line bg-surface shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-line px-6 py-4">
+              <div>
+                <h2 className="font-display text-base font-bold text-ink">{previewExp.name}</h2>
+                <p className="text-xs text-ink-muted">{previewExp.id} · {previewExp.candidates} candidates · {previewExp.size}</p>
+              </div>
+              <button onClick={() => setPreviewExp(null)} className="rounded-md p-1 text-ink-muted hover:bg-surface-soft">
+                <Eye className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="overflow-x-auto p-4">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-line bg-surface-soft/40">
+                    {(previewData[previewExp.id]?.[0] ?? []).map((h) => (
+                      <th key={h} className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-ink-muted">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {(previewData[previewExp.id]?.slice(1) ?? []).map((row, i) => (
+                    <tr key={i} className={i % 2 === 0 ? "bg-surface" : "bg-surface-soft/20"}>
+                      {row.map((cell, j) => (
+                        <td key={j} className="px-3 py-2.5 text-ink">{cell}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="flex justify-end gap-2 border-t border-line px-6 py-4">
+              <Button variant="secondary" onClick={() => setPreviewExp(null)}>Close</Button>
+              <Button leftIcon={<Download className="h-4 w-4" />} onClick={() => { handleDownload(previewExp); setPreviewExp(null); }}>
+                Download
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* New Export Modal */}
       <Modal open={showNewExport} onClose={() => setShowNewExport(false)} size="sm">

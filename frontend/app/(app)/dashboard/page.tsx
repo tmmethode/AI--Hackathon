@@ -119,7 +119,7 @@ export default function DashboardPage() {
                   key={r.title}
                   role="row"
                   className={`grid grid-cols-2 gap-3 px-4 py-4 text-sm md:grid-cols-[1.6fr_1fr_1.3fr_1fr_100px] md:gap-4 md:items-center ${
-                    i % 2 === 1 ? "bg-surface-soft/30" : "bg-white"
+                    i % 2 === 1 ? "bg-surface-soft/30" : "bg-surface"
                   }`}
                 >
                   <div>
@@ -155,22 +155,22 @@ export default function DashboardPage() {
           </Card>
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <Card className="bg-brand-soft/30 p-5">
+            <Card className="bg-brand-soft/30 p-5 dark:bg-brand/5">
               <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-info-deep" />
+                <TrendingUp className="h-4 w-4 text-brand" />
                 <h3 className="text-sm font-semibold tracking-tight text-ink">Hiring Efficiency</h3>
               </div>
-              <p className="mt-2 text-xs leading-5 text-info-deep/80">
+              <p className="mt-2 text-xs leading-5 text-ink-muted">
                 Your average screening time has decreased by <strong className="font-bold">12%</strong> this week. AI
                 accuracy remains high at 94% based on hiring manager feedback.
               </p>
             </Card>
-            <Card className="bg-success-soft/30 p-5">
+            <Card className="bg-success/10 p-5 dark:bg-success/5">
               <div className="flex items-center gap-2">
-                <Zap className="h-4 w-4 text-success-deep" />
-                <h3 className="text-sm font-semibold tracking-tight text-success-deep">Next Steps</h3>
+                <Zap className="h-4 w-4 text-success" />
+                <h3 className="text-sm font-semibold tracking-tight text-success">Next Steps</h3>
               </div>
-              <p className="mt-2 text-xs leading-5 text-success-deep/80">
+              <p className="mt-2 text-xs leading-5 text-success dark:text-success/80">
                 3 candidates from the <strong className="font-bold">Senior Product Designer</strong> run match over 95%.
                 Consider moving them to interview immediately.
               </p>
@@ -187,7 +187,7 @@ export default function DashboardPage() {
             <p className="mt-2 text-sm text-info-deep/70">AI identified new data that requires your attention.</p>
             <ul className="mt-4 flex flex-col gap-3">
               {spotlight.map((item) => (
-                <li key={item.title} className="rounded-md border border-line bg-white p-4">
+                <li key={item.title} className="rounded-md border border-line bg-surface p-4">
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-sm font-medium text-ink">{item.title}</p>
                     <Badge tone="success" pill>AI Pick</Badge>

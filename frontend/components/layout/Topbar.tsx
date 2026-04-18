@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Activity, Bell, CircleHelp, Search, Check, Settings, LogOut, User, Shield, X } from "lucide-react";
+import { Activity, Bell, CircleHelp, Search, Check, Settings, LogOut, User, Shield, X, Menu } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 
 const notifications = [
@@ -12,7 +12,7 @@ const notifications = [
   { id: 4, title: "Export downloaded", body: "Your shortlist CSV export was generated successfully.", time: "Yesterday", read: true },
 ];
 
-export function Topbar() {
+export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const [showNotif, setShowNotif] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [notifs, setNotifs] = useState(notifications);
@@ -41,7 +41,12 @@ export function Topbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-line bg-white px-4 md:px-8">
+      <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-line bg-surface px-4 md:px-8">
+        {/* Hamburger — mobile only */}
+        <button type="button" aria-label="Open menu" onClick={onMenuClick}
+          className="flex h-10 w-10 items-center justify-center rounded-md text-ink-muted hover:bg-surface-soft md:hidden">
+          <Menu className="h-5 w-5" />
+        </button>
         <div className="flex items-center gap-3">
           <span className="flex h-8 w-8 items-center justify-center rounded-md bg-brand" aria-hidden>
             <Activity className="h-5 w-5 text-white" />
@@ -55,7 +60,7 @@ export function Topbar() {
             type="search"
             aria-label="Search jobs or candidates"
             placeholder="Search job ID / candidate name..."
-            className="h-9 w-full rounded-md bg-surface-soft/50 pl-9 pr-3 text-sm text-ink placeholder:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+            className="h-9 w-full rounded-md border border-line bg-surface pl-9 pr-3 text-sm text-ink placeholder:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
           />
         </div>
 
@@ -80,7 +85,7 @@ export function Topbar() {
             </button>
 
             {showNotif && (
-              <div className="absolute right-0 top-12 z-30 w-80 rounded-xl border border-line bg-white shadow-xl">
+              <div className="fixed left-2 right-2 top-16 z-30 rounded-xl border border-line bg-surface shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-80">
                 {/* Header */}
                 <div className="flex items-center justify-between border-b border-line px-4 py-3">
                   <h3 className="text-sm font-semibold text-ink">Notifications</h3>
@@ -115,14 +120,14 @@ export function Topbar() {
                     return list.map((n) => (
                       <li key={n.id}
                         className={`flex items-start gap-3 px-4 py-3 transition-colors hover:bg-surface-soft/50 ${!n.read ? "bg-brand-soft/20" : ""}`}>
-                        <div className="mt-0.5 flex-1 cursor-pointer" onClick={() => markRead(n.id)}>
+                        <Link href={`/notifications/${n.id}`} onClick={() => { markRead(n.id); closeAll(); }} className="mt-0.5 flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             {!n.read && <span className="h-2 w-2 shrink-0 rounded-full bg-brand" />}
                             <p className={`text-sm ${!n.read ? "font-semibold text-ink" : "font-medium text-ink"}`}>{n.title}</p>
                           </div>
                           <p className="mt-0.5 text-xs text-ink-muted">{n.body}</p>
                           <p className="mt-1 text-[10px] text-ink-muted">{n.time}</p>
-                        </div>
+                        </Link>
                         <button onClick={() => dismiss(n.id)} className="mt-0.5 rounded p-0.5 text-ink-muted hover:bg-surface-soft hover:text-ink">
                           <X className="h-3.5 w-3.5" />
                         </button>
@@ -154,7 +159,7 @@ export function Topbar() {
             </button>
 
             {showProfile && (
-              <div className="absolute right-0 top-12 z-30 w-56 rounded-xl border border-line bg-white shadow-xl">
+              <div className="absolute right-0 top-12 z-30 w-56 rounded-xl border border-line bg-surface shadow-xl">
                 <div className="border-b border-line px-4 py-3">
                   <p className="text-sm font-semibold text-ink">Recruiter Pro</p>
                   <p className="text-xs text-ink-muted">recruiter@umurava.com</p>

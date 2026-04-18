@@ -1,15 +1,23 @@
+"use client";
+
+import { useState } from "react";
 import { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
-import { Footer } from "./Footer";
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
-    <div className="flex h-screen flex-col bg-white">
-      <Topbar />
+    <div className="flex h-screen flex-col bg-surface">
+      <Topbar onMenuClick={() => setSidebarOpen((v) => !v)} />
       <div className="flex min-h-0 flex-1">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto bg-white">{children}</main>
+        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        {/* Mobile overlay */}
+        {sidebarOpen && (
+          <div className="fixed inset-0 z-[15] bg-black/40 md:hidden" onClick={() => setSidebarOpen(false)} />
+        )}
+        <main className="flex-1 overflow-y-auto bg-surface">{children}</main>
       </div>
     </div>
   );

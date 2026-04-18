@@ -108,7 +108,7 @@ function PdfTab({ files, onFiles, onRemove }: {
       {files.length > 0 && (
         <ul className="flex flex-col gap-2">
           {files.map((f) => (
-            <li key={f.id} className="flex items-center justify-between rounded-md border border-line bg-white px-3 py-2 text-sm">
+            <li key={f.id} className="flex items-center justify-between rounded-md border border-line bg-surface px-3 py-2 text-sm">
               <div className="flex items-center gap-2">
                 <File className="h-4 w-4 shrink-0 text-brand" />
                 <span className="font-medium text-ink">{f.name}</span>
@@ -150,7 +150,7 @@ function LinksTab() {
         value={links}
         onChange={(e) => setLinks(e.target.value)}
         placeholder={"https://linkedin.com/in/candidate-1\nhttps://linkedin.com/in/candidate-2"}
-        className="min-h-[140px] w-full rounded-md border border-line bg-white px-3 py-2.5 font-mono text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand/40"
+        className="min-h-[140px] w-full rounded-md border border-line bg-surface px-3 py-2.5 font-mono text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand/40"
       />
       <div className="flex items-center gap-2">
         <LinkIcon className="h-4 w-4 text-ink-muted" />
@@ -289,7 +289,7 @@ export default function IngestPage() {
             <select
               value={selectedJob}
               onChange={(e) => setSelectedJob(e.target.value)}
-              className="mt-3 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand/40"
+              className="mt-3 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand/40"
             >
               {jobs.map((j) => (
                 <option key={j.id} value={j.id}>{j.title}</option>

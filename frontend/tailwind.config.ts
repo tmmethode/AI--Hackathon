@@ -2,29 +2,30 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
         brand: {
-          DEFAULT: "#1f8cf9",
-          hover: "#1976d9",
-          soft: "#f0f7ff",
-          softer: "#d7ebfe",
+          DEFAULT: "var(--color-brand)",
+          hover: "var(--color-brand-hover)",
+          soft: "var(--color-brand-soft)",
+          softer: "var(--color-brand-softer)",
         },
         ink: {
-          DEFAULT: "#16181d",
-          soft: "#1e2128",
-          muted: "#9196a1",
-          subtle: "#343842",
+          DEFAULT: "var(--color-ink)",
+          soft: "var(--color-ink-soft)",
+          muted: "var(--color-ink-muted)",
+          subtle: "var(--color-ink-subtle)",
         },
         line: {
-          DEFAULT: "#e0e2e6",
-          strong: "#bec2ca",
+          DEFAULT: "var(--color-line)",
+          strong: "var(--color-line-strong)",
         },
         surface: {
-          DEFAULT: "#ffffff",
-          muted: "#f9fafb",
-          soft: "#f3f4f6",
+          DEFAULT: "var(--color-surface)",
+          muted: "var(--color-surface-muted)",
+          soft: "var(--color-surface-soft)",
         },
         success: {
           DEFAULT: "#1dc956",
@@ -36,7 +37,7 @@ const config: Config = {
           soft: "#fde4e4",
         },
         info: {
-          deep: "#03407c",
+          deep: "var(--color-info-deep)",
         },
       },
       fontFamily: {

@@ -251,7 +251,7 @@ export default function CandidatesPage() {
       <div className="relative mt-6">
         <button
           onClick={() => setShowJobPicker((v) => !v)}
-          className="flex w-full items-center gap-3 rounded-lg border border-line bg-white p-3 text-left transition-all hover:border-brand/40 hover:shadow-sm"
+          className="flex w-full items-center gap-3 rounded-lg border border-line bg-surface p-3 text-left transition-all hover:border-brand/40 hover:shadow-sm"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand/10">
             <Briefcase className="h-4 w-4 text-brand" />
@@ -267,7 +267,7 @@ export default function CandidatesPage() {
         </button>
 
         {showJobPicker && (
-          <div className="absolute left-0 top-[calc(100%+4px)] z-20 w-full rounded-lg border border-line bg-white shadow-xl">
+          <div className="absolute left-0 top-[calc(100%+4px)] z-20 w-full rounded-lg border border-line bg-surface shadow-xl">
             <p className="px-4 pt-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Filter by job</p>
             <ul className="max-h-56 overflow-y-auto pb-2">
               <li>
@@ -349,7 +349,7 @@ export default function CandidatesPage() {
                 placeholder="Search name, title, or skill…"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="h-8 w-52 rounded-md border border-line bg-white pl-8 pr-3 text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand/40"
+                className="h-8 w-52 rounded-md border border-line bg-surface pl-8 pr-3 text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand/40"
               />
             </div>
 
@@ -360,7 +360,7 @@ export default function CandidatesPage() {
                 Filter
               </Button>
               {showFilter && (
-                <div className="absolute right-0 top-9 z-10 w-48 rounded-md border border-line bg-white shadow-card">
+                <div className="absolute right-0 top-9 z-10 w-48 rounded-md border border-line bg-surface shadow-card">
                   {(["all", "shortlisted", "advanced", "interview", "exam", "assessment", "practical", "rejected", "new"] as FilterStatus[]).map((s) => (
                     <button key={s} onClick={() => { setFilterStatus(s); setShowFilter(false); setPage(1); }}
                       className={`flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-surface-soft ${
@@ -380,7 +380,7 @@ export default function CandidatesPage() {
                 Sort
               </Button>
               {showSort && (
-                <div className="absolute right-0 top-9 z-10 w-44 rounded-md border border-line bg-white shadow-card">
+                <div className="absolute right-0 top-9 z-10 w-44 rounded-md border border-line bg-surface shadow-card">
                   {([["matchScore", "By Match %"], ["name", "By Name"], ["appliedDate", "By Date"]] as [SortKey, string][]).map(([key, label]) => (
                     <button key={key} onClick={() => handleSort(key)}
                       className={`flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-surface-soft ${
@@ -412,7 +412,7 @@ export default function CandidatesPage() {
               return (
                 <div
                   key={c.id}
-                  className={`group relative flex flex-col rounded-xl border border-line bg-white shadow-sm transition-all duration-200 hover:shadow-md hover:border-brand/30 hover:-translate-y-0.5 ${c.status === "rejected" ? "opacity-50 grayscale-[30%]" : ""}`}
+                  className={`group relative flex flex-col rounded-xl border border-line bg-surface shadow-sm transition-all duration-200 hover:shadow-md hover:border-brand/30 hover:-translate-y-0.5 ${c.status === "rejected" ? "opacity-50 grayscale-[30%]" : ""}`}
                 >
                   {/* Top accent bar */}
                   <div className="h-1 rounded-t-xl" style={{ background: `linear-gradient(90deg, ${ringColor}, ${ringColor}60)` }} />
@@ -498,7 +498,7 @@ export default function CandidatesPage() {
                         Advance ▾
                       </Button>
                       {advanceDropdownId === c.id && (
-                        <div className="absolute right-0 bottom-10 z-20 w-60 rounded-lg border border-line bg-white shadow-xl">
+                        <div className="absolute right-0 bottom-10 z-20 w-60 rounded-lg border border-line bg-surface shadow-xl">
                           <p className="px-3 pt-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Advance to</p>
                           {advanceOptions.map((opt) => (
                             <button key={opt.key}

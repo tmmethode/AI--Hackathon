@@ -51,6 +51,23 @@ export default function ProfilePage() {
     location: "Kigali, Rwanda", bio: "Experienced recruiter specializing in tech talent acquisition across Africa and Europe.",
   });
 
+  const [theme, setTheme] = useState<"light" | "dark" | "system">(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("theme") as "light" | "dark" | "system") ?? "light";
+    }
+    return "light";
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
   function handleSave() {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -127,7 +144,7 @@ export default function ProfilePage() {
                       value={form.bio}
                       onChange={(e) => setForm({ ...form, bio: e.target.value })}
                       rows={3}
-                      className="w-full rounded-md border border-line bg-white px-3 py-2.5 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand/40"
+                      className="w-full rounded-md border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand/40"
                     />
                   </Field>
                 </div>
@@ -239,7 +256,7 @@ export default function ProfilePage() {
                   <Field label="Language">
                     <div className="relative">
                       <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
-                      <select className="h-10 w-full rounded-md border border-line bg-white pl-9 pr-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand/40">
+                      <select className="h-10 w-full rounded-md border border-line bg-surface pl-9 pr-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand/40">
                         <option>English (US)</option>
                         <option>French</option>
                         <option>Kinyarwanda</option>
@@ -249,10 +266,13 @@ export default function ProfilePage() {
                   <Field label="Theme">
                     <div className="relative">
                       <Moon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
-                      <select className="h-10 w-full rounded-md border border-line bg-white pl-9 pr-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand/40">
-                        <option>Light</option>
-                        <option>Dark</option>
-                        <option>System</option>
+                      <select
+                        value={theme}
+                        onChange={(e) => setTheme(e.target.value as "light" | "dark" | "system")}
+                        className="h-10 w-full rounded-md border border-line bg-surface pl-9 pr-3 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand/40">
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                        <option value="system">System</option>
                       </select>
                     </div>
                   </Field>
