@@ -8,6 +8,7 @@ import morgan from "morgan";
 import session from "express-session";
 import passport from "./config/passport";
 import { authenticateToken } from "./middleware/auth";
+import { HttpError } from "./utils/HttpError";
 
 dotenv.config();
 
@@ -95,6 +96,14 @@ app.use((req: Request, res: Response) => {
 });
 
 app.use((err: any, req: Request, res: Response, next: any) => {
+  if (err instanceof HttpError || typeof err?.status === 'number') {
+    return res.status(err.status).json({
+      error: err.name || 'Error',
+      message: err.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+
   console.error('Unhandled error:', err);
   res.status(500).json({
     error: 'Internal Server Error',

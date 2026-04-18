@@ -1,4 +1,5 @@
-import { Route, Post, Body, Tags, Get, Security, Request, HttpError } from 'tsoa';
+import { Route, Post, Body, Tags, Get, Security, Request } from 'tsoa';
+import { HttpError } from '../utils/HttpError';
 import jwt from 'jsonwebtoken';
 import User, { IUser } from '../models/User';
 import {
@@ -72,10 +73,7 @@ export class AuthController {
       if (error instanceof HttpError) {
         throw error;
       }
-      throw new HttpError(
-        500,
-        `Registration failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+      throw new HttpError(500, 'Registration failed');
     }
   }
 
@@ -109,7 +107,7 @@ export class AuthController {
       if (error instanceof HttpError) {
         throw error;
       }
-      throw new HttpError(500, `Login failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new HttpError(500, 'Login failed');
     }
   }
 
@@ -136,10 +134,7 @@ export class AuthController {
       if (error instanceof HttpError) {
         throw error;
       }
-      throw new HttpError(
-        500,
-        `Failed to get profile: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+      throw new HttpError(500, 'Failed to get profile');
     }
   }
 
@@ -176,10 +171,7 @@ export class AuthController {
       if (error instanceof HttpError) {
         throw error;
       }
-      throw new HttpError(
-        500,
-        `Token refresh failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
+      throw new HttpError(500, 'Token refresh failed');
     }
   }
 
