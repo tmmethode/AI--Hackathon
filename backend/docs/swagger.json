@@ -1269,6 +1269,672 @@
 				],
 				"type": "object",
 				"additionalProperties": false
+			},
+			"ApplicantSource": {
+				"type": "string",
+				"enum": [
+					"umurava-platform",
+					"pdf-upload",
+					"csv-import",
+					"paste-links"
+				]
+			},
+			"IngestStatus": {
+				"type": "string",
+				"enum": [
+					"parsed",
+					"pending",
+					"failed"
+				]
+			},
+			"SkillDTO": {
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"level": {
+						"type": "string"
+					},
+					"yearsOfExperience": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"name"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LanguageDTO": {
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"proficiency": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"name"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ExperienceDTO": {
+				"properties": {
+					"company": {
+						"type": "string"
+					},
+					"role": {
+						"type": "string"
+					},
+					"startDate": {
+						"type": "string"
+					},
+					"endDate": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"technologies": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"isCurrent": {
+						"type": "boolean"
+					}
+				},
+				"required": [
+					"company",
+					"role"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"EducationDTO": {
+				"properties": {
+					"institution": {
+						"type": "string"
+					},
+					"degree": {
+						"type": "string"
+					},
+					"fieldOfStudy": {
+						"type": "string"
+					},
+					"startYear": {
+						"type": "number",
+						"format": "double"
+					},
+					"endYear": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"institution"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"CertificationDTO": {
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"issuer": {
+						"type": "string"
+					},
+					"issueDate": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"name"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ProjectDTO": {
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"technologies": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"role": {
+						"type": "string"
+					},
+					"link": {
+						"type": "string"
+					},
+					"startDate": {
+						"type": "string"
+					},
+					"endDate": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"name"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"AvailabilityDTO": {
+				"properties": {
+					"status": {
+						"type": "string"
+					},
+					"type": {
+						"type": "string"
+					},
+					"startDate": {
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"SocialLinksDTO": {
+				"properties": {
+					"linkedin": {
+						"type": "string"
+					},
+					"github": {
+						"type": "string"
+					},
+					"portfolio": {
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"IApplicantResponse": {
+				"properties": {
+					"firstName": {
+						"type": "string"
+					},
+					"lastName": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"headline": {
+						"type": "string"
+					},
+					"bio": {
+						"type": "string"
+					},
+					"location": {
+						"type": "string"
+					},
+					"skills": {
+						"items": {
+							"$ref": "#/components/schemas/SkillDTO"
+						},
+						"type": "array"
+					},
+					"languages": {
+						"items": {
+							"$ref": "#/components/schemas/LanguageDTO"
+						},
+						"type": "array"
+					},
+					"experience": {
+						"items": {
+							"$ref": "#/components/schemas/ExperienceDTO"
+						},
+						"type": "array"
+					},
+					"education": {
+						"items": {
+							"$ref": "#/components/schemas/EducationDTO"
+						},
+						"type": "array"
+					},
+					"certifications": {
+						"items": {
+							"$ref": "#/components/schemas/CertificationDTO"
+						},
+						"type": "array"
+					},
+					"projects": {
+						"items": {
+							"$ref": "#/components/schemas/ProjectDTO"
+						},
+						"type": "array"
+					},
+					"availability": {
+						"$ref": "#/components/schemas/AvailabilityDTO"
+					},
+					"socialLinks": {
+						"$ref": "#/components/schemas/SocialLinksDTO"
+					},
+					"_id": {
+						"type": "string"
+					},
+					"job": {
+						"type": "string"
+					},
+					"source": {
+						"$ref": "#/components/schemas/ApplicantSource"
+					},
+					"ingestStatus": {
+						"$ref": "#/components/schemas/IngestStatus"
+					},
+					"ingestError": {
+						"type": "string"
+					},
+					"sourceFileName": {
+						"type": "string"
+					},
+					"sourceUrl": {
+						"type": "string"
+					},
+					"createdBy": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string"
+					},
+					"updatedAt": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"firstName",
+					"lastName",
+					"email",
+					"_id",
+					"job",
+					"source",
+					"ingestStatus",
+					"createdBy",
+					"createdAt",
+					"updatedAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApplicantListResponse": {
+				"properties": {
+					"data": {
+						"items": {
+							"$ref": "#/components/schemas/IApplicantResponse"
+						},
+						"type": "array"
+					},
+					"total": {
+						"type": "number",
+						"format": "double"
+					},
+					"page": {
+						"type": "number",
+						"format": "double"
+					},
+					"pageSize": {
+						"type": "number",
+						"format": "double"
+					},
+					"totalPages": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"data",
+					"total",
+					"page",
+					"pageSize",
+					"totalPages",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApplicantResponse": {
+				"properties": {
+					"data": {
+						"$ref": "#/components/schemas/IApplicantResponse"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"data",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"IngestSummary": {
+				"properties": {
+					"received": {
+						"type": "number",
+						"format": "double"
+					},
+					"created": {
+						"type": "number",
+						"format": "double"
+					},
+					"skipped": {
+						"type": "number",
+						"format": "double"
+					},
+					"failed": {
+						"type": "number",
+						"format": "double"
+					},
+					"errors": {
+						"items": {
+							"properties": {
+								"message": {
+									"type": "string"
+								},
+								"email": {
+									"type": "string"
+								},
+								"index": {
+									"type": "number",
+									"format": "double"
+								}
+							},
+							"required": [
+								"message",
+								"index"
+							],
+							"type": "object"
+						},
+						"type": "array"
+					},
+					"applicants": {
+						"items": {
+							"$ref": "#/components/schemas/IApplicantResponse"
+						},
+						"type": "array"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"received",
+					"created",
+					"skipped",
+					"failed",
+					"errors",
+					"applicants",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ApplicantProfileInput": {
+				"description": "Full applicant profile shape, matching the candidates.json schema used by the\nUmurava platform ingestion feed (also acceptable for CSV rows once parsed).\n\nNote: the JSON feed uses keys like \"Start Date\" / \"Is Current\". Callers can\nsend either the original keys or camelCase (see CandidatePayload for flexible\ningestion). This DTO is the canonical, normalized form stored in DB.",
+				"properties": {
+					"firstName": {
+						"type": "string"
+					},
+					"lastName": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"headline": {
+						"type": "string"
+					},
+					"bio": {
+						"type": "string"
+					},
+					"location": {
+						"type": "string"
+					},
+					"skills": {
+						"items": {
+							"$ref": "#/components/schemas/SkillDTO"
+						},
+						"type": "array"
+					},
+					"languages": {
+						"items": {
+							"$ref": "#/components/schemas/LanguageDTO"
+						},
+						"type": "array"
+					},
+					"experience": {
+						"items": {
+							"$ref": "#/components/schemas/ExperienceDTO"
+						},
+						"type": "array"
+					},
+					"education": {
+						"items": {
+							"$ref": "#/components/schemas/EducationDTO"
+						},
+						"type": "array"
+					},
+					"certifications": {
+						"items": {
+							"$ref": "#/components/schemas/CertificationDTO"
+						},
+						"type": "array"
+					},
+					"projects": {
+						"items": {
+							"$ref": "#/components/schemas/ProjectDTO"
+						},
+						"type": "array"
+					},
+					"availability": {
+						"$ref": "#/components/schemas/AvailabilityDTO"
+					},
+					"socialLinks": {
+						"$ref": "#/components/schemas/SocialLinksDTO"
+					}
+				},
+				"required": [
+					"firstName",
+					"lastName",
+					"email"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"IngestPlatformRequest": {
+				"description": "Umurava platform / direct JSON ingestion.",
+				"properties": {
+					"applicants": {
+						"items": {
+							"$ref": "#/components/schemas/ApplicantProfileInput"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"applicants"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"IngestCsvRequest": {
+				"description": "CSV ingestion — either send pre-parsed rows or raw CSV text.",
+				"properties": {
+					"applicants": {
+						"items": {
+							"$ref": "#/components/schemas/ApplicantProfileInput"
+						},
+						"type": "array",
+						"description": "Pre-parsed CSV rows shaped like `ApplicantProfileInput`."
+					},
+					"csvText": {
+						"type": "string",
+						"description": "Raw CSV text. First row MUST be a header row matching the profile keys."
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"IngestFileItem": {
+				"description": "PDF / DOC ingestion — AI parsing is future work, so we accept file metadata\n(+ optional base64 contents) and queue the applicant with `ingestStatus: 'pending'`.",
+				"properties": {
+					"filename": {
+						"type": "string"
+					},
+					"mimeType": {
+						"type": "string"
+					},
+					"dataBase64": {
+						"type": "string",
+						"description": "Optional base64 payload. Stored as-is for later AI processing."
+					},
+					"email": {
+						"type": "string",
+						"description": "Optional candidate email if already known (prevents duplicates)."
+					}
+				},
+				"required": [
+					"filename"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"IngestFilesRequest": {
+				"properties": {
+					"files": {
+						"items": {
+							"$ref": "#/components/schemas/IngestFileItem"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"files"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"IngestLinksRequest": {
+				"description": "Paste-links ingestion — AI parsing is future work, so we store each URL as\na placeholder applicant with `ingestStatus: 'pending'`.",
+				"properties": {
+					"links": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"links"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UpdateApplicantRequest": {
+				"properties": {
+					"firstName": {
+						"type": "string"
+					},
+					"lastName": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"headline": {
+						"type": "string"
+					},
+					"bio": {
+						"type": "string"
+					},
+					"location": {
+						"type": "string"
+					},
+					"skills": {
+						"items": {
+							"$ref": "#/components/schemas/SkillDTO"
+						},
+						"type": "array"
+					},
+					"languages": {
+						"items": {
+							"$ref": "#/components/schemas/LanguageDTO"
+						},
+						"type": "array"
+					},
+					"experience": {
+						"items": {
+							"$ref": "#/components/schemas/ExperienceDTO"
+						},
+						"type": "array"
+					},
+					"education": {
+						"items": {
+							"$ref": "#/components/schemas/EducationDTO"
+						},
+						"type": "array"
+					},
+					"certifications": {
+						"items": {
+							"$ref": "#/components/schemas/CertificationDTO"
+						},
+						"type": "array"
+					},
+					"projects": {
+						"items": {
+							"$ref": "#/components/schemas/ProjectDTO"
+						},
+						"type": "array"
+					},
+					"availability": {
+						"$ref": "#/components/schemas/AvailabilityDTO"
+					},
+					"socialLinks": {
+						"$ref": "#/components/schemas/SocialLinksDTO"
+					},
+					"ingestStatus": {
+						"$ref": "#/components/schemas/IngestStatus"
+					},
+					"ingestError": {
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"DeleteApplicantResponse": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"id",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
 			}
 		},
 		"securitySchemes": {
@@ -1963,6 +2629,418 @@
 						"application/json": {
 							"schema": {
 								"$ref": "#/components/schemas/GoogleAuthRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/jobs/{jobId}/applicants": {
+			"get": {
+				"operationId": "ListApplicants",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApplicantListResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "List applicants for a job (paginated + searchable).",
+				"tags": [
+					"Applicants"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "jobId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "search",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "source",
+						"required": false,
+						"schema": {
+							"$ref": "#/components/schemas/ApplicantSource"
+						}
+					},
+					{
+						"in": "query",
+						"name": "page",
+						"required": false,
+						"schema": {
+							"default": 1,
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "pageSize",
+						"required": false,
+						"schema": {
+							"default": 20,
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/jobs/{jobId}/applicants/{applicantId}": {
+			"get": {
+				"operationId": "GetApplicant",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApplicantResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get a single applicant attached to a job.",
+				"tags": [
+					"Applicants"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "jobId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "applicantId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			},
+			"patch": {
+				"operationId": "UpdateApplicant",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ApplicantResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Patch an applicant (e.g. after manual verification of AI-parsed data).",
+				"tags": [
+					"Applicants"
+				],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "jobId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "applicantId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateApplicantRequest"
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"operationId": "DeleteApplicant",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/DeleteApplicantResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Remove an applicant from a job.",
+				"tags": [
+					"Applicants"
+				],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "jobId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "applicantId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/jobs/{jobId}/applicants/platform": {
+			"post": {
+				"operationId": "IngestFromPlatform",
+				"responses": {
+					"201": {
+						"description": "Created",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/IngestSummary"
+								}
+							}
+						}
+					}
+				},
+				"description": "Ingest applicants from the Umurava platform feed (JSON array matching\ncandidates.json). Duplicate emails per-job are skipped.",
+				"tags": [
+					"Applicants"
+				],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "jobId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/IngestPlatformRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/jobs/{jobId}/applicants/csv": {
+			"post": {
+				"operationId": "IngestFromCsv",
+				"responses": {
+					"201": {
+						"description": "Created",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/IngestSummary"
+								}
+							}
+						}
+					}
+				},
+				"description": "Ingest applicants from a CSV — accepts either pre-parsed `applicants` rows\nor raw `csvText` (header row required). Fields map to ApplicantProfileInput.",
+				"tags": [
+					"Applicants"
+				],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "jobId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/IngestCsvRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/jobs/{jobId}/applicants/files": {
+			"post": {
+				"operationId": "IngestFromFiles",
+				"responses": {
+					"202": {
+						"description": "Queued",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/IngestSummary"
+								}
+							}
+						}
+					}
+				},
+				"description": "Queue PDF/DOC resumes for AI parsing (future feature). For now the files\nare stored as placeholder applicants with `ingestStatus: 'pending'` so the\nUI can display them, and a background AI job can update them later.",
+				"tags": [
+					"Applicants"
+				],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "jobId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/IngestFilesRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/jobs/{jobId}/applicants/links": {
+			"post": {
+				"operationId": "IngestFromLinks",
+				"responses": {
+					"202": {
+						"description": "Queued",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/IngestSummary"
+								}
+							}
+						}
+					}
+				},
+				"description": "Queue candidate profile URLs (LinkedIn, portfolio, etc.) for AI parsing\n(future feature). Stored as placeholder applicants with\n`ingestStatus: 'pending'`.",
+				"tags": [
+					"Applicants"
+				],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "jobId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/IngestLinksRequest"
 							}
 						}
 					}

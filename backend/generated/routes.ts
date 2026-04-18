@@ -9,6 +9,8 @@ import { JobController } from './../controllers/JobController';
 import { GeminiController } from './../controllers/GeminiController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { AuthController } from './../controllers/AuthController';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { ApplicantController } from './../controllers/ApplicantController';
 import { expressAuthentication } from './../middleware/auth';
 // @ts-ignore - no great way to install types from subpackage
 import type { Request as ExRequest, Response as ExResponse, RequestHandler, Router } from 'express';
@@ -456,6 +458,269 @@ const models: TsoaRoute.Models = {
         "dataType": "refObject",
         "properties": {
             "idToken": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ApplicantSource": {
+        "dataType": "refAlias",
+        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["umurava-platform"]},{"dataType":"enum","enums":["pdf-upload"]},{"dataType":"enum","enums":["csv-import"]},{"dataType":"enum","enums":["paste-links"]}],"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "IngestStatus": {
+        "dataType": "refAlias",
+        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["parsed"]},{"dataType":"enum","enums":["pending"]},{"dataType":"enum","enums":["failed"]}],"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "SkillDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "name": {"dataType":"string","required":true},
+            "level": {"dataType":"string"},
+            "yearsOfExperience": {"dataType":"double"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "LanguageDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "name": {"dataType":"string","required":true},
+            "proficiency": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ExperienceDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "company": {"dataType":"string","required":true},
+            "role": {"dataType":"string","required":true},
+            "startDate": {"dataType":"string"},
+            "endDate": {"dataType":"string"},
+            "description": {"dataType":"string"},
+            "technologies": {"dataType":"array","array":{"dataType":"string"}},
+            "isCurrent": {"dataType":"boolean"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "EducationDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "institution": {"dataType":"string","required":true},
+            "degree": {"dataType":"string"},
+            "fieldOfStudy": {"dataType":"string"},
+            "startYear": {"dataType":"double"},
+            "endYear": {"dataType":"double"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "CertificationDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "name": {"dataType":"string","required":true},
+            "issuer": {"dataType":"string"},
+            "issueDate": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ProjectDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "name": {"dataType":"string","required":true},
+            "description": {"dataType":"string"},
+            "technologies": {"dataType":"array","array":{"dataType":"string"}},
+            "role": {"dataType":"string"},
+            "link": {"dataType":"string"},
+            "startDate": {"dataType":"string"},
+            "endDate": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "AvailabilityDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "status": {"dataType":"string"},
+            "type": {"dataType":"string"},
+            "startDate": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "SocialLinksDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "linkedin": {"dataType":"string"},
+            "github": {"dataType":"string"},
+            "portfolio": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "IApplicantResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "firstName": {"dataType":"string","required":true},
+            "lastName": {"dataType":"string","required":true},
+            "email": {"dataType":"string","required":true},
+            "headline": {"dataType":"string"},
+            "bio": {"dataType":"string"},
+            "location": {"dataType":"string"},
+            "skills": {"dataType":"array","array":{"dataType":"refObject","ref":"SkillDTO"}},
+            "languages": {"dataType":"array","array":{"dataType":"refObject","ref":"LanguageDTO"}},
+            "experience": {"dataType":"array","array":{"dataType":"refObject","ref":"ExperienceDTO"}},
+            "education": {"dataType":"array","array":{"dataType":"refObject","ref":"EducationDTO"}},
+            "certifications": {"dataType":"array","array":{"dataType":"refObject","ref":"CertificationDTO"}},
+            "projects": {"dataType":"array","array":{"dataType":"refObject","ref":"ProjectDTO"}},
+            "availability": {"ref":"AvailabilityDTO"},
+            "socialLinks": {"ref":"SocialLinksDTO"},
+            "_id": {"dataType":"string","required":true},
+            "job": {"dataType":"string","required":true},
+            "source": {"ref":"ApplicantSource","required":true},
+            "ingestStatus": {"ref":"IngestStatus","required":true},
+            "ingestError": {"dataType":"string"},
+            "sourceFileName": {"dataType":"string"},
+            "sourceUrl": {"dataType":"string"},
+            "createdBy": {"dataType":"string","required":true},
+            "createdAt": {"dataType":"string","required":true},
+            "updatedAt": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ApplicantListResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "data": {"dataType":"array","array":{"dataType":"refObject","ref":"IApplicantResponse"},"required":true},
+            "total": {"dataType":"double","required":true},
+            "page": {"dataType":"double","required":true},
+            "pageSize": {"dataType":"double","required":true},
+            "totalPages": {"dataType":"double","required":true},
+            "message": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ApplicantResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "data": {"ref":"IApplicantResponse","required":true},
+            "message": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "IngestSummary": {
+        "dataType": "refObject",
+        "properties": {
+            "received": {"dataType":"double","required":true},
+            "created": {"dataType":"double","required":true},
+            "skipped": {"dataType":"double","required":true},
+            "failed": {"dataType":"double","required":true},
+            "errors": {"dataType":"array","array":{"dataType":"nestedObjectLiteral","nestedProperties":{"message":{"dataType":"string","required":true},"email":{"dataType":"string"},"index":{"dataType":"double","required":true}}},"required":true},
+            "applicants": {"dataType":"array","array":{"dataType":"refObject","ref":"IApplicantResponse"},"required":true},
+            "message": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ApplicantProfileInput": {
+        "dataType": "refObject",
+        "properties": {
+            "firstName": {"dataType":"string","required":true},
+            "lastName": {"dataType":"string","required":true},
+            "email": {"dataType":"string","required":true},
+            "headline": {"dataType":"string"},
+            "bio": {"dataType":"string"},
+            "location": {"dataType":"string"},
+            "skills": {"dataType":"array","array":{"dataType":"refObject","ref":"SkillDTO"}},
+            "languages": {"dataType":"array","array":{"dataType":"refObject","ref":"LanguageDTO"}},
+            "experience": {"dataType":"array","array":{"dataType":"refObject","ref":"ExperienceDTO"}},
+            "education": {"dataType":"array","array":{"dataType":"refObject","ref":"EducationDTO"}},
+            "certifications": {"dataType":"array","array":{"dataType":"refObject","ref":"CertificationDTO"}},
+            "projects": {"dataType":"array","array":{"dataType":"refObject","ref":"ProjectDTO"}},
+            "availability": {"ref":"AvailabilityDTO"},
+            "socialLinks": {"ref":"SocialLinksDTO"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "IngestPlatformRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "applicants": {"dataType":"array","array":{"dataType":"refObject","ref":"ApplicantProfileInput"},"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "IngestCsvRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "applicants": {"dataType":"array","array":{"dataType":"refObject","ref":"ApplicantProfileInput"}},
+            "csvText": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "IngestFileItem": {
+        "dataType": "refObject",
+        "properties": {
+            "filename": {"dataType":"string","required":true},
+            "mimeType": {"dataType":"string"},
+            "dataBase64": {"dataType":"string"},
+            "email": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "IngestFilesRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "files": {"dataType":"array","array":{"dataType":"refObject","ref":"IngestFileItem"},"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "IngestLinksRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "links": {"dataType":"array","array":{"dataType":"string"},"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "UpdateApplicantRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "firstName": {"dataType":"string"},
+            "lastName": {"dataType":"string"},
+            "email": {"dataType":"string"},
+            "headline": {"dataType":"string"},
+            "bio": {"dataType":"string"},
+            "location": {"dataType":"string"},
+            "skills": {"dataType":"array","array":{"dataType":"refObject","ref":"SkillDTO"}},
+            "languages": {"dataType":"array","array":{"dataType":"refObject","ref":"LanguageDTO"}},
+            "experience": {"dataType":"array","array":{"dataType":"refObject","ref":"ExperienceDTO"}},
+            "education": {"dataType":"array","array":{"dataType":"refObject","ref":"EducationDTO"}},
+            "certifications": {"dataType":"array","array":{"dataType":"refObject","ref":"CertificationDTO"}},
+            "projects": {"dataType":"array","array":{"dataType":"refObject","ref":"ProjectDTO"}},
+            "availability": {"ref":"AvailabilityDTO"},
+            "socialLinks": {"ref":"SocialLinksDTO"},
+            "ingestStatus": {"ref":"IngestStatus"},
+            "ingestError": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "DeleteApplicantResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"string","required":true},
+            "message": {"dataType":"string","required":true},
         },
         "additionalProperties": false,
     },
@@ -1024,6 +1289,270 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'googleAuth',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsApplicantController_listApplicants: Record<string, TsoaRoute.ParameterSchema> = {
+                jobId: {"in":"path","name":"jobId","required":true,"dataType":"string"},
+                search: {"in":"query","name":"search","dataType":"string"},
+                source: {"in":"query","name":"source","ref":"ApplicantSource"},
+                page: {"default":1,"in":"query","name":"page","dataType":"double"},
+                pageSize: {"default":20,"in":"query","name":"pageSize","dataType":"double"},
+        };
+        app.get('/jobs/:jobId/applicants',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(ApplicantController)),
+            ...(fetchMiddlewares<RequestHandler>(ApplicantController.prototype.listApplicants)),
+
+            async function ApplicantController_listApplicants(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsApplicantController_listApplicants, request, response });
+
+                const controller = new ApplicantController();
+
+              await templateService.apiHandler({
+                methodName: 'listApplicants',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsApplicantController_getApplicant: Record<string, TsoaRoute.ParameterSchema> = {
+                jobId: {"in":"path","name":"jobId","required":true,"dataType":"string"},
+                applicantId: {"in":"path","name":"applicantId","required":true,"dataType":"string"},
+        };
+        app.get('/jobs/:jobId/applicants/:applicantId',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(ApplicantController)),
+            ...(fetchMiddlewares<RequestHandler>(ApplicantController.prototype.getApplicant)),
+
+            async function ApplicantController_getApplicant(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsApplicantController_getApplicant, request, response });
+
+                const controller = new ApplicantController();
+
+              await templateService.apiHandler({
+                methodName: 'getApplicant',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsApplicantController_ingestFromPlatform: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                jobId: {"in":"path","name":"jobId","required":true,"dataType":"string"},
+                body: {"in":"body","name":"body","required":true,"ref":"IngestPlatformRequest"},
+        };
+        app.post('/jobs/:jobId/applicants/platform',
+            authenticateMiddleware([{"jwt":["recruiter","admin"]}]),
+            ...(fetchMiddlewares<RequestHandler>(ApplicantController)),
+            ...(fetchMiddlewares<RequestHandler>(ApplicantController.prototype.ingestFromPlatform)),
+
+            async function ApplicantController_ingestFromPlatform(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsApplicantController_ingestFromPlatform, request, response });
+
+                const controller = new ApplicantController();
+
+              await templateService.apiHandler({
+                methodName: 'ingestFromPlatform',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 201,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsApplicantController_ingestFromCsv: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                jobId: {"in":"path","name":"jobId","required":true,"dataType":"string"},
+                body: {"in":"body","name":"body","required":true,"ref":"IngestCsvRequest"},
+        };
+        app.post('/jobs/:jobId/applicants/csv',
+            authenticateMiddleware([{"jwt":["recruiter","admin"]}]),
+            ...(fetchMiddlewares<RequestHandler>(ApplicantController)),
+            ...(fetchMiddlewares<RequestHandler>(ApplicantController.prototype.ingestFromCsv)),
+
+            async function ApplicantController_ingestFromCsv(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsApplicantController_ingestFromCsv, request, response });
+
+                const controller = new ApplicantController();
+
+              await templateService.apiHandler({
+                methodName: 'ingestFromCsv',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 201,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsApplicantController_ingestFromFiles: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                jobId: {"in":"path","name":"jobId","required":true,"dataType":"string"},
+                body: {"in":"body","name":"body","required":true,"ref":"IngestFilesRequest"},
+        };
+        app.post('/jobs/:jobId/applicants/files',
+            authenticateMiddleware([{"jwt":["recruiter","admin"]}]),
+            ...(fetchMiddlewares<RequestHandler>(ApplicantController)),
+            ...(fetchMiddlewares<RequestHandler>(ApplicantController.prototype.ingestFromFiles)),
+
+            async function ApplicantController_ingestFromFiles(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsApplicantController_ingestFromFiles, request, response });
+
+                const controller = new ApplicantController();
+
+              await templateService.apiHandler({
+                methodName: 'ingestFromFiles',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 202,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsApplicantController_ingestFromLinks: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                jobId: {"in":"path","name":"jobId","required":true,"dataType":"string"},
+                body: {"in":"body","name":"body","required":true,"ref":"IngestLinksRequest"},
+        };
+        app.post('/jobs/:jobId/applicants/links',
+            authenticateMiddleware([{"jwt":["recruiter","admin"]}]),
+            ...(fetchMiddlewares<RequestHandler>(ApplicantController)),
+            ...(fetchMiddlewares<RequestHandler>(ApplicantController.prototype.ingestFromLinks)),
+
+            async function ApplicantController_ingestFromLinks(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsApplicantController_ingestFromLinks, request, response });
+
+                const controller = new ApplicantController();
+
+              await templateService.apiHandler({
+                methodName: 'ingestFromLinks',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 202,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsApplicantController_updateApplicant: Record<string, TsoaRoute.ParameterSchema> = {
+                jobId: {"in":"path","name":"jobId","required":true,"dataType":"string"},
+                applicantId: {"in":"path","name":"applicantId","required":true,"dataType":"string"},
+                body: {"in":"body","name":"body","required":true,"ref":"UpdateApplicantRequest"},
+        };
+        app.patch('/jobs/:jobId/applicants/:applicantId',
+            authenticateMiddleware([{"jwt":["recruiter","admin"]}]),
+            ...(fetchMiddlewares<RequestHandler>(ApplicantController)),
+            ...(fetchMiddlewares<RequestHandler>(ApplicantController.prototype.updateApplicant)),
+
+            async function ApplicantController_updateApplicant(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsApplicantController_updateApplicant, request, response });
+
+                const controller = new ApplicantController();
+
+              await templateService.apiHandler({
+                methodName: 'updateApplicant',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsApplicantController_deleteApplicant: Record<string, TsoaRoute.ParameterSchema> = {
+                jobId: {"in":"path","name":"jobId","required":true,"dataType":"string"},
+                applicantId: {"in":"path","name":"applicantId","required":true,"dataType":"string"},
+        };
+        app.delete('/jobs/:jobId/applicants/:applicantId',
+            authenticateMiddleware([{"jwt":["recruiter","admin"]}]),
+            ...(fetchMiddlewares<RequestHandler>(ApplicantController)),
+            ...(fetchMiddlewares<RequestHandler>(ApplicantController.prototype.deleteApplicant)),
+
+            async function ApplicantController_deleteApplicant(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsApplicantController_deleteApplicant, request, response });
+
+                const controller = new ApplicantController();
+
+              await templateService.apiHandler({
+                methodName: 'deleteApplicant',
                 controller,
                 response,
                 next,
