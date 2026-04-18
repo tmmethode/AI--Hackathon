@@ -63,6 +63,9 @@ const EXAMPLE_JSON_SCHEMA = `[
     "notes": "Strong product-thinking and mentoring experience."
   }
 ]`;
+const CSV_TEMPLATE = `name,email,phone,source,experienceYears,currentTitle,location,skills,educationLevel,portfolioUrl,linkedinUrl,notes
+"Sarah Jenkins","sarah.jenkins@example.com","+250788123456","CSV Import",6,"Senior Frontend Engineer","Kigali, Rwanda","React|TypeScript|Node.js","bs","https://portfolio.example.com/sarah","https://linkedin.com/in/sarah-jenkins","Strong product-thinking and mentoring experience."
+`;
 
 function formatBytes(b: number) {
   return b < 1024 * 1024 ? `${(b / 1024).toFixed(1)} KB` : `${(b / (1024 * 1024)).toFixed(1)} MB`;
@@ -212,18 +215,82 @@ function PdfTab({ files, onFiles, onRemove }: {
   );
 }
 
-function CsvTab() {
+function CsvTab({
+  files,
+  onFiles,
+  onRemove,
+}: {
+  files: UploadedFile[];
+  onFiles: (f: UploadedFile[]) => void;
+  onRemove: (id: string) => void;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function processFiles(raw: FileList | null) {
+    if (!raw) return;
+    const next: UploadedFile[] = Array.from(raw).map((f) => ({
+      id: `${f.name}-${f.size}-${Date.now()}`, name: f.name, size: f.size,
+    }));
+    onFiles(next);
+  }
+
+  function handleDownloadTemplate() {
+    const blob = new Blob([CSV_TEMPLATE], { type: "text/csv;charset=utf-8;" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "applicant-import-template.csv";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  }
+
   return (
-    <div className="p-6">
-      <p className="mb-4 text-sm text-ink-muted">Upload a CSV file with candidate data. Download the template to get started.</p>
-      <div className="rounded-lg border-2 border-dashed border-line-strong bg-surface-soft/20 py-12 text-center">
+    <div className="p-6 flex flex-col gap-4">
+      <p className="text-sm text-ink-muted">Upload a CSV file with candidate data. Download the template to get started.</p>
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => { e.preventDefault(); setDragging(false); processFiles(e.dataTransfer.files); }}
+        onClick={() => inputRef.current?.click()}
+        className={`cursor-pointer rounded-lg border-2 border-dashed py-12 text-center transition-colors ${
+          dragging ? "border-brand bg-brand-soft/40" : "border-line-strong bg-surface-soft/20 hover:border-brand/50 hover:bg-surface-soft/40"
+        }`}
+      >
         <TableIcon className="mx-auto mb-2 h-8 w-8 text-brand/40" />
         <p className="text-sm text-ink-muted">Drop a .csv file here or</p>
-        <div className="mt-3 flex justify-center gap-2">
-          <Button variant="secondary" size="sm">Browse CSV</Button>
-          <Button variant="ghost" size="sm">Download Template</Button>
+        <div className="mt-3 flex justify-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <Button variant="secondary" size="sm" onClick={() => inputRef.current?.click()}>Browse CSV</Button>
+          <Button variant="ghost" size="sm" onClick={handleDownloadTemplate}>Download Template</Button>
         </div>
+        <input
+          ref={inputRef}
+          type="file"
+          multiple
+          accept=".csv,text/csv"
+          className="hidden"
+          onChange={(e) => processFiles(e.target.files)}
+        />
       </div>
+
+      {files.length > 0 && (
+        <ul className="flex flex-col gap-2">
+          {files.map((f) => (
+            <li key={f.id} className="flex items-center justify-between rounded-md border border-line bg-surface px-3 py-2 text-sm">
+              <div className="flex items-center gap-2">
+                <File className="h-4 w-4 shrink-0 text-brand" />
+                <span className="font-medium text-ink">{f.name}</span>
+                <span className="text-xs text-ink-muted">{formatBytes(f.size)}</span>
+              </div>
+              <button onClick={() => onRemove(f.id)} className="rounded p-1 text-ink-muted hover:bg-surface-soft hover:text-danger">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -253,6 +320,7 @@ export default function IngestPage() {
   const [activeTab, setActiveTab] = useState<TabId>("pdf");
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [jsonFiles, setJsonFiles] = useState<UploadedFile[]>([]);
+  const [csvFiles, setCsvFiles] = useState<UploadedFile[]>([]);
   const [selectedJob, setSelectedJob] = useState(jobs[0].id);
   const [page, setPage] = useState(1);
   const [showSchemaModal, setShowSchemaModal] = useState(false);
@@ -273,6 +341,12 @@ export default function IngestPage() {
   }
   function removeJsonFile(id: string) {
     setJsonFiles((prev) => prev.filter((f) => f.id !== id));
+  }
+  function addCsvFiles(newFiles: UploadedFile[]) {
+    setCsvFiles((prev) => [...prev, ...newFiles]);
+  }
+  function removeCsvFile(id: string) {
+    setCsvFiles((prev) => prev.filter((f) => f.id !== id));
   }
 
   return (
@@ -319,7 +393,7 @@ export default function IngestPage() {
               />
             )}
             {activeTab === "pdf" && <PdfTab files={files} onFiles={addFiles} onRemove={removeFile} />}
-            {activeTab === "csv" && <CsvTab />}
+            {activeTab === "csv" && <CsvTab files={csvFiles} onFiles={addCsvFiles} onRemove={removeCsvFile} />}
             {activeTab === "links" && <LinksTab />}
           </Card>
 
