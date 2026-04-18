@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Activity, Bell, CircleHelp, Search, Check, Settings, LogOut, User, Shield, X, Menu } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
+import { clearStoredAuth, getStoredAuth } from "@/lib/auth";
 
 const notifications = [
   { id: 1, title: "New applicants detected", body: "14 new candidates matched Senior Full Stack Engineer.", time: "2m ago", read: false },
@@ -13,13 +15,29 @@ const notifications = [
 ];
 
 export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
+  const router = useRouter();
   const [showNotif, setShowNotif] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [notifs, setNotifs] = useState(notifications);
   const [notifTab, setNotifTab] = useState<"all" | "unread">("all");
   const [viewAll, setViewAll] = useState(false);
+  const [account, setAccount] = useState(() => getStoredAuth()?.user ?? null);
 
   const unread = notifs.filter((n) => !n.read).length;
+  const displayName =
+    account ? [account.firstName, account.lastName].filter(Boolean).join(" ") : "Recruiter Pro";
+  const accountEmail = account?.email ?? "recruiter@umurava.com";
+  const accountRole = account ? `${account.role.charAt(0).toUpperCase()}${account.role.slice(1)} Access` : "Admin Access";
+
+  useEffect(() => {
+    function syncAccount() {
+      setAccount(getStoredAuth()?.user ?? null);
+    }
+
+    syncAccount();
+    window.addEventListener("storage", syncAccount);
+    return () => window.removeEventListener("storage", syncAccount);
+  }, []);
 
   function markAllRead() {
     setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
@@ -37,6 +55,12 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
     setShowNotif(false);
     setShowProfile(false);
     setViewAll(false);
+  }
+
+  function handleLogout() {
+    clearStoredAuth();
+    closeAll();
+    router.replace("/login");
   }
 
   return (
@@ -150,20 +174,20 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
           {/* Profile menu */}
           <div className="relative flex items-center gap-2">
             <div className="hidden text-right sm:block">
-              <p className="text-sm text-ink">Recruiter Pro</p>
-              <p className="text-xs text-ink-muted">Admin Access</p>
+              <p className="text-sm text-ink">{displayName}</p>
+              <p className="text-xs text-ink-muted">{accountRole}</p>
             </div>
             <button onClick={() => { setShowProfile((v) => !v); setShowNotif(false); }}
               className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40">
-              <Avatar name="Recruiter Pro" online />
+              <Avatar name={displayName} src={account?.profilePicture} online />
             </button>
 
             {showProfile && (
               <div className="absolute right-0 top-12 z-30 w-56 rounded-xl border border-line bg-surface shadow-xl">
                 <div className="border-b border-line px-4 py-3">
-                  <p className="text-sm font-semibold text-ink">Recruiter Pro</p>
-                  <p className="text-xs text-ink-muted">recruiter@umurava.com</p>
-                  <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-brand">Admin Access</p>
+                  <p className="text-sm font-semibold text-ink">{displayName}</p>
+                  <p className="text-xs text-ink-muted">{accountEmail}</p>
+                  <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-brand">{accountRole}</p>
                 </div>
                 <ul className="py-1">
                   {[
@@ -180,9 +204,13 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
                   ))}
                 </ul>
                 <div className="border-t border-line py-1">
-                  <Link href="/" onClick={closeAll} className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-danger/5">
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-danger hover:bg-danger/5"
+                  >
                     <LogOut className="h-4 w-4" /> Sign Out
-                  </Link>
+                  </button>
                 </div>
               </div>
             )}

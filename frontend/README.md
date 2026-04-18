@@ -21,7 +21,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The root URL redirects to `/dashboard`.
+Open [http://localhost:3000](http://localhost:3000). The root URL redirects to `/login`.
 
 ## Scripts
 
@@ -36,6 +36,7 @@ Open [http://localhost:3000](http://localhost:3000). The root URL redirects to `
 ## Routes
 
 - `/dashboard` — Recruiter dashboard
+- `/login` — Recruiter sign-in
 - `/jobs` — Jobs list & detail
 - `/jobs/new` — Create / edit a screening job
 - `/ingest` — Ingest applicants

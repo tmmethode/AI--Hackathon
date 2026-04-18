@@ -5,7 +5,7 @@ import User, { type IUser, type UserRole } from '../models/User';
 // Create a custom request interface to avoid conflicts with Passport
 export interface AuthenticatedRequest extends Request {
   user: IUser;
-}
+}45
 
 // Helper function to check if user has required role
 const hasRole = (user: IUser, roles: UserRole | UserRole[]): boolean => {
