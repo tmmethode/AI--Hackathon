@@ -6,8 +6,6 @@ import {  fetchMiddlewares, ExpressTemplateService } from '@tsoa/runtime';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { JobController } from './../controllers/JobController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-import { HelloWorldController } from './../controllers/HelloWorldController';
-// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { GeminiController } from './../controllers/GeminiController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { AuthController } from './../controllers/AuthController';
@@ -725,64 +723,6 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'deleteJob',
-                controller,
-                response,
-                next,
-                validatedArgs,
-                successStatus: undefined,
-              });
-            } catch (err) {
-                return next(err);
-            }
-        });
-        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        const argsHelloWorldController_getHelloWorld: Record<string, TsoaRoute.ParameterSchema> = {
-        };
-        app.get('/hello',
-            ...(fetchMiddlewares<RequestHandler>(HelloWorldController)),
-            ...(fetchMiddlewares<RequestHandler>(HelloWorldController.prototype.getHelloWorld)),
-
-            async function HelloWorldController_getHelloWorld(request: ExRequest, response: ExResponse, next: any) {
-
-            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-            let validatedArgs: any[] = [];
-            try {
-                validatedArgs = templateService.getValidatedArgs({ args: argsHelloWorldController_getHelloWorld, request, response });
-
-                const controller = new HelloWorldController();
-
-              await templateService.apiHandler({
-                methodName: 'getHelloWorld',
-                controller,
-                response,
-                next,
-                validatedArgs,
-                successStatus: undefined,
-              });
-            } catch (err) {
-                return next(err);
-            }
-        });
-        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        const argsHelloWorldController_createHelloWorld: Record<string, TsoaRoute.ParameterSchema> = {
-        };
-        app.get('/hello/create',
-            ...(fetchMiddlewares<RequestHandler>(HelloWorldController)),
-            ...(fetchMiddlewares<RequestHandler>(HelloWorldController.prototype.createHelloWorld)),
-
-            async function HelloWorldController_createHelloWorld(request: ExRequest, response: ExResponse, next: any) {
-
-            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-
-            let validatedArgs: any[] = [];
-            try {
-                validatedArgs = templateService.getValidatedArgs({ args: argsHelloWorldController_createHelloWorld, request, response });
-
-                const controller = new HelloWorldController();
-
-              await templateService.apiHandler({
-                methodName: 'createHelloWorld',
                 controller,
                 response,
                 next,

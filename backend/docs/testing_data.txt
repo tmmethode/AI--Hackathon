@@ -1,0 +1,48 @@
+POST /jobs
+{
+  "title": "Senior Frontend engineer",
+  "department": "Product and Engineering",
+  "hiringManager": "69e398c9a56234ce855b19de",
+  "location": "Kicukiro kigali rwanda",
+  "locationPolicy": "remote",
+  "employmentType": "full-time",
+  "salaryBand": "100$ - 500$",
+  "summary": "We are seeking a talented Senior Frontend Engineer to join our Product Engineering team. You will be responsible for building and maintaining high-quality web applications that serve thousands of users daily. This is a key role that influences both the technical direction and user experience of our platform.",
+  "responsibilities": "• Architect, build, and maintain scalable frontend applications using React, TypeScript, and Next.js\n• Collaborate closely with designers, product managers, and backend engineers to deliver exceptional user experiences\n• Lead code reviews and establish engineering best practices across the frontend codebase\n• Mentor junior developers and contribute to a culture of continuous learning\n• Optimize application performance, accessibility, and SEO\n• Participate in sprint planning, technical design discussions, and architecture reviews\n• Write comprehensive unit and integration tests using Testing Library and Cypress\n• Contribute to our design system and component library",
+  "mustHaveQualifications": "• 5+ years of professional frontend development experience\n• Strong proficiency in React, TypeScript, and modern CSS (Tailwind preferred)\n• Experience with server-side rendering (Next.js) and state management\n• Solid understanding of web performance optimization techniques\n• Excellent communication skills and ability to work in distributed teams",
+  "niceToHaveQualifications": "• Experience with GraphQL, REST API design, or backend technologies (Node.js)\n• Familiarity with CI/CD pipelines and deployment automation\n• Contributions to open-source projects\n• Experience in a high-growth SaaS environment",
+  "coreHardSkills": [
+    "TypeScript",
+    "React",
+    "Next.js",
+    "Tailwind CSS",
+    "Frontend architecture",
+    "Component-driven development"
+  ],
+  "preferredSkills": [
+    "GraphQL",
+    "Design systems",
+    "Testing Library / Cypress",
+    "Performance optimization",
+    "Accessibility auditing",
+    "Mentoring or tech leadership"
+  ],
+  "coreSoftSkills": [
+    "Clear written and verbal communication",
+    "Ownership and accountability",
+    "Cross-functional collaboration",
+    "Mentorship mindset",
+    "Product thinking"
+  ],
+  "experienceYears": 3,
+  "seniorityLevel": "junior",
+  "educationLevel": "bs",
+  "weightCriteria": [
+    {
+      "id": "technical-123",
+      "label": "Technical Skills",
+      "value": 100
+    }
+  ],
+  "status": "Active"
+}
