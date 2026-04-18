@@ -60,10 +60,56 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
   }
 };
 
-// Export for TSOA authentication
-export const expressAuthentication = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  return authenticateToken(req, res, next);
-};
+// TSOA authentication function
+// Matches TSOA's expected signature: (request, securityName, scopes?) => Promise<any>
+export async function expressAuthentication(
+  request: Request,
+  securityName: string,
+  scopes?: string[]
+): Promise<any> {
+  if (securityName !== 'jwt' && securityName !== 'optionalJwt') {
+    return Promise.reject(new Error('Unknown security scheme'));
+  }
+
+  const authHeader = request.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    if (securityName === 'optionalJwt') {
+      return Promise.resolve(null);
+    }
+    return Promise.reject(new Error('Access token is required'));
+  }
+
+  try {
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET || 'your-secret-key'
+    ) as JwtPayload;
+
+    if (!decoded || !decoded.userId) {
+      return Promise.reject(new Error('Invalid token'));
+    }
+
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return Promise.reject(new Error('User not found'));
+    }
+
+    // scopes are treated as allowed roles
+    if (scopes && scopes.length > 0) {
+      if (!scopes.includes(user.role)) {
+        return Promise.reject(
+          new Error(`Forbidden: requires one of roles [${scopes.join(', ')}]`)
+        );
+      }
+    }
+
+    return Promise.resolve(user);
+  } catch (error: any) {
+    return Promise.reject(new Error(error?.message || 'Invalid or expired token'));
+  }
+}
 
 export const requireRole = (roles: UserRole | UserRole[]) => {
   return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
@@ -81,72 +127,6 @@ export const requireRole = (roles: UserRole | UserRole[]) => {
       res.status(403).json({
         error: 'Forbidden',
         message: `Access denied. Required roles: ${allowedRoles.join(', ')}`,
-        timestamp: new Date().toISOString()
-      });
-      return;
-    }
-
-    next();
-  };
-};
-
-// Optional authentication - doesn't fail if no token provided
-export const optionalAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-  try {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
-    if (!token) {
-      // No token provided, continue without user
-      return next();
-    }
-
-    try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as JwtPayload;
-      
-      // Find user in database
-      const user = await User.findById(decoded.userId);
-      if (user) {
-        // Attach user to request object if found
-        (req as any).user = user;
-      }
-      
-      next();
-    } catch (error) {
-      // Invalid token, but continue without user for optional auth
-      next();
-    }
-  } catch (error) {
-    // Optional auth should not fail the request
-    next();
-  }
-};
-
-// Check if user owns resource or is admin
-export const requireOwnershipOrAdmin = (resourceUserIdField: string = 'userId') => {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
-    if (!req.user) {
-      res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Authentication required',
-        timestamp: new Date().toISOString()
-      });
-      return;
-    }
-
-    // Admins can access everything
-    if (req.user.role === 'admin') {
-      next();
-      return;
-    }
-
-    // Check if user owns the resource
-    const resourceUserId = req.body[resourceUserIdField] || req.params[resourceUserIdField];
-    
-    if (req.user._id.toString() !== resourceUserId) {
-      res.status(403).json({
-        error: 'Forbidden',
-        message: 'Access denied. You can only access your own resources.',
         timestamp: new Date().toISOString()
       });
       return;

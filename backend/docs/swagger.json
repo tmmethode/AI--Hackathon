@@ -7,20 +7,9 @@
 		"requestBodies": {},
 		"responses": {},
 		"schemas": {
-			"UserRole": {
-				"type": "string",
-				"enum": [
-					"recruiter",
-					"admin",
-					"applicant"
-				]
-			},
-			"IUserResponse": {
+			"HiringManagerSummary": {
 				"properties": {
 					"_id": {
-						"type": "string"
-					},
-					"email": {
 						"type": "string"
 					},
 					"firstName": {
@@ -29,19 +18,173 @@
 					"lastName": {
 						"type": "string"
 					},
-					"role": {
-						"$ref": "#/components/schemas/UserRole"
-					},
-					"googleId": {
+					"email": {
 						"type": "string"
-					},
-					"isEmailVerified": {
-						"type": "boolean"
 					},
 					"profilePicture": {
 						"type": "string"
+					}
+				},
+				"required": [
+					"_id",
+					"firstName",
+					"lastName",
+					"email"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LocationPolicy": {
+				"type": "string",
+				"enum": [
+					"remote",
+					"hybrid",
+					"onsite"
+				]
+			},
+			"EmploymentType": {
+				"type": "string",
+				"enum": [
+					"full-time",
+					"part-time",
+					"contract",
+					"internship",
+					"temporary"
+				]
+			},
+			"SeniorityLevel": {
+				"type": "string",
+				"enum": [
+					"junior",
+					"mid",
+					"senior",
+					"lead",
+					"manager",
+					"principal"
+				]
+			},
+			"EducationLevel": {
+				"type": "string",
+				"enum": [
+					"none",
+					"hs",
+					"associate",
+					"bs",
+					"ms",
+					"mba",
+					"phd",
+					"professional"
+				]
+			},
+			"WeightCriterionDTO": {
+				"properties": {
+					"id": {
+						"type": "string"
 					},
-					"phoneNumber": {
+					"label": {
+						"type": "string"
+					},
+					"value": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"id",
+					"label",
+					"value"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"JobStatus": {
+				"type": "string",
+				"enum": [
+					"Active",
+					"Draft",
+					"Closed"
+				]
+			},
+			"IJobResponse": {
+				"properties": {
+					"_id": {
+						"type": "string"
+					},
+					"title": {
+						"type": "string"
+					},
+					"department": {
+						"type": "string"
+					},
+					"hiringManager": {
+						"$ref": "#/components/schemas/HiringManagerSummary"
+					},
+					"location": {
+						"type": "string"
+					},
+					"locationPolicy": {
+						"$ref": "#/components/schemas/LocationPolicy"
+					},
+					"employmentType": {
+						"$ref": "#/components/schemas/EmploymentType"
+					},
+					"salaryBand": {
+						"type": "string"
+					},
+					"summary": {
+						"type": "string"
+					},
+					"responsibilities": {
+						"type": "string"
+					},
+					"mustHaveQualifications": {
+						"type": "string"
+					},
+					"niceToHaveQualifications": {
+						"type": "string"
+					},
+					"coreHardSkills": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"preferredSkills": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"coreSoftSkills": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"experienceYears": {
+						"type": "number",
+						"format": "double"
+					},
+					"seniorityLevel": {
+						"$ref": "#/components/schemas/SeniorityLevel"
+					},
+					"educationLevel": {
+						"$ref": "#/components/schemas/EducationLevel"
+					},
+					"weightCriteria": {
+						"items": {
+							"$ref": "#/components/schemas/WeightCriterionDTO"
+						},
+						"type": "array"
+					},
+					"status": {
+						"$ref": "#/components/schemas/JobStatus"
+					},
+					"applicantsCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"createdBy": {
 						"type": "string"
 					},
 					"createdAt": {
@@ -53,41 +196,260 @@
 				},
 				"required": [
 					"_id",
-					"email",
-					"firstName",
-					"lastName",
-					"role",
-					"isEmailVerified",
+					"title",
+					"department",
+					"hiringManager",
+					"location",
+					"locationPolicy",
+					"employmentType",
+					"summary",
+					"responsibilities",
+					"mustHaveQualifications",
+					"coreHardSkills",
+					"preferredSkills",
+					"coreSoftSkills",
+					"experienceYears",
+					"seniorityLevel",
+					"educationLevel",
+					"weightCriteria",
+					"status",
+					"applicantsCount",
+					"createdBy",
 					"createdAt",
 					"updatedAt"
 				],
 				"type": "object",
 				"additionalProperties": false
 			},
-			"ProfileResponse": {
+			"JobListResponse": {
 				"properties": {
-					"user": {
-						"$ref": "#/components/schemas/IUserResponse"
+					"data": {
+						"items": {
+							"$ref": "#/components/schemas/IJobResponse"
+						},
+						"type": "array"
+					},
+					"total": {
+						"type": "number",
+						"format": "double"
+					},
+					"page": {
+						"type": "number",
+						"format": "double"
+					},
+					"pageSize": {
+						"type": "number",
+						"format": "double"
+					},
+					"totalPages": {
+						"type": "number",
+						"format": "double"
 					},
 					"message": {
 						"type": "string"
 					}
 				},
 				"required": [
-					"user",
+					"data",
+					"total",
+					"page",
+					"pageSize",
+					"totalPages",
 					"message"
 				],
 				"type": "object",
 				"additionalProperties": false
 			},
-			"RefreshTokenRequest": {
+			"JobResponse": {
 				"properties": {
-					"userId": {
+					"data": {
+						"$ref": "#/components/schemas/IJobResponse"
+					},
+					"message": {
 						"type": "string"
 					}
 				},
 				"required": [
-					"userId"
+					"data",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"CreateJobRequest": {
+				"properties": {
+					"title": {
+						"type": "string"
+					},
+					"department": {
+						"type": "string"
+					},
+					"hiringManager": {
+						"type": "string",
+						"description": "User id of the hiring manager (must have role 'recruiter'). Optional when the caller is a recruiter — defaults to them. Required for admins."
+					},
+					"location": {
+						"type": "string"
+					},
+					"locationPolicy": {
+						"$ref": "#/components/schemas/LocationPolicy"
+					},
+					"employmentType": {
+						"$ref": "#/components/schemas/EmploymentType"
+					},
+					"salaryBand": {
+						"type": "string"
+					},
+					"summary": {
+						"type": "string"
+					},
+					"responsibilities": {
+						"type": "string"
+					},
+					"mustHaveQualifications": {
+						"type": "string"
+					},
+					"niceToHaveQualifications": {
+						"type": "string"
+					},
+					"coreHardSkills": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"preferredSkills": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"coreSoftSkills": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"experienceYears": {
+						"type": "number",
+						"format": "double"
+					},
+					"seniorityLevel": {
+						"$ref": "#/components/schemas/SeniorityLevel"
+					},
+					"educationLevel": {
+						"$ref": "#/components/schemas/EducationLevel"
+					},
+					"weightCriteria": {
+						"items": {
+							"$ref": "#/components/schemas/WeightCriterionDTO"
+						},
+						"type": "array"
+					},
+					"status": {
+						"$ref": "#/components/schemas/JobStatus"
+					}
+				},
+				"required": [
+					"title",
+					"department",
+					"location",
+					"summary",
+					"responsibilities",
+					"mustHaveQualifications"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UpdateJobRequest": {
+				"properties": {
+					"title": {
+						"type": "string"
+					},
+					"department": {
+						"type": "string"
+					},
+					"hiringManager": {
+						"type": "string",
+						"description": "User id of the hiring manager. Must reference a user with role 'recruiter'."
+					},
+					"location": {
+						"type": "string"
+					},
+					"locationPolicy": {
+						"$ref": "#/components/schemas/LocationPolicy"
+					},
+					"employmentType": {
+						"$ref": "#/components/schemas/EmploymentType"
+					},
+					"salaryBand": {
+						"type": "string"
+					},
+					"summary": {
+						"type": "string"
+					},
+					"responsibilities": {
+						"type": "string"
+					},
+					"mustHaveQualifications": {
+						"type": "string"
+					},
+					"niceToHaveQualifications": {
+						"type": "string"
+					},
+					"coreHardSkills": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"preferredSkills": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"coreSoftSkills": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"experienceYears": {
+						"type": "number",
+						"format": "double"
+					},
+					"seniorityLevel": {
+						"$ref": "#/components/schemas/SeniorityLevel"
+					},
+					"educationLevel": {
+						"$ref": "#/components/schemas/EducationLevel"
+					},
+					"weightCriteria": {
+						"items": {
+							"$ref": "#/components/schemas/WeightCriterionDTO"
+						},
+						"type": "array"
+					},
+					"status": {
+						"$ref": "#/components/schemas/JobStatus"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"DeleteJobResponse": {
+				"properties": {
+					"message": {
+						"type": "string"
+					},
+					"id": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"message",
+					"id"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -745,6 +1107,63 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"UserRole": {
+				"type": "string",
+				"enum": [
+					"recruiter",
+					"admin",
+					"applicant"
+				]
+			},
+			"IUserResponse": {
+				"properties": {
+					"_id": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"firstName": {
+						"type": "string"
+					},
+					"lastName": {
+						"type": "string"
+					},
+					"role": {
+						"$ref": "#/components/schemas/UserRole"
+					},
+					"googleId": {
+						"type": "string"
+					},
+					"isEmailVerified": {
+						"type": "boolean"
+					},
+					"profilePicture": {
+						"type": "string"
+					},
+					"phoneNumber": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string"
+					},
+					"updatedAt": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"_id",
+					"email",
+					"firstName",
+					"lastName",
+					"role",
+					"isEmailVerified",
+					"createdAt",
+					"updatedAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"AuthResponse": {
 				"properties": {
 					"user": {
@@ -811,6 +1230,34 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"ProfileResponse": {
+				"properties": {
+					"user": {
+						"$ref": "#/components/schemas/IUserResponse"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"user",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"RefreshTokenRequest": {
+				"properties": {
+					"userId": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"userId"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"GoogleAuthRequest": {
 				"properties": {
 					"idToken": {
@@ -829,6 +1276,11 @@
 				"type": "http",
 				"scheme": "bearer",
 				"bearerFormat": "JWT"
+			},
+			"optionalJwt": {
+				"type": "http",
+				"scheme": "bearer",
+				"bearerFormat": "JWT"
 			}
 		}
 	},
@@ -844,56 +1296,367 @@
 		}
 	},
 	"paths": {
-		"/auth/me": {
+		"/jobs": {
 			"get": {
-				"operationId": "GetProfile",
+				"operationId": "ListJobs",
 				"responses": {
 					"200": {
 						"description": "Ok",
 						"content": {
 							"application/json": {
 								"schema": {
-									"$ref": "#/components/schemas/ProfileResponse"
+									"$ref": "#/components/schemas/JobListResponse"
 								}
 							}
 						}
 					}
 				},
+				"description": "List jobs with optional filters and pagination.",
 				"tags": [
-					"Protected Authentication"
+					"Jobs"
 				],
-				"security": [],
-				"parameters": []
-			}
-		},
-		"/auth/refresh": {
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "search",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "status",
+						"required": false,
+						"schema": {}
+					},
+					{
+						"in": "query",
+						"name": "page",
+						"required": false,
+						"schema": {
+							"default": 1,
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "pageSize",
+						"required": false,
+						"schema": {
+							"default": 10,
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			},
 			"post": {
-				"operationId": "RefreshToken",
+				"operationId": "CreateJob",
 				"responses": {
-					"200": {
-						"description": "Ok",
+					"201": {
+						"description": "Created",
 						"content": {
 							"application/json": {
-								"schema": {}
+								"schema": {
+									"$ref": "#/components/schemas/JobResponse"
+								}
 							}
 						}
 					}
 				},
+				"description": "Create a new job requisition.",
 				"tags": [
-					"Protected Authentication"
+					"Jobs"
 				],
-				"security": [],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
 				"parameters": [],
 				"requestBody": {
 					"required": true,
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/RefreshTokenRequest"
+								"$ref": "#/components/schemas/CreateJobRequest"
 							}
 						}
 					}
 				}
+			}
+		},
+		"/jobs/{id}": {
+			"get": {
+				"operationId": "GetJob",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/JobResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get a single job by ID.",
+				"tags": [
+					"Jobs"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			},
+			"put": {
+				"operationId": "UpdateJob",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/JobResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Update a job (full update).",
+				"tags": [
+					"Jobs"
+				],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateJobRequest"
+							}
+						}
+					}
+				}
+			},
+			"patch": {
+				"operationId": "PatchJob",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/JobResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Partially update a job.",
+				"tags": [
+					"Jobs"
+				],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateJobRequest"
+							}
+						}
+					}
+				}
+			},
+			"delete": {
+				"operationId": "DeleteJob",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/DeleteJobResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Delete a job permanently.",
+				"tags": [
+					"Jobs"
+				],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/jobs/{id}/status": {
+			"patch": {
+				"operationId": "ChangeStatus",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/JobResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Change the status of a job (publish/archive/draft).",
+				"tags": [
+					"Jobs"
+				],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"properties": {
+									"status": {
+										"$ref": "#/components/schemas/JobStatus"
+									}
+								},
+								"required": [
+									"status"
+								],
+								"type": "object"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/jobs/{id}/archive": {
+			"patch": {
+				"operationId": "ArchiveJob",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/JobResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Archive a job (soft close — sets status to Closed).",
+				"tags": [
+					"Jobs"
+				],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
 			}
 		},
 		"/hello": {
@@ -1174,6 +1937,68 @@
 						"application/json": {
 							"schema": {
 								"$ref": "#/components/schemas/LoginRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/me": {
+			"get": {
+				"operationId": "GetProfile",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProfileResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Authentication"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			}
+		},
+		"/auth/refresh": {
+			"post": {
+				"operationId": "RefreshToken",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/AuthResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Authentication"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": false,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/RefreshTokenRequest"
 							}
 						}
 					}

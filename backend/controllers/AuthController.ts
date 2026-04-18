@@ -1,13 +1,14 @@
-import { Route, Post, Body, Tags, Get, Query, Security, Request } from 'tsoa';
+import { Route, Post, Body, Tags, Get, Security, Request, HttpError } from 'tsoa';
 import jwt from 'jsonwebtoken';
 import User, { IUser } from '../models/User';
-import { 
-  UserRole, 
-  IUserResponse, 
-  RegisterRequest, 
-  LoginRequest, 
-  AuthResponse, 
+import {
+  IUserResponse,
+  RegisterRequest,
+  LoginRequest,
+  AuthResponse,
   GoogleAuthRequest,
+  RefreshTokenRequest,
+  ProfileResponse,
 } from '../interfaces/auth';
 
 @Tags('Authentication')
@@ -43,13 +44,11 @@ export class AuthController {
     try {
       const { email, password, firstName, lastName, role = 'applicant', phoneNumber } = requestBody;
 
-      // Check if user already exists
       const existingUser = await User.findOne({ email });
       if (existingUser) {
-        throw new Error('User with this email already exists');
+        throw new HttpError(409, 'User with this email already exists');
       }
 
-      // Create new user
       const user = new User({
         email,
         password,
@@ -57,7 +56,7 @@ export class AuthController {
         lastName,
         role,
         phoneNumber,
-        isEmailVerified: false
+        isEmailVerified: false,
       });
 
       await user.save();
@@ -67,10 +66,16 @@ export class AuthController {
       return {
         user: this.convertUserToResponse(user),
         token,
-        message: 'User registered successfully'
+        message: 'User registered successfully',
       };
     } catch (error) {
-      throw new Error(`Registration failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      if (error instanceof HttpError) {
+        throw error;
+      }
+      throw new HttpError(
+        500,
+        `Registration failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -79,21 +84,18 @@ export class AuthController {
     try {
       const { email, password } = requestBody;
 
-      // Find user with password
       const user = await User.findOne({ email }).select('+password');
       if (!user) {
-        throw new Error('Invalid email or password');
+        throw new HttpError(401, 'Invalid email or password');
       }
 
-      // Check if user has password (Google OAuth users might not)
       if (!user.password) {
-        throw new Error('Please login with Google');
+        throw new HttpError(400, 'Please login with Google');
       }
 
-      // Compare password
       const isPasswordValid = await user.comparePassword(password);
       if (!isPasswordValid) {
-        throw new Error('Invalid email or password');
+        throw new HttpError(401, 'Invalid email or password');
       }
 
       const token = this.generateToken(user._id.toString());
@@ -101,10 +103,83 @@ export class AuthController {
       return {
         user: this.convertUserToResponse(user),
         token,
-        message: 'Login successful'
+        message: 'Login successful',
       };
     } catch (error) {
-      throw new Error(`Login failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      if (error instanceof HttpError) {
+        throw error;
+      }
+      throw new HttpError(500, `Login failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  @Get('me')
+  @Security('jwt')
+  public async getProfile(@Request() req: any): Promise<ProfileResponse> {
+    try {
+      const userId = req.user?._id || req.user?.userId || req.user?.id;
+
+      if (!userId) {
+        throw new HttpError(401, 'User not authenticated');
+      }
+
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new HttpError(404, 'User not found');
+      }
+
+      return {
+        user: this.convertUserToResponse(user),
+        message: 'Profile retrieved successfully',
+      };
+    } catch (error) {
+      if (error instanceof HttpError) {
+        throw error;
+      }
+      throw new HttpError(
+        500,
+        `Failed to get profile: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  @Post('refresh')
+  @Security('jwt')
+  public async refreshToken(
+    @Request() req: any,
+    @Body() requestBody?: RefreshTokenRequest
+  ): Promise<AuthResponse> {
+    try {
+      const userId =
+        req.user?._id ||
+        req.user?.userId ||
+        req.user?.id ||
+        requestBody?.userId;
+
+      if (!userId) {
+        throw new HttpError(401, 'User not authenticated');
+      }
+
+      const user = await User.findById(userId);
+      if (!user) {
+        throw new HttpError(404, 'User not found');
+      }
+
+      const token = this.generateToken(user._id.toString());
+
+      return {
+        user: this.convertUserToResponse(user),
+        token,
+        message: 'Token refreshed successfully',
+      };
+    } catch (error) {
+      if (error instanceof HttpError) {
+        throw error;
+      }
+      throw new HttpError(
+        500,
+        `Token refresh failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 

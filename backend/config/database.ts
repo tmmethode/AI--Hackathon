@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 export const connectDatabase = async (): Promise<{ success: boolean; error?: any }> => {
   try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/helloworld';
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-hackathon';
     
     await mongoose.connect(mongoUri);
     

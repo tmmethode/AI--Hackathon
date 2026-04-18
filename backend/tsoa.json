@@ -10,11 +10,17 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT"
+      },
+      "optionalJwt": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
       }
     }
   },
   "routes": {
-    "routesDir": "./generated"
+    "routesDir": "./generated",
+    "authenticationModule": "./middleware/auth"
   },
   "compilerOptions": {
     "baseUrl": ".",
