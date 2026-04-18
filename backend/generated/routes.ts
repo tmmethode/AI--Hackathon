@@ -189,7 +189,7 @@ const models: TsoaRoute.Models = {
             "model": {"dataType":"string","required":true},
             "defaults": {"dataType":"nestedObjectLiteral","nestedProperties":{"maxOutputTokens":{"dataType":"double","required":true},"temperature":{"dataType":"double","required":true},"maxShortlistSize":{"dataType":"double","required":true},"minShortlistSize":{"dataType":"double","required":true},"shortlistSize":{"dataType":"double","required":true}},"required":true},
             "contracts": {"dataType":"nestedObjectLiteral","nestedProperties":{"candidateFields":{"dataType":"array","array":{"dataType":"string"},"required":true},"jobFields":{"dataType":"array","array":{"dataType":"string"},"required":true}},"required":true},
-            "endpoints": {"dataType":"nestedObjectLiteral","nestedProperties":{"frontendConfig":{"dataType":"string","required":true},"screenRun":{"dataType":"string","required":true},"screenCandidate":{"dataType":"string","required":true},"generate":{"dataType":"string","required":true},"health":{"dataType":"string","required":true}},"required":true},
+            "endpoints": {"dataType":"nestedObjectLiteral","nestedProperties":{"frontendConfig":{"dataType":"string","required":true},"screenBatch":{"dataType":"string","required":true},"screenRun":{"dataType":"string","required":true},"screenCandidate":{"dataType":"string","required":true},"generate":{"dataType":"string","required":true},"health":{"dataType":"string","required":true}},"required":true},
         },
         "additionalProperties": false,
     },
@@ -376,6 +376,219 @@ const models: TsoaRoute.Models = {
             "job": {"ref":"GeminiJobContext","required":true},
             "candidates": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiCandidateContext"},"required":true},
             "shortlistSize": {"dataType":"double"},
+            "instructions": {"dataType":"string"},
+            "temperature": {"dataType":"double"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiBatchRecommendation": {
+        "dataType": "refAlias",
+        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["Strong Reject"]},{"dataType":"enum","enums":["Reject"]},{"dataType":"enum","enums":["Consider"]},{"dataType":"enum","enums":["Shortlist"]},{"dataType":"enum","enums":["Strong Shortlist"]}],"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiBatchScreeningResultEntry": {
+        "dataType": "refObject",
+        "properties": {
+            "candidateRank": {"dataType":"double","required":true},
+            "applicantEmail": {"dataType":"string","required":true},
+            "fullName": {"dataType":"string","required":true},
+            "matchScore": {"dataType":"double","required":true},
+            "confidenceScore": {"dataType":"double","required":true},
+            "skillsScore": {"dataType":"double","required":true},
+            "experienceScore": {"dataType":"double","required":true},
+            "educationScore": {"dataType":"double","required":true},
+            "relevanceScore": {"dataType":"double","required":true},
+            "strengths": {"dataType":"array","array":{"dataType":"string"},"required":true},
+            "gapsOrRisks": {"dataType":"array","array":{"dataType":"string"},"required":true},
+            "finalRecommendation": {"ref":"GeminiBatchRecommendation","required":true},
+            "summaryExplanation": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiBatchShortlistEntry": {
+        "dataType": "refObject",
+        "properties": {
+            "candidateRank": {"dataType":"double","required":true},
+            "applicantEmail": {"dataType":"string","required":true},
+            "fullName": {"dataType":"string","required":true},
+            "matchScore": {"dataType":"double","required":true},
+            "strengths": {"dataType":"array","array":{"dataType":"string"},"required":true},
+            "gapsOrRisks": {"dataType":"array","array":{"dataType":"string"},"required":true},
+            "finalRecommendation": {"ref":"GeminiBatchRecommendation","required":true},
+            "summaryExplanation": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiBatchScreeningResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "jobTitle": {"dataType":"string","required":true},
+            "department": {"dataType":"string","required":true},
+            "shortlistCount": {"dataType":"double","required":true},
+            "totalApplicants": {"dataType":"double","required":true},
+            "screeningResults": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiBatchScreeningResultEntry"},"required":true},
+            "shortlist": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiBatchShortlistEntry"},"required":true},
+            "model": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiWeightCriterion": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"string"},
+            "label": {"dataType":"string","required":true},
+            "value": {"dataType":"double","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiBatchJob": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"string"},
+            "title": {"dataType":"string","required":true},
+            "department": {"dataType":"string"},
+            "hiringManager": {"dataType":"string"},
+            "location": {"dataType":"string"},
+            "locationPolicy": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["remote"]},{"dataType":"enum","enums":["hybrid"]},{"dataType":"enum","enums":["onsite"]},{"dataType":"string"}]},
+            "employmentType": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["full-time"]},{"dataType":"enum","enums":["part-time"]},{"dataType":"enum","enums":["contract"]},{"dataType":"enum","enums":["internship"]},{"dataType":"string"}]},
+            "salaryBand": {"dataType":"string"},
+            "summary": {"dataType":"string"},
+            "responsibilities": {"dataType":"string"},
+            "mustHaveQualifications": {"dataType":"string"},
+            "niceToHaveQualifications": {"dataType":"string"},
+            "coreHardSkills": {"dataType":"array","array":{"dataType":"string"}},
+            "preferredSkills": {"dataType":"array","array":{"dataType":"string"}},
+            "coreSoftSkills": {"dataType":"array","array":{"dataType":"string"}},
+            "experienceYears": {"dataType":"double"},
+            "seniorityLevel": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["junior"]},{"dataType":"enum","enums":["mid"]},{"dataType":"enum","enums":["senior"]},{"dataType":"enum","enums":["lead"]},{"dataType":"enum","enums":["principal"]},{"dataType":"string"}]},
+            "educationLevel": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["none"]},{"dataType":"enum","enums":["highschool"]},{"dataType":"enum","enums":["associate"]},{"dataType":"enum","enums":["bachelor"]},{"dataType":"enum","enums":["master"]},{"dataType":"enum","enums":["phd"]},{"dataType":"string"}]},
+            "weightCriteria": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiWeightCriterion"}},
+            "status": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiApplicantSkill": {
+        "dataType": "refObject",
+        "properties": {
+            "name": {"dataType":"string","required":true},
+            "level": {"dataType":"string"},
+            "yearsOfExperience": {"dataType":"double"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiApplicantLanguage": {
+        "dataType": "refObject",
+        "properties": {
+            "name": {"dataType":"string","required":true},
+            "proficiency": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiApplicantExperience": {
+        "dataType": "refObject",
+        "properties": {
+            "company": {"dataType":"string"},
+            "role": {"dataType":"string"},
+            "startDate": {"dataType":"string"},
+            "endDate": {"dataType":"string"},
+            "description": {"dataType":"string"},
+            "technologies": {"dataType":"array","array":{"dataType":"string"}},
+            "isCurrent": {"dataType":"boolean"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiApplicantEducation": {
+        "dataType": "refObject",
+        "properties": {
+            "institution": {"dataType":"string"},
+            "degree": {"dataType":"string"},
+            "fieldOfStudy": {"dataType":"string"},
+            "startYear": {"dataType":"double"},
+            "endYear": {"dataType":"double"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiApplicantCertification": {
+        "dataType": "refObject",
+        "properties": {
+            "name": {"dataType":"string","required":true},
+            "issuer": {"dataType":"string"},
+            "issueDate": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiApplicantProject": {
+        "dataType": "refObject",
+        "properties": {
+            "name": {"dataType":"string","required":true},
+            "description": {"dataType":"string"},
+            "technologies": {"dataType":"array","array":{"dataType":"string"}},
+            "role": {"dataType":"string"},
+            "link": {"dataType":"string"},
+            "startDate": {"dataType":"string"},
+            "endDate": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiApplicantAvailability": {
+        "dataType": "refObject",
+        "properties": {
+            "status": {"dataType":"string"},
+            "type": {"dataType":"string"},
+            "startDate": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiApplicantSocialLinks": {
+        "dataType": "refObject",
+        "properties": {
+            "linkedin": {"dataType":"string"},
+            "github": {"dataType":"string"},
+            "portfolio": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiBatchApplicant": {
+        "dataType": "refObject",
+        "properties": {
+            "firstName": {"dataType":"string"},
+            "lastName": {"dataType":"string"},
+            "email": {"dataType":"string","required":true},
+            "headline": {"dataType":"string"},
+            "bio": {"dataType":"string"},
+            "location": {"dataType":"string"},
+            "skills": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiApplicantSkill"}},
+            "languages": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiApplicantLanguage"}},
+            "experience": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiApplicantExperience"}},
+            "education": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiApplicantEducation"}},
+            "certifications": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiApplicantCertification"}},
+            "projects": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiApplicantProject"}},
+            "availability": {"ref":"GeminiApplicantAvailability"},
+            "socialLinks": {"ref":"GeminiApplicantSocialLinks"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiBatchScreeningRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "job": {"ref":"GeminiBatchJob","required":true},
+            "applicants": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiBatchApplicant"},"required":true},
+            "shortlistCount": {"dataType":"double","required":true},
             "instructions": {"dataType":"string"},
             "temperature": {"dataType":"double"},
         },
@@ -1136,6 +1349,36 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'screenRun',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsGeminiController_screenBatch: Record<string, TsoaRoute.ParameterSchema> = {
+                requestBody: {"in":"body","name":"requestBody","required":true,"ref":"GeminiBatchScreeningRequest"},
+        };
+        app.post('/gemini/screen-batch',
+            ...(fetchMiddlewares<RequestHandler>(GeminiController)),
+            ...(fetchMiddlewares<RequestHandler>(GeminiController.prototype.screenBatch)),
+
+            async function GeminiController_screenBatch(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsGeminiController_screenBatch, request, response });
+
+                const controller = new GeminiController();
+
+              await templateService.apiHandler({
+                methodName: 'screenBatch',
                 controller,
                 response,
                 next,

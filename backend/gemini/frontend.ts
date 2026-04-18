@@ -60,6 +60,7 @@ export class GeminiFrontendService {
         generate: "/gemini/generate",
         screenCandidate: "/gemini/screen-candidate",
         screenRun: "/gemini/screen-run",
+        screenBatch: "/gemini/screen-batch",
         frontendConfig: "/gemini/frontend-config",
       },
     };

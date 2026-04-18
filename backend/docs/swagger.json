@@ -520,6 +520,9 @@
 							"frontendConfig": {
 								"type": "string"
 							},
+							"screenBatch": {
+								"type": "string"
+							},
 							"screenRun": {
 								"type": "string"
 							},
@@ -535,6 +538,7 @@
 						},
 						"required": [
 							"frontendConfig",
+							"screenBatch",
 							"screenRun",
 							"screenCandidate",
 							"generate",
@@ -1103,6 +1107,604 @@
 					"runName",
 					"job",
 					"candidates"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiBatchRecommendation": {
+				"type": "string",
+				"enum": [
+					"Strong Reject",
+					"Reject",
+					"Consider",
+					"Shortlist",
+					"Strong Shortlist"
+				]
+			},
+			"GeminiBatchScreeningResultEntry": {
+				"properties": {
+					"candidateRank": {
+						"type": "number",
+						"format": "double"
+					},
+					"applicantEmail": {
+						"type": "string"
+					},
+					"fullName": {
+						"type": "string"
+					},
+					"matchScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"confidenceScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"skillsScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"experienceScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"educationScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"relevanceScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"strengths": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"gapsOrRisks": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"finalRecommendation": {
+						"$ref": "#/components/schemas/GeminiBatchRecommendation"
+					},
+					"summaryExplanation": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"candidateRank",
+					"applicantEmail",
+					"fullName",
+					"matchScore",
+					"confidenceScore",
+					"skillsScore",
+					"experienceScore",
+					"educationScore",
+					"relevanceScore",
+					"strengths",
+					"gapsOrRisks",
+					"finalRecommendation",
+					"summaryExplanation"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiBatchShortlistEntry": {
+				"properties": {
+					"candidateRank": {
+						"type": "number",
+						"format": "double"
+					},
+					"applicantEmail": {
+						"type": "string"
+					},
+					"fullName": {
+						"type": "string"
+					},
+					"matchScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"strengths": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"gapsOrRisks": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"finalRecommendation": {
+						"$ref": "#/components/schemas/GeminiBatchRecommendation"
+					},
+					"summaryExplanation": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"candidateRank",
+					"applicantEmail",
+					"fullName",
+					"matchScore",
+					"strengths",
+					"gapsOrRisks",
+					"finalRecommendation",
+					"summaryExplanation"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiBatchScreeningResponse": {
+				"properties": {
+					"jobTitle": {
+						"type": "string"
+					},
+					"department": {
+						"type": "string"
+					},
+					"shortlistCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"totalApplicants": {
+						"type": "number",
+						"format": "double"
+					},
+					"screeningResults": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiBatchScreeningResultEntry"
+						},
+						"type": "array"
+					},
+					"shortlist": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiBatchShortlistEntry"
+						},
+						"type": "array"
+					},
+					"model": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"jobTitle",
+					"department",
+					"shortlistCount",
+					"totalApplicants",
+					"screeningResults",
+					"shortlist"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiWeightCriterion": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"label": {
+						"type": "string"
+					},
+					"value": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"label",
+					"value"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiBatchJob": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"title": {
+						"type": "string"
+					},
+					"department": {
+						"type": "string"
+					},
+					"hiringManager": {
+						"type": "string"
+					},
+					"location": {
+						"type": "string"
+					},
+					"locationPolicy": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "string",
+								"enum": [
+									"remote",
+									"hybrid",
+									"onsite"
+								]
+							}
+						]
+					},
+					"employmentType": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "string",
+								"enum": [
+									"full-time",
+									"part-time",
+									"contract",
+									"internship"
+								]
+							}
+						]
+					},
+					"salaryBand": {
+						"type": "string"
+					},
+					"summary": {
+						"type": "string"
+					},
+					"responsibilities": {
+						"type": "string"
+					},
+					"mustHaveQualifications": {
+						"type": "string"
+					},
+					"niceToHaveQualifications": {
+						"type": "string"
+					},
+					"coreHardSkills": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"preferredSkills": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"coreSoftSkills": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"experienceYears": {
+						"type": "number",
+						"format": "double"
+					},
+					"seniorityLevel": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "string",
+								"enum": [
+									"junior",
+									"mid",
+									"senior",
+									"lead",
+									"principal"
+								]
+							}
+						]
+					},
+					"educationLevel": {
+						"anyOf": [
+							{
+								"type": "string"
+							},
+							{
+								"type": "string",
+								"enum": [
+									"none",
+									"highschool",
+									"associate",
+									"bachelor",
+									"master",
+									"phd"
+								]
+							}
+						]
+					},
+					"weightCriteria": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiWeightCriterion"
+						},
+						"type": "array"
+					},
+					"status": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"title"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiApplicantSkill": {
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"level": {
+						"type": "string"
+					},
+					"yearsOfExperience": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"name"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiApplicantLanguage": {
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"proficiency": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"name"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiApplicantExperience": {
+				"properties": {
+					"company": {
+						"type": "string"
+					},
+					"role": {
+						"type": "string"
+					},
+					"startDate": {
+						"type": "string"
+					},
+					"endDate": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"technologies": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"isCurrent": {
+						"type": "boolean"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiApplicantEducation": {
+				"properties": {
+					"institution": {
+						"type": "string"
+					},
+					"degree": {
+						"type": "string"
+					},
+					"fieldOfStudy": {
+						"type": "string"
+					},
+					"startYear": {
+						"type": "number",
+						"format": "double"
+					},
+					"endYear": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiApplicantCertification": {
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"issuer": {
+						"type": "string"
+					},
+					"issueDate": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"name"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiApplicantProject": {
+				"properties": {
+					"name": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"technologies": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"role": {
+						"type": "string"
+					},
+					"link": {
+						"type": "string"
+					},
+					"startDate": {
+						"type": "string"
+					},
+					"endDate": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"name"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiApplicantAvailability": {
+				"properties": {
+					"status": {
+						"type": "string"
+					},
+					"type": {
+						"type": "string"
+					},
+					"startDate": {
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiApplicantSocialLinks": {
+				"properties": {
+					"linkedin": {
+						"type": "string"
+					},
+					"github": {
+						"type": "string"
+					},
+					"portfolio": {
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiBatchApplicant": {
+				"properties": {
+					"firstName": {
+						"type": "string"
+					},
+					"lastName": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"headline": {
+						"type": "string"
+					},
+					"bio": {
+						"type": "string"
+					},
+					"location": {
+						"type": "string"
+					},
+					"skills": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiApplicantSkill"
+						},
+						"type": "array"
+					},
+					"languages": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiApplicantLanguage"
+						},
+						"type": "array"
+					},
+					"experience": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiApplicantExperience"
+						},
+						"type": "array"
+					},
+					"education": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiApplicantEducation"
+						},
+						"type": "array"
+					},
+					"certifications": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiApplicantCertification"
+						},
+						"type": "array"
+					},
+					"projects": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiApplicantProject"
+						},
+						"type": "array"
+					},
+					"availability": {
+						"$ref": "#/components/schemas/GeminiApplicantAvailability"
+					},
+					"socialLinks": {
+						"$ref": "#/components/schemas/GeminiApplicantSocialLinks"
+					}
+				},
+				"required": [
+					"email"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiBatchScreeningRequest": {
+				"properties": {
+					"job": {
+						"$ref": "#/components/schemas/GeminiBatchJob"
+					},
+					"applicants": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiBatchApplicant"
+						},
+						"type": "array"
+					},
+					"shortlistCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"instructions": {
+						"type": "string"
+					},
+					"temperature": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"job",
+					"applicants",
+					"shortlistCount"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -2471,6 +3073,38 @@
 						"application/json": {
 							"schema": {
 								"$ref": "#/components/schemas/GeminiFrontendScreeningRunRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/gemini/screen-batch": {
+			"post": {
+				"operationId": "ScreenBatch",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/GeminiBatchScreeningResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Gemini"
+				],
+				"security": [],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/GeminiBatchScreeningRequest"
 							}
 						}
 					}

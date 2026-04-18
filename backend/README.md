@@ -60,6 +60,7 @@ GEMINI_FRONTEND_MAX_SHORTLIST_SIZE=50
 - `POST /gemini/generate` - Send a generic prompt to Gemini
 - `POST /gemini/screen-candidate` - Score a candidate against structured job requirements
 - `POST /gemini/screen-run` - Process a frontend screening run across multiple candidates and return ranked results
+- `POST /gemini/screen-batch` - Evaluate all applicants against a single job in one Gemini call using the weighted scoring model (Skills 35% / Experience 30% / Education 10% / Relevance 25%) and return a ranked shortlist limited by `shortlistCount`
 
 ### Documentation
 

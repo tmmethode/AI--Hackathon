@@ -3,6 +3,8 @@ import { GeminiClient } from "../gemini/client";
 import { GeminiFrontendService } from "../gemini/frontend";
 import { GeminiScreeningService } from "../gemini/screening";
 import {
+  GeminiBatchScreeningRequest,
+  GeminiBatchScreeningResponse,
   GeminiCandidateScreenRequest,
   GeminiCandidateScreenResponse,
   GeminiFrontendConfigResponse,
@@ -49,5 +51,12 @@ export class GeminiController {
     @Body() requestBody: GeminiFrontendScreeningRunRequest
   ): Promise<GeminiFrontendScreeningRunResponse> {
     return this.frontendService.screenRun(requestBody);
+  }
+
+  @Post("screen-batch")
+  public async screenBatch(
+    @Body() requestBody: GeminiBatchScreeningRequest
+  ): Promise<GeminiBatchScreeningResponse> {
+    return this.screeningService.screenBatch(requestBody);
   }
 }

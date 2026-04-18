@@ -121,6 +121,7 @@ export interface GeminiFrontendConfigResponse {
     generate: string;
     screenCandidate: string;
     screenRun: string;
+    screenBatch: string;
     frontendConfig: string;
   };
 }
@@ -151,4 +152,159 @@ export interface GeminiFrontendScreeningRunResponse {
   rankingCriteria?: GeminiRankingCriterion[];
   summary: string;
   results: GeminiFrontendScreeningResult[];
+}
+
+export type GeminiBatchRecommendation =
+  | "Strong Reject"
+  | "Reject"
+  | "Consider"
+  | "Shortlist"
+  | "Strong Shortlist";
+
+export interface GeminiWeightCriterion {
+  id?: string;
+  label: string;
+  value: number;
+}
+
+export interface GeminiBatchJob {
+  id?: string;
+  title: string;
+  department?: string;
+  hiringManager?: string;
+  location?: string;
+  locationPolicy?: "remote" | "hybrid" | "onsite" | string;
+  employmentType?: "full-time" | "part-time" | "contract" | "internship" | string;
+  salaryBand?: string;
+  summary?: string;
+  responsibilities?: string;
+  mustHaveQualifications?: string;
+  niceToHaveQualifications?: string;
+  coreHardSkills?: string[];
+  preferredSkills?: string[];
+  coreSoftSkills?: string[];
+  experienceYears?: number;
+  seniorityLevel?: "junior" | "mid" | "senior" | "lead" | "principal" | string;
+  educationLevel?: "none" | "highschool" | "associate" | "bachelor" | "master" | "phd" | string;
+  weightCriteria?: GeminiWeightCriterion[];
+  status?: string;
+}
+
+export interface GeminiApplicantSkill {
+  name: string;
+  level?: string;
+  yearsOfExperience?: number;
+}
+
+export interface GeminiApplicantLanguage {
+  name: string;
+  proficiency?: string;
+}
+
+export interface GeminiApplicantExperience {
+  company?: string;
+  role?: string;
+  startDate?: string;
+  endDate?: string;
+  description?: string;
+  technologies?: string[];
+  isCurrent?: boolean;
+}
+
+export interface GeminiApplicantEducation {
+  institution?: string;
+  degree?: string;
+  fieldOfStudy?: string;
+  startYear?: number;
+  endYear?: number;
+}
+
+export interface GeminiApplicantCertification {
+  name: string;
+  issuer?: string;
+  issueDate?: string;
+}
+
+export interface GeminiApplicantProject {
+  name: string;
+  description?: string;
+  technologies?: string[];
+  role?: string;
+  link?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+export interface GeminiApplicantAvailability {
+  status?: string;
+  type?: string;
+  startDate?: string;
+}
+
+export interface GeminiApplicantSocialLinks {
+  linkedin?: string;
+  github?: string;
+  portfolio?: string;
+}
+
+export interface GeminiBatchApplicant {
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  headline?: string;
+  bio?: string;
+  location?: string;
+  skills?: GeminiApplicantSkill[];
+  languages?: GeminiApplicantLanguage[];
+  experience?: GeminiApplicantExperience[];
+  education?: GeminiApplicantEducation[];
+  certifications?: GeminiApplicantCertification[];
+  projects?: GeminiApplicantProject[];
+  availability?: GeminiApplicantAvailability;
+  socialLinks?: GeminiApplicantSocialLinks;
+}
+
+export interface GeminiBatchScreeningRequest {
+  job: GeminiBatchJob;
+  applicants: GeminiBatchApplicant[];
+  shortlistCount: number;
+  instructions?: string;
+  temperature?: number;
+}
+
+export interface GeminiBatchScreeningResultEntry {
+  candidateRank: number;
+  applicantEmail: string;
+  fullName: string;
+  matchScore: number;
+  confidenceScore: number;
+  skillsScore: number;
+  experienceScore: number;
+  educationScore: number;
+  relevanceScore: number;
+  strengths: string[];
+  gapsOrRisks: string[];
+  finalRecommendation: GeminiBatchRecommendation;
+  summaryExplanation: string;
+}
+
+export interface GeminiBatchShortlistEntry {
+  candidateRank: number;
+  applicantEmail: string;
+  fullName: string;
+  matchScore: number;
+  strengths: string[];
+  gapsOrRisks: string[];
+  finalRecommendation: GeminiBatchRecommendation;
+  summaryExplanation: string;
+}
+
+export interface GeminiBatchScreeningResponse {
+  jobTitle: string;
+  department: string;
+  shortlistCount: number;
+  totalApplicants: number;
+  screeningResults: GeminiBatchScreeningResultEntry[];
+  shortlist: GeminiBatchShortlistEntry[];
+  model?: string;
 }
