@@ -1,18 +1,62 @@
 "use client";
 
-import { useState } from "react";
+import { type ComponentType, type FormEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { X, Play, Save, Briefcase, UserRound, Cpu, Upload, CheckCircle2, ArrowRight, Sparkles, FileText } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowRight,
+  Briefcase,
+  CheckCircle2,
+  Cpu,
+  FileText,
+  LoaderCircle,
+  Play,
+  Save,
+  Upload,
+  UserRound,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, Input, Select, Textarea } from "@/components/ui/Input";
-import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
+import { Modal, ModalBody, ModalFooter } from "@/components/ui/Modal";
+import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { type EducationLevel, type EmploymentType, type LocationPolicy, type SeniorityLevel } from "@/lib/jobs";
+import {
+  addWeightCriterion as addWeightCriterionAction,
+  removeWeightCriterion as removeWeightCriterionAction,
+  setShowSuccessModal as setShowSuccessModalAction,
+  submitJob as submitJobAction,
+  updateFormField as updateFormFieldAction,
+  updateWeightLabel as updateWeightLabelAction,
+  updateWeightValue as updateWeightValueAction,
+  type WeightCriterion,
+} from "@/lib/features/jobs/jobFormSlice";
 
 interface SectionProps {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: ComponentType<{ className?: string }>;
   title: string;
   description: string;
-  children: React.ReactNode;
+  children: ReactNode;
+}
+
+interface JobFormState {
+  title: string;
+  department: string;
+  location: string;
+  locationPolicy: LocationPolicy;
+  employmentType: EmploymentType;
+  salaryBand: string;
+  summary: string;
+  responsibilities: string;
+  mustHaveQualifications: string;
+  niceToHaveQualifications: string;
+  coreHardSkills: string;
+  preferredSkills: string;
+  coreSoftSkills: string;
+  experienceYears: string;
+  seniorityLevel: SeniorityLevel;
+  educationLevel: EducationLevel;
 }
 
 function Section({ icon: Icon, title, description, children }: SectionProps) {
@@ -30,12 +74,6 @@ function Section({ icon: Icon, title, description, children }: SectionProps) {
       {children}
     </Card>
   );
-}
-
-interface WeightCriterion {
-  id: string;
-  label: string;
-  value: number;
 }
 
 function WeightRow({
@@ -59,7 +97,7 @@ function WeightRow({
         <div className="flex-1">
           <Input
             value={criterion.label}
-            onChange={(e) => onLabelChange(criterion.id, e.target.value)}
+            onChange={(event) => onLabelChange(criterion.id, event.target.value)}
             placeholder="Scoring criterion"
           />
         </div>
@@ -69,7 +107,7 @@ function WeightRow({
             min={0}
             max={maxValue}
             value={criterion.value}
-            onChange={(e) => onValueChange(criterion.id, Number(e.target.value))}
+            onChange={(event) => onValueChange(criterion.id, Number(event.target.value))}
           />
         </div>
         <div className="pt-1 text-sm font-semibold text-brand">%</div>
@@ -85,7 +123,7 @@ function WeightRow({
           min={0}
           max={maxValue}
           value={criterion.value}
-          onChange={(e) => onValueChange(criterion.id, Number(e.target.value))}
+          onChange={(event) => onValueChange(criterion.id, Number(event.target.value))}
           className="h-2 w-full cursor-pointer appearance-none rounded-full bg-surface-soft accent-brand"
         />
         <span className="w-12 text-right text-sm font-semibold text-brand">{criterion.value}%</span>
@@ -98,65 +136,45 @@ function WeightRow({
 }
 
 export default function NewJobPage() {
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [weightCriteria, setWeightCriteria] = useState<WeightCriterion[]>([
-    { id: "technical-skills", label: "Technical Skills", value: 40 },
-    { id: "experience", label: "Years of Experience", value: 30 },
-    { id: "soft-skills", label: "Culture & Soft Skills", value: 20 },
-    { id: "education", label: "Educational Background", value: 10 },
-  ]);
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const { form, showSuccessModal, createdJobTitle, error, isSubmitting, weightCriteria } = useAppSelector(
+    (state) => state.jobForm
+  );
 
   const totalWeight = weightCriteria.reduce((sum, criterion) => sum + criterion.value, 0);
   const remainingWeight = 100 - totalWeight;
   const isWeightBalanced = remainingWeight === 0;
 
-  function handleSave(e: React.FormEvent) {
-    e.preventDefault();
-    if (!isWeightBalanced) {
-      return;
-    }
-    setShowSuccessModal(true);
-  }
-
-  function updateWeightLabel(id: string, label: string) {
-    setWeightCriteria((current) =>
-      current.map((criterion) => (criterion.id === id ? { ...criterion, label } : criterion))
-    );
-  }
-
-  function updateWeightValue(id: string, value: number) {
-    setWeightCriteria((current) => {
-      const otherTotal = current.reduce((sum, criterion) => (
-        criterion.id === id ? sum : sum + criterion.value
-      ), 0);
-      const maxAllowed = Math.max(0, 100 - otherTotal);
-      const normalizedValue = Number.isNaN(value) ? 0 : Math.min(maxAllowed, Math.max(0, value));
-
-      return current.map((criterion) => (criterion.id === id ? { ...criterion, value: normalizedValue } : criterion));
-    });
+  function updateFormField<Key extends keyof JobFormState>(key: Key, value: JobFormState[Key]) {
+    dispatch(updateFormFieldAction({ field: key, value }));
   }
 
   function getMaxWeightValue(id: string) {
-    const otherTotal = weightCriteria.reduce((sum, criterion) => (
-      criterion.id === id ? sum : sum + criterion.value
-    ), 0);
+    const otherTotal = weightCriteria.reduce(
+      (sum, criterion) => (criterion.id === id ? sum : sum + criterion.value),
+      0
+    );
 
     return Math.max(0, 100 - otherTotal);
   }
 
   function addWeightCriterion() {
-    setWeightCriteria((current) => [
-      ...current,
-      {
-        id: `criterion-${Date.now()}`,
-        label: `Custom Criterion ${current.length - 3}`,
-        value: 0,
-      },
-    ]);
+    dispatch(addWeightCriterionAction());
   }
 
   function removeWeightCriterion(id: string) {
-    setWeightCriteria((current) => current.filter((criterion) => criterion.id !== id));
+    dispatch(removeWeightCriterionAction(id));
+  }
+
+  function handleSave(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!isWeightBalanced) {
+      return;
+    }
+
+    void dispatch(submitJobAction({ status: "Active" }));
   }
 
   return (
@@ -164,14 +182,37 @@ export default function NewJobPage() {
       <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Create New Job Requisition</h1>
-          <p className="mt-1 text-sm text-ink-muted">Drafting: Senior Frontend Engineer — Product Team</p>
+          <p className="mt-1 text-sm text-ink-muted">
+            Drafting: {form.title || "Untitled Role"} - {form.department || "Unassigned Team"}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/jobs"><Button variant="secondary" leftIcon={<X className="h-4 w-4" />}>Cancel</Button></Link>
-          <Button variant="secondary" leftIcon={<Save className="h-4 w-4" />} onClick={() => setShowSuccessModal(true)}>Save as Draft</Button>
-          <Button leftIcon={<Play className="h-4 w-4" />} onClick={handleSave} disabled={!isWeightBalanced}>Save Job</Button>
+          <Link href="/jobs">
+            <Button variant="secondary" leftIcon={<X className="h-4 w-4" />}>Cancel</Button>
+          </Link>
+          <Button
+            variant="secondary"
+            leftIcon={isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            onClick={() => void dispatch(submitJobAction({ status: "Draft" }))}
+            disabled={isSubmitting}
+          >
+            Save as Draft
+          </Button>
+          <Button
+            leftIcon={isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+            onClick={() => void dispatch(submitJobAction({ status: "Active" }))}
+            disabled={!isWeightBalanced || isSubmitting}
+          >
+            Save Job
+          </Button>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-6 rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+          {error}
+        </div>
+      )}
 
       <form className="flex flex-col gap-6" onSubmit={handleSave}>
         <Section
@@ -181,30 +222,45 @@ export default function NewJobPage() {
         >
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <Field label="Official Job Title" className="md:col-span-2">
-              <Input defaultValue="Senior Frontend Engineer" />
+              <Input value={form.title} onChange={(event) => updateFormField("title", event.target.value)} required />
             </Field>
             <Field label="Department / Team">
-              <Select defaultValue="pe">
-                <option value="pe">Product &amp; Engineering</option>
-                <option value="design">Design</option>
-                <option value="ops">Operations</option>
+              <Select value={form.department} onChange={(event) => updateFormField("department", event.target.value)}>
+                <option value="Product & Engineering">Product &amp; Engineering</option>
+                <option value="Design">Design</option>
+                <option value="Operations">Operations</option>
+                <option value="Core Services">Core Services</option>
+                <option value="Platform">Platform</option>
+                <option value="Analytics">Analytics</option>
               </Select>
             </Field>
+            <Field label="Primary Location">
+              <Input value={form.location} onChange={(event) => updateFormField("location", event.target.value)} required />
+            </Field>
             <Field label="Location Policy">
-              <Select defaultValue="remote-eu">
-                <option value="remote-eu">Remote (Africa/Europe)</option>
+              <Select
+                value={form.locationPolicy}
+                onChange={(event) => updateFormField("locationPolicy", event.target.value as LocationPolicy)}
+              >
+                <option value="remote">Remote</option>
                 <option value="hybrid">Hybrid</option>
                 <option value="onsite">On-site</option>
               </Select>
             </Field>
             <Field label="Employment Type">
-              <Select defaultValue="ft">
-                <option value="ft">Full-time Permanent</option>
+              <Select
+                value={form.employmentType}
+                onChange={(event) => updateFormField("employmentType", event.target.value as EmploymentType)}
+              >
+                <option value="full-time">Full-time Permanent</option>
+                <option value="part-time">Part-time</option>
                 <option value="contract">Contract</option>
+                <option value="internship">Internship</option>
+                <option value="temporary">Temporary</option>
               </Select>
             </Field>
             <Field label="Target Salary Band (Annual)">
-              <Input defaultValue="$70,000 - $110,000 USD" />
+              <Input value={form.salaryBand} onChange={(event) => updateFormField("salaryBand", event.target.value)} />
             </Field>
           </div>
         </Section>
@@ -215,17 +271,15 @@ export default function NewJobPage() {
           description="Provide a comprehensive description of the role, responsibilities, and what the job entails."
         >
           <Field label="Job Summary" className="mb-5">
-            <Textarea
-              rows={4}
-              defaultValue="We are seeking a talented Senior Frontend Engineer to join our Product Engineering team. You will be responsible for building and maintaining high-quality web applications that serve thousands of users daily. This is a key role that influences both the technical direction and user experience of our platform."
-            />
+            <Textarea rows={4} value={form.summary} onChange={(event) => updateFormField("summary", event.target.value)} />
             <span className="mt-1 block text-xs text-ink-muted">A brief overview of the role visible to candidates at the top of the job posting.</span>
           </Field>
 
           <Field label="Key Responsibilities" className="mb-5">
             <Textarea
               rows={8}
-              defaultValue={"• Architect, build, and maintain scalable frontend applications using React, TypeScript, and Next.js\n• Collaborate closely with designers, product managers, and backend engineers to deliver exceptional user experiences\n• Lead code reviews and establish engineering best practices across the frontend codebase\n• Mentor junior developers and contribute to a culture of continuous learning\n• Optimize application performance, accessibility, and SEO\n• Participate in sprint planning, technical design discussions, and architecture reviews\n• Write comprehensive unit and integration tests using Testing Library and Cypress\n• Contribute to our design system and component library"}
+              value={form.responsibilities}
+              onChange={(event) => updateFormField("responsibilities", event.target.value)}
             />
             <span className="mt-1 block text-xs text-ink-muted">List the primary duties and day-to-day tasks. Use bullet points (•) for readability.</span>
           </Field>
@@ -234,20 +288,21 @@ export default function NewJobPage() {
             <Field label="Must-have Qualifications">
               <Textarea
                 rows={8}
-                defaultValue={"• 5+ years of professional frontend development experience\n• Strong proficiency in React, TypeScript, and modern CSS (Tailwind preferred)\n• Experience with server-side rendering (Next.js) and state management\n• Solid understanding of web performance optimization techniques\n• Excellent communication skills and ability to work in distributed teams"}
+                value={form.mustHaveQualifications}
+                onChange={(event) => updateFormField("mustHaveQualifications", event.target.value)}
               />
               <span className="mt-1 block text-xs text-ink-muted">List the non-negotiable requirements candidates must meet.</span>
             </Field>
             <Field label="Nice-to-have Qualifications">
               <Textarea
                 rows={8}
-                defaultValue={"• Experience with GraphQL, REST API design, or backend technologies (Node.js)\n• Familiarity with CI/CD pipelines and deployment automation\n• Contributions to open-source projects\n• Experience in a high-growth SaaS environment"}
+                value={form.niceToHaveQualifications}
+                onChange={(event) => updateFormField("niceToHaveQualifications", event.target.value)}
               />
               <span className="mt-1 block text-xs text-ink-muted">Capture bonus qualifications that strengthen a candidate profile.</span>
             </Field>
           </div>
         </Section>
-
 
         <Section
           icon={UserRound}
@@ -258,14 +313,16 @@ export default function NewJobPage() {
             <Field label="Core Hard Skills">
               <Textarea
                 rows={5}
-                defaultValue={"• TypeScript\n• React\n• Next.js\n• Tailwind CSS\n• Frontend architecture\n• Component-driven development"}
+                value={form.coreHardSkills}
+                onChange={(event) => updateFormField("coreHardSkills", event.target.value)}
               />
               <span className="mt-1 block text-xs text-ink-muted">List the technical skills a strong candidate should already have.</span>
             </Field>
             <Field label="Preferred / Bonus Skills">
               <Textarea
                 rows={5}
-                defaultValue={"• GraphQL\n• Design systems\n• Testing Library / Cypress\n• Performance optimization\n• Accessibility auditing\n• Mentoring or tech leadership"}
+                value={form.preferredSkills}
+                onChange={(event) => updateFormField("preferredSkills", event.target.value)}
               />
               <span className="mt-1 block text-xs text-ink-muted">Capture tools or experience that would make a candidate stand out.</span>
             </Field>
@@ -275,14 +332,15 @@ export default function NewJobPage() {
             <Field label="Core Soft Skills">
               <Textarea
                 rows={4}
-                defaultValue={"• Clear written and verbal communication\n• Ownership and accountability\n• Cross-functional collaboration\n• Mentorship mindset\n• Product thinking"}
+                value={form.coreSoftSkills}
+                onChange={(event) => updateFormField("coreSoftSkills", event.target.value)}
               />
             </Field>
           </div>
 
           <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-3">
             <Field label="Experience">
-              <Select defaultValue="5">
+              <Select value={form.experienceYears} onChange={(event) => updateFormField("experienceYears", event.target.value)}>
                 <option value="0">0+ Years</option>
                 <option value="1">1+ Years</option>
                 <option value="2">2+ Years</option>
@@ -298,16 +356,23 @@ export default function NewJobPage() {
               </Select>
             </Field>
             <Field label="Seniority Level">
-              <Select defaultValue="senior">
+              <Select
+                value={form.seniorityLevel}
+                onChange={(event) => updateFormField("seniorityLevel", event.target.value as SeniorityLevel)}
+              >
                 <option value="junior">Junior</option>
                 <option value="mid">Mid-level</option>
                 <option value="senior">Senior</option>
                 <option value="lead">Lead</option>
                 <option value="manager">Manager</option>
+                <option value="principal">Principal</option>
               </Select>
             </Field>
             <Field label="Education Level">
-              <Select defaultValue="bs">
+              <Select
+                value={form.educationLevel}
+                onChange={(event) => updateFormField("educationLevel", event.target.value as EducationLevel)}
+              >
                 <option value="none">No formal degree required</option>
                 <option value="hs">High School</option>
                 <option value="associate">Associate Degree</option>
@@ -332,8 +397,8 @@ export default function NewJobPage() {
                 key={criterion.id}
                 criterion={criterion}
                 maxValue={getMaxWeightValue(criterion.id)}
-                onLabelChange={updateWeightLabel}
-                onValueChange={updateWeightValue}
+                onLabelChange={(id, label) => dispatch(updateWeightLabelAction({ id, label }))}
+                onValueChange={(id, value) => dispatch(updateWeightValueAction({ id, value }))}
                 onRemove={removeWeightCriterion}
                 canRemove={weightCriteria.length > 1}
               />
@@ -347,22 +412,34 @@ export default function NewJobPage() {
           <p className="mt-4 rounded-md bg-brand-soft/60 px-4 py-3 text-xs text-info-deep">
             <strong className="font-semibold">Total: {totalWeight}%</strong>
             {isWeightBalanced
-              ? " — Your weighting is balanced and ready for scoring."
-              : ` — Assign the remaining ${remainingWeight}% before saving the job.`}
+              ? " - Your weighting is balanced and ready for scoring."
+              : ` - Assign the remaining ${remainingWeight}% before saving the job.`}
             {" "}Each criterion is capped by the percentage left after the others are allocated, so the total cannot go above 100%.
           </p>
         </Section>
 
-
         <div className="flex items-center justify-end gap-3">
-          <Button type="button" variant="ghost">Discard Changes</Button>
-          <Button type="button" variant="secondary" leftIcon={<Save className="h-4 w-4" />} onClick={() => setShowSuccessModal(true)}>Save as Draft</Button>
-          <Button type="submit" leftIcon={<Play className="h-4 w-4" />} disabled={!isWeightBalanced}>Save Job</Button>
+          <Button type="button" variant="ghost" onClick={() => router.push("/jobs")}>Discard Changes</Button>
+          <Button
+            type="button"
+            variant="secondary"
+            leftIcon={isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            onClick={() => void dispatch(submitJobAction({ status: "Draft" }))}
+            disabled={isSubmitting}
+          >
+            Save as Draft
+          </Button>
+          <Button
+            type="submit"
+            leftIcon={isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+            disabled={!isWeightBalanced || isSubmitting}
+          >
+            Save Job
+          </Button>
         </div>
       </form>
 
-      {/* Success Modal — guides user to Ingest */}
-      <Modal open={showSuccessModal} onClose={() => setShowSuccessModal(false)} size="sm">
+      <Modal open={showSuccessModal} onClose={() => dispatch(setShowSuccessModalAction(false))} size="sm">
         <ModalBody className="flex flex-col items-center gap-5 py-8 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
             <CheckCircle2 className="h-8 w-8 text-success" />
@@ -370,7 +447,7 @@ export default function NewJobPage() {
           <div>
             <h2 className="font-display text-xl font-bold text-ink">Job Created Successfully!</h2>
             <p className="mt-2 text-sm text-ink-muted">
-              Your job requisition has been saved. The next step is to ingest applicants so you can start reviewing candidates.
+              {createdJobTitle || "Your job requisition"} has been saved. The next step is to ingest applicants so you can start reviewing candidates.
             </p>
           </div>
 
@@ -386,9 +463,8 @@ export default function NewJobPage() {
             </div>
           </div>
 
-          {/* Workflow stepper */}
           <div className="flex w-full items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-            <span className="rounded-full bg-success/10 px-2.5 py-1 text-success">✓ Create Job</span>
+            <span className="rounded-full bg-success/10 px-2.5 py-1 text-success">Create Job</span>
             <ArrowRight className="h-3 w-3" />
             <span className="rounded-full bg-brand/10 px-2.5 py-1 text-brand">Ingest</span>
             <ArrowRight className="h-3 w-3" />

@@ -49,7 +49,7 @@ export function Modal({ open, onClose, children, size = "md", className }: Modal
     >
       <div
         className={cn(
-          "w-full rounded-xl border border-line bg-white shadow-xl animate-in zoom-in-95 duration-200",
+          "flex max-h-[calc(100vh-2rem)] w-full flex-col overflow-hidden rounded-xl border border-line bg-white shadow-xl animate-in zoom-in-95 duration-200",
           sizes[size],
           className
         )}
@@ -88,7 +88,7 @@ export function ModalHeader({ title, subtitle, onClose, children }: ModalHeaderP
 }
 
 export function ModalBody({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn("px-6 py-5", className)}>{children}</div>;
+  return <div className={cn("min-h-0 overflow-y-auto px-6 py-5", className)}>{children}</div>;
 }
 
 export function ModalFooter({ children, className }: { children: ReactNode; className?: string }) {
