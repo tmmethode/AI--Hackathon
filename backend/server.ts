@@ -6,13 +6,69 @@ import { connectDatabase } from "./config/database";
 import cors from "cors";
 import morgan from "morgan";
 import session from "express-session";
-import passport from "./config/passport";
+import jwt from "jsonwebtoken";
+import passport, { hasGoogleOAuthConfig } from "./config/passport";
 import { authenticateToken } from "./middleware/auth";
+import type { IUser } from "./models/User";
 import { HttpError } from "./utils/HttpError";
 
 dotenv.config();
 
 const app = express();
+
+function getFrontendBaseUrl() {
+  return (process.env.FRONTEND_URL || "http://localhost:3000").replace(/\/$/, "");
+}
+
+function resolveSafeNextPath(nextPath: unknown) {
+  if (typeof nextPath !== "string" || !nextPath.startsWith("/") || nextPath.startsWith("//") || nextPath === "/login") {
+    return "/dashboard";
+  }
+
+  return nextPath;
+}
+
+function encodeUser(user: IUser) {
+  return Buffer.from(
+    JSON.stringify({
+      _id: user._id.toString(),
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      googleId: user.googleId,
+      isEmailVerified: user.isEmailVerified,
+      profilePicture: user.profilePicture,
+      phoneNumber: user.phoneNumber,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
+    }),
+    "utf8"
+  ).toString("base64url");
+}
+
+function createAuthToken(userId: string) {
+  return jwt.sign(
+    { userId },
+    process.env.JWT_SECRET || "your-secret-key",
+    { expiresIn: process.env.JWT_EXPIRES_IN || "7d" } as jwt.SignOptions
+  );
+}
+
+function redirectToFrontendLogin(res: Response, message: string, nextPath?: unknown) {
+  const redirectUrl = new URL("/login", getFrontendBaseUrl());
+  redirectUrl.searchParams.set("error", message);
+  redirectUrl.searchParams.set("next", resolveSafeNextPath(nextPath));
+  res.redirect(redirectUrl.toString());
+}
+
+function redirectToFrontendGoogleCallback(res: Response, user: IUser, nextPath?: unknown) {
+  const redirectUrl = new URL("/auth/google/callback", getFrontendBaseUrl());
+  redirectUrl.searchParams.set("token", createAuthToken(user._id.toString()));
+  redirectUrl.searchParams.set("user", encodeUser(user));
+  redirectUrl.searchParams.set("next", resolveSafeNextPath(nextPath));
+  res.redirect(redirectUrl.toString());
+}
 
 let databaseConnected = false;
 let databaseError: any = null;
@@ -24,7 +80,9 @@ connectDatabase().then((result) => {
   }
 });
 
-const allowedOrigins = ["http://localhost:5000","http://localhost:3000", "capacitor://localhost", "http://localhost:8080"];
+const allowedOrigins = Array.from(
+  new Set(["http://localhost:5000", "http://localhost:3000", "capacitor://localhost", "http://localhost:8080", getFrontendBaseUrl()])
+);
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -80,6 +138,48 @@ app.use('/auth/refresh', authenticateToken);
 
 // Authentication routes are handled by TSOA generated routes
 // Note: Authentication is handled per-endpoint in controllers
+
+app.get("/auth/google", (req, res, next) => {
+  if (!hasGoogleOAuthConfig) {
+    redirectToFrontendLogin(res, "Google sign-in is not configured on the backend yet.", req.query.next);
+    return;
+  }
+
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    session: false,
+    state: resolveSafeNextPath(req.query.next),
+  })(req, res, next);
+});
+
+app.get("/auth/google/callback", (req, res, next) => {
+  if (!hasGoogleOAuthConfig) {
+    redirectToFrontendLogin(res, "Google sign-in is not configured on the backend yet.", req.query.state);
+    return;
+  }
+
+  passport.authenticate("google", { session: false }, (error: unknown, user: IUser | false, info?: { message?: string }) => {
+    if (error) {
+      redirectToFrontendLogin(
+        res,
+        error instanceof Error ? error.message : "Google sign-in failed. Please try again.",
+        req.query.state
+      );
+      return;
+    }
+
+    if (!user) {
+      redirectToFrontendLogin(
+        res,
+        info?.message || "Google sign-in failed. Please try again.",
+        req.query.state
+      );
+      return;
+    }
+
+    redirectToFrontendGoogleCallback(res, user, req.query.state);
+  })(req, res, next);
+});
 
 // TSOA generated routes
 RegisterRoutes(app);

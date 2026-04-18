@@ -177,63 +177,10 @@ export class AuthController {
 
   @Post('google')
   public async googleAuth(@Body() requestBody: GoogleAuthRequest): Promise<AuthResponse> {
-    try {
-      const { idToken } = requestBody;
-      
-      // For now, we'll simulate Google OAuth verification
-      // In production, you'd verify the ID token with Google's API
-      // This is a simplified version for demonstration
-      
-      // Mock Google user data - in production, decode the actual ID token
-      const googleUser = {
-        email: 'user@gmail.com', // This would come from the decoded token
-        firstName: 'Google',
-        lastName: 'User',
-        googleId: 'google-user-id', // This would come from the decoded token
-        profilePicture: 'https://lh3.googleusercontent.com/...'
-      };
-
-      // Find or create user
-      let user = await User.findOne({ 
-        $or: [
-          { email: googleUser.email },
-          { googleId: googleUser.googleId }
-        ]
-      });
-
-      if (user) {
-        // Update existing user with Google info if needed
-        if (!user.googleId) {
-          user.googleId = googleUser.googleId;
-        }
-        if (!user.profilePicture) {
-          user.profilePicture = googleUser.profilePicture;
-        }
-        user.isEmailVerified = true;
-        await user.save();
-      } else {
-        // Create new user from Google data
-        user = new User({
-          email: googleUser.email,
-          firstName: googleUser.firstName,
-          lastName: googleUser.lastName,
-          googleId: googleUser.googleId,
-          profilePicture: googleUser.profilePicture,
-          isEmailVerified: true,
-          role: 'applicant' // Default role for Google users
-        });
-        await user.save();
-      }
-
-      const token = this.generateToken(user._id.toString());
-
-      return {
-        user: this.convertUserToResponse(user),
-        token,
-        message: 'Google authentication successful'
-      };
-    } catch (error) {
-      throw new Error(`Google authentication failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    void requestBody;
+    throw new HttpError(
+      501,
+      'Use the browser-based GET /auth/google flow for Google sign-in.'
+    );
   }
 }

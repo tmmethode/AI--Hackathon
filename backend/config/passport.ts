@@ -1,8 +1,19 @@
+import 'dotenv/config';
 import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
-import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import {
+  Strategy as GoogleStrategy,
+  Profile as GoogleProfile,
+  VerifyCallback as GoogleVerifyCallback,
+} from 'passport-google-oauth20';
 import { ExtractJwt, Strategy as JwtStrategy } from 'passport-jwt';
 import User, { IUser } from '../models/User';
+
+export const hasGoogleOAuthConfig = Boolean(
+  process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+);
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
 // Local Strategy for email/password login
 passport.use(
@@ -37,47 +48,50 @@ passport.use(
 );
 
 // Google OAuth Strategy (only configure if credentials are available)
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+if (hasGoogleOAuthConfig) {
   passport.use(
     new GoogleStrategy(
       {
-        clientID: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        clientID: googleClientId as string,
+        clientSecret: googleClientSecret as string,
         callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3001/auth/google/callback',
       },
-      async (accessToken, refreshToken, profile, done) => {
+      async (
+        accessToken: string,
+        refreshToken: string,
+        profile: GoogleProfile,
+        done: GoogleVerifyCallback
+      ) => {
+        void accessToken;
+        void refreshToken;
         try {
-          // Check if user already exists
-          let user = await User.findOne({
-            $or: [
-              { googleId: profile.id },
-              { email: profile.emails?.[0]?.value }
-            ]
-          });
-
-          if (user) {
-            // Update existing user with Google info if needed
-            if (!user.googleId) {
-              user.googleId = profile.id;
-            }
-            if (!user.profilePicture && profile.photos?.[0]?.value) {
-              user.profilePicture = profile.photos[0].value;
-            }
-            user.isEmailVerified = true;
-            await user.save();
-          } else {
-            // Create new user from Google profile
-            user = new User({
-              email: profile.emails?.[0]?.value,
-              firstName: profile.name?.givenName || 'Google',
-              lastName: profile.name?.familyName || 'User',
-              googleId: profile.id,
-              profilePicture: profile.photos?.[0]?.value,
-              isEmailVerified: true,
-              role: 'applicant' // Default role for Google users
-            });
-            await user.save();
+          const email = profile.emails?.[0]?.value?.toLowerCase().trim();
+          if (!email) {
+            return done(null, false, { message: 'Your Google account did not provide an email address.' });
           }
+
+          let user = await User.findOne({ email });
+
+          if (!user) {
+            return done(null, false, {
+              message: 'Ask an admin to create your account first, then return here to sign in with the same email.',
+            });
+          }
+
+          if (user.googleId && user.googleId !== profile.id) {
+            return done(null, false, {
+              message: 'This workspace account is already linked to a different Google account.',
+            });
+          }
+
+          if (!user.googleId) {
+            user.googleId = profile.id;
+          }
+          if (!user.profilePicture && profile.photos?.[0]?.value) {
+            user.profilePicture = profile.photos[0].value;
+          }
+          user.isEmailVerified = true;
+          await user.save();
 
           return done(null, user);
         } catch (error) {
