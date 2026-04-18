@@ -112,10 +112,6 @@ UserSchema.methods.getFullName = function(): string {
   return `${this.firstName} ${this.lastName}`;
 };
 
-// Index for email lookup
-UserSchema.index({ email: 1 });
-UserSchema.index({ googleId: 1 });
-
 const User = mongoose.model<IUser>('User', UserSchema);
 
 export default User;
