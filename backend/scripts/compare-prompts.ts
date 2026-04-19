@@ -20,8 +20,7 @@ import type {
 dotenv.config({ path: path.resolve(__dirname, "..", ".env") });
 
 const APPLICANT_COUNT = Number(process.env.AB_APPLICANT_COUNT || 10);
-const CANDIDATES_FILE =
-  process.env.AB_CANDIDATES_FILE || path.resolve(__dirname, "..", "..", "candidates.json");
+const CANDIDATES_FILE = process.env.AB_CANDIDATES_FILE;
 
 const JOB: GeminiBatchJob = {
   id: "ab-test-job",
@@ -53,6 +52,11 @@ async function main() {
 
   if (!apiKey || !apiKey.trim()) {
     console.error("GEMINI_API_KEY is not set. Aborting.");
+    process.exit(1);
+  }
+
+  if (!CANDIDATES_FILE || !CANDIDATES_FILE.trim()) {
+    console.error("AB_CANDIDATES_FILE is not set. Point it to a JSON file with applicants.");
     process.exit(1);
   }
 
