@@ -1,4 +1,4 @@
-import { Body, Get, Post, Route, Tags } from "tsoa";
+import { Body, Get, Post, Route, Security, Tags } from "tsoa";
 import { GeminiClient } from "../gemini/client";
 import { GeminiFrontendService } from "../gemini/frontend";
 import { GeminiScreeningService } from "../gemini/screening";
@@ -55,11 +55,13 @@ export class GeminiController {
   }
 
   @Get("frontend-config")
+  @Security('jwt', ['recruiter', 'admin'])
   public async frontendConfig(): Promise<GeminiFrontendConfigResponse> {
     return this.frontendService.getFrontendConfig();
   }
 
   @Post("generate")
+  @Security('jwt', ['recruiter', 'admin'])
   public async generate(@Body() requestBody: GeminiGenerateRequest): Promise<GeminiGenerateResponse> {
     try {
       return await this.client.generateText(requestBody);
@@ -69,6 +71,7 @@ export class GeminiController {
   }
 
   @Post("screen-candidate")
+  @Security('jwt', ['recruiter', 'admin'])
   public async screenCandidate(
     @Body() requestBody: GeminiCandidateScreenRequest
   ): Promise<GeminiCandidateScreenResponse> {
@@ -80,6 +83,7 @@ export class GeminiController {
   }
 
   @Post("screen-run")
+  @Security('jwt', ['recruiter', 'admin'])
   public async screenRun(
     @Body() requestBody: GeminiFrontendScreeningRunRequest
   ): Promise<GeminiFrontendScreeningRunResponse> {
@@ -91,6 +95,7 @@ export class GeminiController {
   }
 
   @Post("screen-batch")
+  @Security('jwt', ['recruiter', 'admin'])
   public async screenBatch(
     @Body() requestBody: GeminiBatchScreeningRequest
   ): Promise<GeminiBatchScreeningResponse> {

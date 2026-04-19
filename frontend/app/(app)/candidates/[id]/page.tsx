@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   MapPin,
   Mail,
-  Linkedin,
   Download,
   Calendar,
   X,
@@ -15,11 +14,12 @@ import {
   Award,
   Briefcase,
   Check,
-  Clock,
   Video,
   Phone,
   Users,
   Send,
+  LoaderCircle,
+  Link as LinkIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -27,41 +27,56 @@ import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Field, Input, Textarea, Select } from "@/components/ui/Input";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
+import { loadCandidateRecords, type CandidateRecord } from "@/lib/candidates";
 
 interface PageProps {
   params: { id: string };
 }
 
-const strengths = [
-  {
-    title: "Advanced React Ecosystem",
-    copy: "6+ years of specialized experience building complex, state-heavy dashboards using React, Redux, and Next.js.",
-    tag: "Page 2, Projects",
-  },
-  {
-    title: "Performance Optimization",
-    copy: "Documented success in reducing initial bundle sizes by 40% and improving Core Web Vitals at his previous role.",
-    tag: "ScaleAI Case Study",
-  },
-  {
-    title: "Leadership Experience",
-    copy: "Mentored a team of 4 junior engineers and established front-end coding standards across the organization.",
-    tag: "Experience: Lead",
-  },
-];
+function formatMatchTone(score: number) {
+  if (score >= 85) {
+    return "VERY HIGH";
+  }
 
-const risks = [
-  {
-    title: "Limited Backend Exposure",
-    copy: "While proficient in Node.js, he has limited experience with GraphQL or complex microservices required for the full-stack aspects of this role.",
-    tag: "Skills Gap Analysis",
-  },
-  {
-    title: "Domain Specificity",
-    copy: "Lacks direct experience in Fintech, although his enterprise SaaS background shows high adaptability.",
-    tag: "Relevance to Role",
-  },
-];
+  if (score >= 70) {
+    return "HIGH";
+  }
+
+  if (score >= 50) {
+    return "MEDIUM";
+  }
+
+  return "LOW";
+}
+
+function formatExperienceTimeline(startDate?: string, endDate?: string, isCurrent?: boolean) {
+  const start = startDate ? new Date(startDate) : null;
+  const end = isCurrent ? null : endDate ? new Date(endDate) : null;
+
+  const startLabel = start && !Number.isNaN(start.getTime())
+    ? start.getFullYear().toString()
+    : "Unknown";
+  const endLabel = isCurrent
+    ? "Present"
+    : end && !Number.isNaN(end.getTime())
+    ? end.getFullYear().toString()
+    : "Unknown";
+
+  return `${startLabel} - ${endLabel}`;
+}
+
+function buildEmailBody(candidate: CandidateRecord) {
+  const firstName = candidate.firstName?.trim() || candidate.name.split(" ")[0] || "there";
+
+  return `Hi ${firstName},
+
+Thank you for your application for the ${candidate.job} position. We reviewed your profile and would love to move forward with the next step in our hiring process.
+
+Please let us know your availability and we will share the details with you.
+
+Best regards,
+Umurava Hiring Team`;
+}
 
 export default function CandidateDetailPage({ params }: PageProps) {
   const [showSchedule, setShowSchedule] = useState(false);
@@ -69,33 +84,134 @@ export default function CandidateDetailPage({ params }: PageProps) {
   const [showReject, setShowReject] = useState(false);
   const [scheduleSent, setScheduleSent] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [candidate, setCandidate] = useState<CandidateRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCandidate() {
+      setLoading(true);
+      setLoadError("");
+
+      try {
+        const allCandidates = await loadCandidateRecords();
+        const candidateId = decodeURIComponent(params.id);
+        const match = allCandidates.find((entry) => entry.id === candidateId) ?? null;
+
+        if (cancelled) {
+          return;
+        }
+
+        setCandidate(match);
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        setCandidate(null);
+        setLoadError(error instanceof Error ? error.message : "Failed to load candidate.");
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadCandidate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [params.id]);
 
   function handleSchedule() {
     setScheduleSent(true);
-    setTimeout(() => { setScheduleSent(false); setShowSchedule(false); }, 1500);
+    setTimeout(() => {
+      setScheduleSent(false);
+      setShowSchedule(false);
+    }, 1500);
   }
 
   function handleSendEmail() {
     setEmailSent(true);
-    setTimeout(() => { setEmailSent(false); setShowEmail(false); }, 1500);
+    setTimeout(() => {
+      setEmailSent(false);
+      setShowEmail(false);
+    }, 1500);
   }
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center px-6 py-10">
+        <div className="flex items-center gap-3 rounded-md border border-line bg-white px-5 py-4 text-sm text-ink-muted shadow-soft">
+          <LoaderCircle className="h-4 w-4 animate-spin text-brand" />
+          Loading candidate details...
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="w-full px-6 py-5">
+        <Card className="p-6">
+          <h1 className="font-display text-xl font-semibold text-ink">Candidate details unavailable</h1>
+          <p className="mt-2 text-sm text-danger">{loadError}</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!candidate) {
+    return (
+      <div className="w-full px-6 py-5">
+        <Card className="p-6">
+          <h1 className="font-display text-xl font-semibold text-ink">Candidate not found</h1>
+          <p className="mt-2 text-sm text-ink-muted">
+            We could not find a live candidate record for <span className="font-mono text-xs">{decodeURIComponent(params.id)}</span>.
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
+  const experienceEntries = candidate.applicant?.experience ?? [];
+  const educationEntries = candidate.applicant?.education ?? [];
+  const certifications = candidate.applicant?.certifications ?? [];
+  const strengths = candidate.strengths.length > 0 ? candidate.strengths : candidate.skills;
+  const risks = candidate.gapsOrRisks;
+  const recruiterNote = candidate.shortlistRecord?.instructions?.trim();
+  const topCandidate = candidate.matchScore >= 85;
 
   return (
     <div className="w-full px-6 py-5">
       <Card className="mb-6 p-6">
         <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
           <div className="flex items-start gap-4">
-            <Avatar name="Jordan Alexander" size={72} />
+            <Avatar name={candidate.name} size={72} />
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Jordan Alexander</h1>
-                <Badge tone="success" pill>Rank #1</Badge>
+                <h1 className="font-display text-2xl font-bold tracking-tight text-ink">{candidate.name}</h1>
+                {candidate.status === "shortlisted" ? <Badge tone="success" pill>Shortlisted</Badge> : null}
               </div>
-              <p className="text-sm text-ink-muted">Senior Frontend Engineer · 8+ Years Exp.</p>
+              <p className="text-sm text-ink-muted">
+                {candidate.job} {candidate.experience !== "—" ? `· ${candidate.experience}` : ""}
+              </p>
               <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-ink-muted">
-                <li className="flex items-center gap-1"><MapPin className="h-3 w-3" /> San Francisco, CA (Open to Remote)</li>
-                <li className="flex items-center gap-1"><Mail className="h-3 w-3" /> j.alexander@example.com</li>
-                <li className="flex items-center gap-1"><Linkedin className="h-3 w-3" /> /in/jalex-dev</li>
+                <li className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3" />
+                  {candidate.location || "Location unavailable"}
+                </li>
+                <li className="flex items-center gap-1">
+                  <Mail className="h-3 w-3" />
+                  {candidate.email}
+                </li>
+                <li className="flex items-center gap-1">
+                  <LinkIcon className="h-3 w-3" />
+                  {candidate.sourceFileName || candidate.sourceUrl || candidate.source}
+                </li>
               </ul>
             </div>
           </div>
@@ -103,12 +219,18 @@ export default function CandidateDetailPage({ params }: PageProps) {
           <div className="flex flex-col items-end gap-3">
             <div className="rounded-md bg-success/10 px-4 py-3 text-right">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-success-deep">AI Match Score</p>
-              <p className="font-display text-3xl font-bold text-success">94%</p>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-success">VERY HIGH</p>
+              <p className="font-display text-3xl font-bold text-success">{candidate.matchScore}%</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-success">
+                {formatMatchTone(candidate.matchScore)}
+              </p>
             </div>
             <div className="flex gap-2">
-              <Button variant="secondary" leftIcon={<X className="h-4 w-4" />} onClick={() => setShowReject(true)}>Reject</Button>
-              <Button leftIcon={<Calendar className="h-4 w-4" />} onClick={() => setShowSchedule(true)}>Schedule Interview</Button>
+              <Button variant="secondary" leftIcon={<X className="h-4 w-4" />} onClick={() => setShowReject(true)}>
+                Reject
+              </Button>
+              <Button leftIcon={<Calendar className="h-4 w-4" />} onClick={() => setShowSchedule(true)}>
+                Schedule Interview
+              </Button>
             </div>
           </div>
         </div>
@@ -119,13 +241,12 @@ export default function CandidateDetailPage({ params }: PageProps) {
           <Card className="bg-brand-soft/40 p-6">
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-info-deep" />
-              <h2 className="font-display text-base font-bold text-info-deep">AI Recommendation: Proceed Immediately</h2>
+              <h2 className="font-display text-base font-bold text-info-deep">
+                AI Recommendation: {candidate.finalRecommendation || "Review Candidate"}
+              </h2>
             </div>
             <p className="mt-2 text-sm leading-6 text-info-deep/80">
-              Jordan is an exceptional fit for the Senior Frontend Engineer role. His deep expertise in React
-              architecture and proven track record leading high-performance teams at ScaleAI align perfectly with your
-              current project requirements. He demonstrates strong problem-solving capabilities and is likely to thrive
-              in your fast-paced environment.
+              {candidate.summary || candidate.bio || "No AI summary is available for this candidate yet."}
             </p>
           </Card>
 
@@ -135,15 +256,21 @@ export default function CandidateDetailPage({ params }: PageProps) {
               <h3 className="font-display text-base font-semibold text-ink">Key Strengths</h3>
             </div>
             <ul className="space-y-4">
-              {strengths.map((s) => (
-                <li key={s.title} className="rounded-md border border-line p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <h4 className="text-sm font-semibold text-ink">{s.title}</h4>
-                    <Badge tone="success">{s.tag}</Badge>
-                  </div>
-                  <p className="mt-1 text-xs leading-5 text-ink-muted">{s.copy}</p>
+              {strengths.length > 0 ? (
+                strengths.map((strength, index) => (
+                  <li key={`${strength}-${index}`} className="rounded-md border border-line p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <h4 className="text-sm font-semibold text-ink">Strength {index + 1}</h4>
+                      <Badge tone="success">{candidate.skills[index] || "AI Screen"}</Badge>
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-ink-muted">{strength}</p>
+                  </li>
+                ))
+              ) : (
+                <li className="rounded-md border border-dashed border-line p-4 text-xs text-ink-muted">
+                  No strengths were extracted from the latest screening run.
                 </li>
-              ))}
+              )}
             </ul>
           </Card>
 
@@ -153,33 +280,44 @@ export default function CandidateDetailPage({ params }: PageProps) {
               <h3 className="font-display text-base font-semibold text-ink">Potential Gaps &amp; Risks</h3>
             </div>
             <ul className="space-y-4">
-              {risks.map((r) => (
-                <li key={r.title} className="rounded-md border border-line p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <h4 className="text-sm font-semibold text-ink">{r.title}</h4>
-                    <Badge tone="danger">{r.tag}</Badge>
-                  </div>
-                  <p className="mt-1 text-xs leading-5 text-ink-muted">{r.copy}</p>
+              {risks.length > 0 ? (
+                risks.map((risk, index) => (
+                  <li key={`${risk}-${index}`} className="rounded-md border border-line p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <h4 className="text-sm font-semibold text-ink">Risk {index + 1}</h4>
+                      <Badge tone="danger">AI Screen</Badge>
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-ink-muted">{risk}</p>
+                  </li>
+                ))
+              ) : (
+                <li className="rounded-md border border-dashed border-line p-4 text-xs text-ink-muted">
+                  No gaps or risks were reported by the latest screening run.
                 </li>
-              ))}
+              )}
             </ul>
             <p className="mt-4 rounded-md bg-surface-soft/60 p-3 text-xs italic text-ink-muted">
-              &ldquo;Candidates with strong component-driven architecture experience and a focus on UX are priority #1.&rdquo;
-              — Hiring Manager Note
+              {recruiterNote
+                ? `"${recruiterNote}"`
+                : "No recruiter note has been added for this candidate yet."}
             </p>
           </Card>
 
           <Card className="p-6">
             <h3 className="font-display text-base font-semibold text-ink">Internal Recruiter Notes</h3>
-            <div className="mt-4 rounded-md border border-line p-4">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-ink">HR SARAH</span>
-                <span className="text-ink-muted">2 days ago</span>
+            {recruiterNote ? (
+              <div className="mt-4 rounded-md border border-line p-4">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-semibold text-ink">Latest Screening Instructions</span>
+                  <span className="text-ink-muted">{candidate.appliedDate || "Recent"}</span>
+                </div>
+                <p className="mt-2 text-xs leading-5 text-ink-muted">{recruiterNote}</p>
               </div>
-              <p className="mt-2 text-xs leading-5 text-ink-muted">
-                &ldquo;Candidate was very communicative during the initial phone screen. Excited about the team culture.&rdquo;
-              </p>
-            </div>
+            ) : (
+              <div className="mt-4 rounded-md border border-dashed border-line p-4 text-xs text-ink-muted">
+                No internal note is stored for this candidate yet.
+              </div>
+            )}
             <Textarea className="mt-4" placeholder="Add a private note about this candidate..." />
             <div className="mt-3 flex items-center justify-between text-xs">
               <span className="text-ink-muted">Visible to hiring team only</span>
@@ -194,11 +332,15 @@ export default function CandidateDetailPage({ params }: PageProps) {
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div className="rounded-md bg-success/10 p-3 text-center">
                 <p className="text-[10px] uppercase text-ink-muted">Skill Match</p>
-                <p className="font-display text-2xl font-bold text-success">95%</p>
+                <p className="font-display text-2xl font-bold text-success">
+                  {candidate.scores?.skills ?? candidate.matchScore}%
+                </p>
               </div>
               <div className="rounded-md bg-brand-soft p-3 text-center">
                 <p className="text-[10px] uppercase text-ink-muted">Exp. Match</p>
-                <p className="font-display text-2xl font-bold text-brand">88%</p>
+                <p className="font-display text-2xl font-bold text-brand">
+                  {candidate.scores?.experience ?? 0}%
+                </p>
               </div>
             </div>
           </Card>
@@ -209,47 +351,68 @@ export default function CandidateDetailPage({ params }: PageProps) {
             <div className="mt-4">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Recent Experience</p>
               <div className="mt-2 space-y-3">
-                <div className="flex gap-2">
-                  <Briefcase className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" />
-                  <div>
-                    <p className="text-sm font-medium text-ink">Lead Frontend Engineer</p>
-                    <p className="text-xs text-ink-muted">ScaleAI · 2021 — Present</p>
-                    <p className="mt-1 text-xs text-ink-muted">
-                      Built data labeling interfaces processing 10M+ daily events.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Briefcase className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" />
-                  <div>
-                    <p className="text-sm font-medium text-ink">Senior React Developer</p>
-                    <p className="text-xs text-ink-muted">Finlytics · 2018 — 2021</p>
-                  </div>
-                </div>
+                {experienceEntries.length > 0 ? (
+                  experienceEntries.slice(0, 3).map((entry, index) => (
+                    <div key={`${entry.company}-${entry.role}-${index}`} className="flex gap-2">
+                      <Briefcase className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" />
+                      <div>
+                        <p className="text-sm font-medium text-ink">{entry.role || "Experience Entry"}</p>
+                        <p className="text-xs text-ink-muted">
+                          {[entry.company, formatExperienceTimeline(entry.startDate, entry.endDate, entry.isCurrent)]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                        {entry.description ? (
+                          <p className="mt-1 text-xs text-ink-muted">{entry.description}</p>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-xs text-ink-muted">No parsed experience entries are available.</p>
+                )}
               </div>
             </div>
 
             <div className="mt-5">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Education</p>
-              <div className="mt-2 flex gap-2">
-                <GraduationCap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" />
-                <div>
-                  <p className="text-sm font-medium text-ink">B.S. in Computer Science</p>
-                  <p className="text-xs text-ink-muted">Stanford University, 2017</p>
-                </div>
-              </div>
+              {educationEntries.length > 0 ? (
+                educationEntries.slice(0, 2).map((entry, index) => (
+                  <div key={`${entry.institution}-${entry.degree}-${index}`} className="mt-2 flex gap-2">
+                    <GraduationCap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" />
+                    <div>
+                      <p className="text-sm font-medium text-ink">{entry.degree || entry.fieldOfStudy || "Education"}</p>
+                      <p className="text-xs text-ink-muted">
+                        {[entry.institution, entry.endYear]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="mt-2 text-xs text-ink-muted">No education details were parsed.</p>
+              )}
             </div>
 
             <div className="mt-5">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Certifications</p>
-              <ul className="mt-2 space-y-1.5 text-xs text-ink">
-                <li className="flex items-center gap-2"><Award className="h-3.5 w-3.5 text-brand" /> AWS Certified Developer</li>
-                <li className="flex items-center gap-2"><Award className="h-3.5 w-3.5 text-brand" /> Meta Frontend Professional</li>
-              </ul>
+              {certifications.length > 0 ? (
+                <ul className="mt-2 space-y-1.5 text-xs text-ink">
+                  {certifications.slice(0, 4).map((certification, index) => (
+                    <li key={`${certification.name}-${index}`} className="flex items-center gap-2">
+                      <Award className="h-3.5 w-3.5 text-brand" />
+                      {certification.name}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 text-xs text-ink-muted">No certifications were extracted.</p>
+              )}
             </div>
 
             <Button variant="secondary" size="sm" fullWidth className="mt-5" leftIcon={<Download className="h-4 w-4" />}>
-              View Full Resume (PDF)
+              {candidate.sourceFileName ? `View ${candidate.sourceFileName}` : "Resume source unavailable"}
             </Button>
           </Card>
 
@@ -263,28 +426,27 @@ export default function CandidateDetailPage({ params }: PageProps) {
                 Email Candidate
               </Button>
             </div>
-            <p className="mt-3 text-[10px] text-ink-muted">Viewing candidate {params.id}</p>
+            <p className="mt-3 text-[10px] text-ink-muted">Viewing candidate {candidate.id}</p>
           </Card>
         </aside>
       </div>
 
-      {/* Schedule Interview Modal */}
       <Modal open={showSchedule} onClose={() => setShowSchedule(false)} size="md">
         <ModalHeader
           title="Schedule Interview"
-          subtitle="Set up an interview with Jordan Alexander"
+          subtitle={`Set up an interview with ${candidate.name}`}
           onClose={() => setShowSchedule(false)}
         >
           <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink-muted">Interview Setup</p>
         </ModalHeader>
         <ModalBody className="flex flex-col gap-5">
           <div className="flex items-center gap-3 rounded-md border border-line bg-surface-soft/30 p-3">
-            <Avatar name="Jordan Alexander" size={40} />
+            <Avatar name={candidate.name} size={40} />
             <div>
-              <p className="text-sm font-medium text-ink">Jordan Alexander</p>
-              <p className="text-xs text-ink-muted">Senior Frontend Engineer · 94% Match</p>
+              <p className="text-sm font-medium text-ink">{candidate.name}</p>
+              <p className="text-xs text-ink-muted">{candidate.job} · {candidate.matchScore}% Match</p>
             </div>
-            <Badge tone="success" pill className="ml-auto">Top Candidate</Badge>
+            {topCandidate ? <Badge tone="success" pill className="ml-auto">Top Candidate</Badge> : null}
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -294,11 +456,11 @@ export default function CandidateDetailPage({ params }: PageProps) {
                   { icon: Video, label: "Video Call" },
                   { icon: Phone, label: "Phone" },
                   { icon: Users, label: "In Person" },
-                ] as const).map((type, i) => (
+                ] as const).map((type, index) => (
                   <button
                     key={type.label}
                     className={`flex flex-1 items-center justify-center gap-1.5 rounded-md border p-2.5 text-xs font-medium transition-colors ${
-                      i === 0 ? "border-brand bg-brand-soft/30 text-brand" : "border-line text-ink-muted hover:bg-surface-soft"
+                      index === 0 ? "border-brand bg-brand-soft/30 text-brand" : "border-line text-ink-muted hover:bg-surface-soft"
                     }`}
                   >
                     <type.icon className="h-3.5 w-3.5" />
@@ -316,7 +478,7 @@ export default function CandidateDetailPage({ params }: PageProps) {
               </Select>
             </Field>
             <Field label="Date">
-              <Input type="date" defaultValue="2026-04-18" />
+              <Input type="date" />
             </Field>
             <Field label="Time">
               <Input type="time" defaultValue="14:00" />
@@ -330,19 +492,19 @@ export default function CandidateDetailPage({ params }: PageProps) {
               </Select>
             </Field>
             <Field label="Interviewer(s)">
-              <Input placeholder="e.g. Marcus Chen, Sarah Lee" defaultValue="Marcus Chen" />
+              <Input placeholder="e.g. Marcus Chen, Sarah Lee" />
             </Field>
           </div>
 
           <Field label="Meeting Link / Location">
-            <Input placeholder="https://meet.google.com/..." defaultValue="https://meet.google.com/abc-defg-hij" />
+            <Input placeholder="https://meet.google.com/..." />
           </Field>
 
           <Field label="Notes for Interviewer">
             <Textarea
               rows={3}
               placeholder="Any specific areas to probe, topics to cover..."
-              defaultValue="Focus on system design experience and React architecture patterns. Check GraphQL knowledge depth given identified gap."
+              defaultValue={risks.length > 0 ? `Probe deeper on: ${risks.join("; ")}` : ""}
             />
           </Field>
 
@@ -361,32 +523,21 @@ export default function CandidateDetailPage({ params }: PageProps) {
         </ModalFooter>
       </Modal>
 
-      {/* Email Candidate Modal */}
       <Modal open={showEmail} onClose={() => setShowEmail(false)} size="md">
         <ModalHeader
           title="Email Candidate"
-          subtitle="Send a message to Jordan Alexander"
+          subtitle={`Send a message to ${candidate.name}`}
           onClose={() => setShowEmail(false)}
         />
         <ModalBody className="flex flex-col gap-4">
           <Field label="To">
-            <Input defaultValue="j.alexander@example.com" readOnly className="bg-surface-soft/50" />
+            <Input defaultValue={candidate.email} readOnly className="bg-surface-soft/50" />
           </Field>
           <Field label="Subject">
-            <Input defaultValue="Next Steps - Senior Frontend Engineer Position at Umurava" />
+            <Input defaultValue={`Next Steps - ${candidate.job} Position at Umurava`} />
           </Field>
           <Field label="Message">
-            <Textarea
-              rows={6}
-              defaultValue={`Hi Jordan,
-
-Thank you for your application for the Senior Frontend Engineer position. We were very impressed with your background and would love to move forward with the next steps in our hiring process.
-
-Would you be available for a technical interview next week? Please let us know your availability and we'll send over a calendar invite.
-
-Best regards,
-Umurava Hiring Team`}
-            />
+            <Textarea rows={6} defaultValue={buildEmailBody(candidate)} />
           </Field>
           <div className="flex items-center gap-2 text-xs text-ink-muted">
             <Mail className="h-3.5 w-3.5" />
@@ -404,7 +555,6 @@ Umurava Hiring Team`}
         </ModalFooter>
       </Modal>
 
-      {/* Reject Confirmation Modal */}
       <Modal open={showReject} onClose={() => setShowReject(false)} size="sm">
         <ModalHeader
           title="Reject Candidate"
@@ -413,10 +563,10 @@ Umurava Hiring Team`}
         />
         <ModalBody className="flex flex-col gap-4">
           <div className="flex items-center gap-3 rounded-md border border-danger/20 bg-danger/5 p-3">
-            <Avatar name="Jordan Alexander" size={36} />
+            <Avatar name={candidate.name} size={36} />
             <div>
-              <p className="text-sm font-medium text-ink">Jordan Alexander</p>
-              <p className="text-xs text-ink-muted">94% Match Score · Rank #1</p>
+              <p className="text-sm font-medium text-ink">{candidate.name}</p>
+              <p className="text-xs text-ink-muted">{candidate.matchScore}% Match Score · {candidate.job}</p>
             </div>
           </div>
           <Field label="Rejection Reason">

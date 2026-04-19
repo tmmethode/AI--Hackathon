@@ -67,7 +67,7 @@ export async function expressAuthentication(
   securityName: string,
   scopes?: string[]
 ): Promise<any> {
-  if (securityName !== 'jwt' && securityName !== 'optionalJwt') {
+  if (securityName !== 'jwt') {
     return Promise.reject(new Error('Unknown security scheme'));
   }
 
@@ -75,9 +75,6 @@ export async function expressAuthentication(
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    if (securityName === 'optionalJwt') {
-      return Promise.resolve(null);
-    }
     return Promise.reject(new Error('Access token is required'));
   }
 

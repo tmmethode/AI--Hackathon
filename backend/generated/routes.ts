@@ -353,6 +353,7 @@ const models: TsoaRoute.Models = {
             "temperature": {"dataType":"double"},
             "maxOutputTokens": {"dataType":"double"},
             "responseMimeType": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["text/plain"]},{"dataType":"enum","enums":["application/json"]}]},
+            "seed": {"dataType":"double"},
         },
         "additionalProperties": false,
     },
@@ -1502,6 +1503,7 @@ export function RegisterRoutes(app: Router) {
         const argsGeminiController_frontendConfig: Record<string, TsoaRoute.ParameterSchema> = {
         };
         app.get('/gemini/frontend-config',
+            authenticateMiddleware([{"jwt":["recruiter","admin"]}]),
             ...(fetchMiddlewares<RequestHandler>(GeminiController)),
             ...(fetchMiddlewares<RequestHandler>(GeminiController.prototype.frontendConfig)),
 
@@ -1532,6 +1534,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","required":true,"ref":"GeminiGenerateRequest"},
         };
         app.post('/gemini/generate',
+            authenticateMiddleware([{"jwt":["recruiter","admin"]}]),
             ...(fetchMiddlewares<RequestHandler>(GeminiController)),
             ...(fetchMiddlewares<RequestHandler>(GeminiController.prototype.generate)),
 
@@ -1562,6 +1565,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","required":true,"ref":"GeminiCandidateScreenRequest"},
         };
         app.post('/gemini/screen-candidate',
+            authenticateMiddleware([{"jwt":["recruiter","admin"]}]),
             ...(fetchMiddlewares<RequestHandler>(GeminiController)),
             ...(fetchMiddlewares<RequestHandler>(GeminiController.prototype.screenCandidate)),
 
@@ -1592,6 +1596,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","required":true,"ref":"GeminiFrontendScreeningRunRequest"},
         };
         app.post('/gemini/screen-run',
+            authenticateMiddleware([{"jwt":["recruiter","admin"]}]),
             ...(fetchMiddlewares<RequestHandler>(GeminiController)),
             ...(fetchMiddlewares<RequestHandler>(GeminiController.prototype.screenRun)),
 
@@ -1622,6 +1627,7 @@ export function RegisterRoutes(app: Router) {
                 requestBody: {"in":"body","name":"requestBody","required":true,"ref":"GeminiBatchScreeningRequest"},
         };
         app.post('/gemini/screen-batch',
+            authenticateMiddleware([{"jwt":["recruiter","admin"]}]),
             ...(fetchMiddlewares<RequestHandler>(GeminiController)),
             ...(fetchMiddlewares<RequestHandler>(GeminiController.prototype.screenBatch)),
 

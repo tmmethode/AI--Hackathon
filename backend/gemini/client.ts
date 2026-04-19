@@ -56,6 +56,22 @@ export class GeminiClient {
         ? requestedTemperature
         : this.defaultTemperature;
 
+    const requestedSeed = Number(request.seed);
+    const seed =
+      Number.isFinite(requestedSeed) && Number.isInteger(requestedSeed)
+        ? requestedSeed
+        : undefined;
+
+    const generationConfig: Record<string, unknown> = {
+      temperature,
+      maxOutputTokens,
+      responseMimeType: request.responseMimeType ?? "text/plain",
+    };
+
+    if (seed !== undefined) {
+      generationConfig.seed = seed;
+    }
+
     const response = await fetch(`${this.baseUrl}/${this.model}:generateContent`, {
       method: "POST",
       headers: {
@@ -74,11 +90,7 @@ export class GeminiClient {
               parts: [{ text: request.systemInstruction }],
             }
           : undefined,
-        generationConfig: {
-          temperature,
-          maxOutputTokens,
-          responseMimeType: request.responseMimeType ?? "text/plain",
-        },
+        generationConfig,
       }),
     });
 

@@ -4,6 +4,7 @@ export interface GeminiGenerateRequest {
   temperature?: number;
   maxOutputTokens?: number;
   responseMimeType?: "text/plain" | "application/json";
+  seed?: number;
 }
 
 export interface GeminiUsageMetadata {

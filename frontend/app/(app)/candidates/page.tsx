@@ -16,26 +16,9 @@ import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Field, Input, Textarea, Select } from "@/components/ui/Input";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
-import { listAllApplicants, type ApplicantRecord, type ApplicantSource } from "@/lib/applicants";
-import { getShortlist, listShortlists } from "@/lib/shortlists";
-import { listJobs, type JobRecord } from "@/lib/jobs";
+import { loadCandidateRecords, type CandidateRecord, type CandidateStatus } from "@/lib/candidates";
 
-/* ── Types ── */
-type CandidateStatus = "shortlisted" | "interview" | "exam" | "assessment" | "practical" | "rejected" | "new";
-
-interface Candidate {
-  id: string;
-  name: string;
-  title: string;
-  matchScore: number;
-  skills: string[];
-  experience: string;
-  location: string;
-  source: string;
-  status: CandidateStatus;
-  job: string;
-  appliedDate: string;
-}
+type Candidate = CandidateRecord;
 
 /* ── Advance options (same as Shortlists) ── */
 const advanceOptions = [
@@ -72,107 +55,6 @@ type FilterStatus = "all" | "shortlisted" | "advanced" | "interview" | "exam" | 
 
 const ADVANCED_STATUSES: CandidateStatus[] = ["interview", "exam", "assessment", "practical"];
 const PAGE_SIZE = 10;
-
-function humanizeApplicantSource(source: ApplicantSource) {
-  switch (source) {
-    case "umurava-platform":
-      return "JSON Upload";
-    case "pdf-upload":
-      return "Resume Upload";
-    case "csv-import":
-      return "CSV Import";
-    case "paste-links":
-      return "Paste Links";
-    default:
-      return "Applicant Source";
-  }
-}
-
-function buildCandidateId(jobId: string, email: string) {
-  return `${jobId}:${email.trim().toLowerCase()}`;
-}
-
-function applicantDisplayName(applicant?: ApplicantRecord, fallbackValue?: string) {
-  if (!applicant) {
-    return fallbackValue || "Unknown Candidate";
-  }
-
-  const fullName = `${applicant.firstName} ${applicant.lastName}`.trim();
-  return fullName || applicant.email || fallbackValue || "Unknown Candidate";
-}
-
-function deriveExperienceYears(applicant?: ApplicantRecord) {
-  if (!applicant?.experience?.length) {
-    return 0;
-  }
-
-  let earliestYear = Number.POSITIVE_INFINITY;
-  let latestYear = 0;
-
-  for (const entry of applicant.experience) {
-    const startYear = entry.startDate ? new Date(entry.startDate).getFullYear() : NaN;
-    const endYear = entry.isCurrent
-      ? new Date().getFullYear()
-      : entry.endDate
-      ? new Date(entry.endDate).getFullYear()
-      : NaN;
-
-    if (Number.isFinite(startYear)) {
-      earliestYear = Math.min(earliestYear, startYear);
-      latestYear = Math.max(latestYear, Number.isFinite(endYear) ? endYear : startYear);
-    }
-  }
-
-  if (!Number.isFinite(earliestYear) || latestYear <= 0) {
-    return 0;
-  }
-
-  return Math.max(0, latestYear - earliestYear + 1);
-}
-
-function formatExperience(applicant?: ApplicantRecord) {
-  const years = deriveExperienceYears(applicant);
-  return years > 0 ? `${years} Years` : "—";
-}
-
-function formatAppliedDate(value?: string) {
-  if (!value) {
-    return "";
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-
-  return parsed.toISOString().slice(0, 10);
-}
-
-function listApplicantSkills(applicant?: ApplicantRecord) {
-  return (applicant?.skills || [])
-    .map((skill) => skill.name.trim())
-    .filter(Boolean)
-    .slice(0, 3);
-}
-
-async function listAllJobs() {
-  const firstPage = await listJobs({ page: 1, pageSize: 100 });
-
-  if (firstPage.totalPages <= 1) {
-    return firstPage.data;
-  }
-
-  const remainingPages = await Promise.all(
-    Array.from({ length: firstPage.totalPages - 1 }, (_, index) =>
-      listJobs({
-        page: index + 2,
-        pageSize: 100,
-      })
-    )
-  );
-
-  return firstPage.data.concat(...remainingPages.map((page) => page.data));
-}
 
 /* ── Context-aware helpers ── */
 function getEmailSubject(c: Candidate): string {
@@ -258,112 +140,11 @@ export default function CandidatesPage() {
       setLoadError("");
 
       try {
-        const [jobs, shortlistSummaryResponse] = await Promise.all([
-          listAllJobs(),
-          listShortlists({ page: 1, pageSize: 100 }),
-        ]);
+        const nextCandidates = await loadCandidateRecords();
 
         if (cancelled) {
           return;
         }
-
-        const jobsById = new Map<string, JobRecord>(jobs.map((job) => [job._id, job]));
-        const applicantsByJob = new Map<string, ApplicantRecord[]>();
-
-        await Promise.all(
-          jobs.map(async (job) => {
-            const applicants = await listAllApplicants(job._id);
-            applicantsByJob.set(job._id, applicants);
-          })
-        );
-
-        if (cancelled) {
-          return;
-        }
-
-        const latestShortlistByJob = new Map<string, string>();
-        for (const summary of shortlistSummaryResponse.data) {
-          if (!latestShortlistByJob.has(summary.job)) {
-            latestShortlistByJob.set(summary.job, summary._id);
-          }
-        }
-
-        const shortlistRecords = await Promise.all(
-          Array.from(latestShortlistByJob.values()).map(async (id) => (await getShortlist(id)).data)
-        );
-
-        if (cancelled) {
-          return;
-        }
-
-        const nextCandidates: Candidate[] = [];
-        const seenCandidateIds = new Set<string>();
-
-        for (const record of shortlistRecords) {
-          const applicants = applicantsByJob.get(record.job) ?? [];
-          const applicantsByEmail = new Map(
-            applicants.map((applicant) => [applicant.email.trim().toLowerCase(), applicant])
-          );
-          const shortlistedEmails = new Set(
-            (record.shortlist || []).map((entry) => entry.applicantEmail.trim().toLowerCase())
-          );
-
-          for (const result of record.screeningResults || []) {
-            const emailKey = result.applicantEmail.trim().toLowerCase();
-            const applicant = applicantsByEmail.get(emailKey);
-            const candidateId = buildCandidateId(record.job, result.applicantEmail);
-
-            nextCandidates.push({
-              id: candidateId,
-              name: applicantDisplayName(applicant, result.fullName || result.applicantEmail),
-              title: applicant?.headline?.trim() || result.finalRecommendation,
-              matchScore: result.matchScore,
-              skills: listApplicantSkills(applicant).length > 0 ? listApplicantSkills(applicant) : result.strengths.slice(0, 3),
-              experience: formatExperience(applicant),
-              location: applicant?.location?.trim() || "—",
-              source: applicant ? humanizeApplicantSource(applicant.source) : "Screening Run",
-              status: shortlistedEmails.has(emailKey) ? "shortlisted" : "rejected",
-              job: record.jobTitle || jobsById.get(record.job)?.title || "Unknown Job",
-              appliedDate: formatAppliedDate(applicant?.createdAt || record.createdAt),
-            });
-
-            seenCandidateIds.add(candidateId);
-          }
-        }
-
-        for (const job of jobs) {
-          const applicants = applicantsByJob.get(job._id) ?? [];
-
-          for (const applicant of applicants) {
-            const candidateId = buildCandidateId(job._id, applicant.email);
-
-            if (seenCandidateIds.has(candidateId)) {
-              continue;
-            }
-
-            nextCandidates.push({
-              id: candidateId,
-              name: applicantDisplayName(applicant),
-              title: applicant.headline?.trim() || "Applicant",
-              matchScore: 0,
-              skills: listApplicantSkills(applicant),
-              experience: formatExperience(applicant),
-              location: applicant.location?.trim() || "—",
-              source: humanizeApplicantSource(applicant.source),
-              status: "new",
-              job: job.title,
-              appliedDate: formatAppliedDate(applicant.createdAt),
-            });
-          }
-        }
-
-        nextCandidates.sort((left, right) => {
-          if (right.matchScore !== left.matchScore) {
-            return right.matchScore - left.matchScore;
-          }
-
-          return right.appliedDate.localeCompare(left.appliedDate);
-        });
 
         setCandidates(nextCandidates);
       } catch (error) {

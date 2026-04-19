@@ -1,0 +1,29 @@
+{
+  "jobTitle": "Senior Full Stack Engineer",
+  "department": "Product Engineering",
+  "shortlistCount": 5,
+  "totalApplicants": 10,
+  "screeningResults": [
+    {
+      "candidateRank": 1,
+      "applicantEmail": "linda.williams1@example.com",
+      "fullName": "Linda Williams",
+      "matchScore": 57,
+      "confidenceScore": 60,
+      "skillsScore": 60,
+      "experienceScore": 20,
+      "educationScore": 100,
+      "relevanceScore": 80,
+      "strengths": [
+        "Strong React, Node.js, and TypeScript skills with 4-5 years experience.",
+        "AWS Certified Developer, demonstrating cloud proficiency.",
+        "Bachelor's degree in Computer Science.",
+        "Relevant project experience in AI/ML systems."
+      ],
+      "gapsOrRisks": [
+        "Only ~2 years of full-stack experience, significantly below the 5+ years required for a Senior role.",
+        "Lacks explicit PostgreSQL experience, using MongoDB instead.",
+        "Limited detail on specific responsibilities like observability, deployments, or mentoring."
+      ],
+      "finalRecommendation": "Consider",
+      "summaryExplanation": "Linda demonstrates strong core technical skills in React, Node.js, TypeScript, and AWS,

@@ -1004,6 +1004,10 @@
 							"text/plain",
 							"application/json"
 						]
+					},
+					"seed": {
+						"type": "number",
+						"format": "double"
 					}
 				},
 				"required": [
@@ -2932,11 +2936,6 @@
 				"type": "http",
 				"scheme": "bearer",
 				"bearerFormat": "JWT"
-			},
-			"optionalJwt": {
-				"type": "http",
-				"scheme": "bearer",
-				"bearerFormat": "JWT"
 			}
 		}
 	},
@@ -3531,7 +3530,14 @@
 				"tags": [
 					"Gemini"
 				],
-				"security": [],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
 				"parameters": []
 			}
 		},
@@ -3553,7 +3559,14 @@
 				"tags": [
 					"Gemini"
 				],
-				"security": [],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
 				"parameters": [],
 				"requestBody": {
 					"required": true,
@@ -3585,7 +3598,14 @@
 				"tags": [
 					"Gemini"
 				],
-				"security": [],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
 				"parameters": [],
 				"requestBody": {
 					"required": true,
@@ -3617,7 +3637,14 @@
 				"tags": [
 					"Gemini"
 				],
-				"security": [],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
 				"parameters": [],
 				"requestBody": {
 					"required": true,
@@ -3649,7 +3676,14 @@
 				"tags": [
 					"Gemini"
 				],
-				"security": [],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
 				"parameters": [],
 				"requestBody": {
 					"required": true,

@@ -28,12 +28,56 @@ const BATCH_RECOMMENDATIONS: readonly GeminiBatchRecommendation[] = [
 
 const BATCH_CHUNK_SIZE = Math.max(
   1,
-  Math.floor(Number(process.env.GEMINI_BATCH_CHUNK_SIZE) || 15)
+  Math.floor(Number(process.env.GEMINI_BATCH_CHUNK_SIZE) || 30)
 );
-const BATCH_MAX_OUTPUT_TOKENS = 8192;
+const BATCH_MAX_OUTPUT_TOKENS = Math.max(
+  4096,
+  Math.floor(Number(process.env.GEMINI_BATCH_MAX_OUTPUT_TOKENS) || 32768)
+);
 
 function estimateBatchTokenBudget(applicantCount: number): number {
   return Math.max(1500, Math.min(BATCH_MAX_OUTPUT_TOKENS, 600 + applicantCount * 450));
+}
+
+function stableSeedFromString(input: string): number {
+  // FNV-1a 32-bit hash, clamped to positive int32.
+  const source = input && input.length > 0 ? input : "gemini-default-seed";
+  let hash = 0x811c9dc5;
+
+  for (let i = 0; i < source.length; i += 1) {
+    hash ^= source.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+
+  // Force positive int32 range (Gemini expects a non-negative integer seed).
+  return (hash >>> 0) % 0x7fffffff;
+}
+
+function deriveScreeningSeed(jobId: string | undefined, jobTitle: string | undefined): number {
+  const key = (jobId && jobId.trim()) || (jobTitle && jobTitle.trim()) || "gemini-screening";
+  return stableSeedFromString(`screen:${key}`);
+}
+
+function sortApplicantsDeterministically(
+  applicants: readonly GeminiBatchApplicant[]
+): GeminiBatchApplicant[] {
+  return [...applicants].sort((left, right) => {
+    const leftKey = (left.email || "").trim().toLowerCase();
+    const rightKey = (right.email || "").trim().toLowerCase();
+
+    if (leftKey !== rightKey) {
+      return leftKey < rightKey ? -1 : 1;
+    }
+
+    const leftName = fullNameFromApplicant(left).toLowerCase();
+    const rightName = fullNameFromApplicant(right).toLowerCase();
+
+    if (leftName !== rightName) {
+      return leftName < rightName ? -1 : 1;
+    }
+
+    return 0;
+  });
 }
 
 function isMaxTokensError(error: unknown): boolean {
@@ -265,8 +309,9 @@ export class GeminiScreeningService {
       prompt: buildCandidateScreeningPrompt(request),
       systemInstruction: GEMINI_HIRING_SYSTEM_INSTRUCTION,
       responseMimeType: "application/json",
-      temperature: request.temperature ?? 0.2,
+      temperature: request.temperature ?? 0,
       maxOutputTokens: 1200,
+      seed: deriveScreeningSeed(request.job.id, request.job.title),
     });
 
     const parsed = safeParseJson<Partial<GeminiCandidateScreenResponse> & {
@@ -308,8 +353,9 @@ export class GeminiScreeningService {
       }),
       systemInstruction: GEMINI_BATCH_SCREENING_SYSTEM_INSTRUCTION,
       responseMimeType: "application/json",
-      temperature: request.temperature ?? 0.2,
+      temperature: request.temperature ?? 0,
       maxOutputTokens: estimateBatchTokenBudget(request.applicants.length),
+      seed: deriveScreeningSeed(request.job.id, request.job.title),
     });
 
     const parsed = safeParseJson<{ screeningResults?: unknown }>(response.text, "screenBatch");
@@ -385,7 +431,8 @@ export class GeminiScreeningService {
       throw new Error("At least one applicant is required for Gemini batch screening");
     }
 
-    const totalApplicants = request.applicants.length;
+    const sortedApplicants = sortApplicantsDeterministically(request.applicants);
+    const totalApplicants = sortedApplicants.length;
     const shortlistCount = Math.max(
       0,
       Math.min(Math.floor(request.shortlistCount ?? 0), totalApplicants)
@@ -394,7 +441,7 @@ export class GeminiScreeningService {
     const chunkSize = Math.max(1, BATCH_CHUNK_SIZE);
     const chunks: GeminiBatchApplicant[][] = [];
     for (let i = 0; i < totalApplicants; i += chunkSize) {
-      chunks.push(request.applicants.slice(i, i + chunkSize));
+      chunks.push(sortedApplicants.slice(i, i + chunkSize));
     }
 
     const mergedEntries = new Map<string, ParsedBatchEntry>();
@@ -428,7 +475,7 @@ export class GeminiScreeningService {
       );
     }
 
-    const screeningResults: GeminiBatchScreeningResultEntry[] = request.applicants.map(
+    const screeningResults: GeminiBatchScreeningResultEntry[] = sortedApplicants.map(
       (applicant) => {
         const key = applicant.email.trim().toLowerCase();
         const entry = mergedEntries.get(key);
