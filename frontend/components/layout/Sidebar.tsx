@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -30,11 +30,13 @@ const navItems = [
 
 export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
+  const previousPathname = useRef(pathname);
 
   useEffect(() => {
-    if (open) {
+    if (open && previousPathname.current !== pathname) {
       onClose?.();
     }
+    previousPathname.current = pathname;
   }, [open, onClose, pathname]);
 
   return (
