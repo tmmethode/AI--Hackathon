@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { User, Shield, Settings, Camera, Save, Eye, EyeOff, Bell, Moon, Globe } from "lucide-react";
 import { Card } from "@/components/ui/Card";
@@ -17,7 +17,7 @@ const tabs: { id: Tab; label: string; icon: React.ComponentType<{ className?: st
   { id: "preferences", label: "Preferences", icon: Settings },
 ];
 
-export default function ProfilePage() {
+function ProfilePageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const tabParam = searchParams.get("tab") as Tab | null;
@@ -289,5 +289,13 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={null}>
+      <ProfilePageInner />
+    </Suspense>
   );
 }
