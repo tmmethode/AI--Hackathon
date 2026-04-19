@@ -17,6 +17,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Field, Input, Textarea, Select } from "@/components/ui/Input";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
 import { loadCandidateRecords, type CandidateRecord, type CandidateStatus } from "@/lib/candidates";
+import { CandidatesPageSkeleton } from "@/components/page-skeletons";
 
 type Candidate = CandidateRecord;
 
@@ -247,6 +248,10 @@ export default function CandidatesPage() {
     new: "New",
   };
 
+  if (loading) {
+    return <CandidatesPageSkeleton />;
+  }
+
   return (
     <div className="w-full px-6 py-5">
       <PageHeader
@@ -415,12 +420,7 @@ export default function CandidatesPage() {
         </div>
 
         {/* Candidates grid */}
-        {loading ? (
-          <div className="px-5 py-16 text-center text-sm text-ink-muted">
-            <LoaderCircle className="mx-auto mb-2 h-5 w-5 animate-spin" />
-            Loading candidates from screening and shortlist data…
-          </div>
-        ) : paginated.length === 0 ? (
+        {paginated.length === 0 ? (
           <div className="px-5 py-16 text-center text-sm text-ink-muted">
             No candidates match your filters.
           </div>

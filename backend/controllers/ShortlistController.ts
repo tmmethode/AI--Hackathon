@@ -61,6 +61,9 @@ export interface ShortlistDTO {
   screeningResults: ShortlistResultEntryDTO[];
   shortlist: ShortlistEntryDTO[];
   instructions?: string;
+  screeningStartedAt?: string;
+  screeningCompletedAt?: string;
+  screeningDurationSeconds?: number;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -77,6 +80,9 @@ export interface ShortlistSummaryDTO {
   shortlistCount: number;
   topMatchScore: number;
   topCandidateName: string;
+  screeningStartedAt?: string;
+  screeningCompletedAt?: string;
+  screeningDurationSeconds?: number;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -93,6 +99,9 @@ export interface CreateShortlistRequest {
   screeningResults: ShortlistResultEntryDTO[];
   shortlist: ShortlistEntryDTO[];
   instructions?: string;
+  screeningStartedAt?: string;
+  screeningCompletedAt?: string;
+  screeningDurationSeconds?: number;
 }
 
 export interface ShortlistResponse {
@@ -186,6 +195,9 @@ export class ShortlistController {
       ),
       shortlist: (shortlist.shortlist || []).map((entry) => this.toShortlistEntryDTO(entry)),
       instructions: shortlist.instructions || '',
+      screeningStartedAt: shortlist.screeningStartedAt?.toISOString(),
+      screeningCompletedAt: shortlist.screeningCompletedAt?.toISOString(),
+      screeningDurationSeconds: shortlist.screeningDurationSeconds,
       createdBy: shortlist.createdBy.toString(),
       createdAt: shortlist.createdAt.toISOString(),
       updatedAt: shortlist.updatedAt.toISOString(),
@@ -207,6 +219,9 @@ export class ShortlistController {
       shortlistCount: shortlist.shortlistCount,
       topMatchScore: top?.matchScore ?? 0,
       topCandidateName: top?.fullName || '',
+      screeningStartedAt: shortlist.screeningStartedAt?.toISOString(),
+      screeningCompletedAt: shortlist.screeningCompletedAt?.toISOString(),
+      screeningDurationSeconds: shortlist.screeningDurationSeconds,
       createdBy: shortlist.createdBy.toString(),
       createdAt: shortlist.createdAt.toISOString(),
       updatedAt: shortlist.updatedAt.toISOString(),
@@ -308,6 +323,39 @@ export class ShortlistController {
         throw new Error('Job not found');
       }
 
+      const screeningStartedAt = body.screeningStartedAt
+        ? new Date(body.screeningStartedAt)
+        : undefined;
+      const screeningCompletedAt = body.screeningCompletedAt
+        ? new Date(body.screeningCompletedAt)
+        : undefined;
+
+      if (screeningStartedAt && Number.isNaN(screeningStartedAt.getTime())) {
+        throw new Error('Invalid screeningStartedAt');
+      }
+
+      if (screeningCompletedAt && Number.isNaN(screeningCompletedAt.getTime())) {
+        throw new Error('Invalid screeningCompletedAt');
+      }
+
+      let screeningDurationSeconds =
+        typeof body.screeningDurationSeconds === 'number' &&
+        Number.isFinite(body.screeningDurationSeconds) &&
+        body.screeningDurationSeconds >= 0
+          ? Math.round(body.screeningDurationSeconds)
+          : undefined;
+
+      if (
+        screeningDurationSeconds === undefined &&
+        screeningStartedAt &&
+        screeningCompletedAt &&
+        screeningCompletedAt >= screeningStartedAt
+      ) {
+        screeningDurationSeconds = Math.round(
+          (screeningCompletedAt.getTime() - screeningStartedAt.getTime()) / 1000
+        );
+      }
+
       const shortlist = new Shortlist({
         job: job._id,
         jobTitle: body.jobTitle || job.title,
@@ -319,6 +367,9 @@ export class ShortlistController {
         screeningResults: body.screeningResults || [],
         shortlist: body.shortlist || [],
         instructions: body.instructions || '',
+        screeningStartedAt,
+        screeningCompletedAt,
+        screeningDurationSeconds,
         createdBy: actingUser._id,
       });
 

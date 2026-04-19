@@ -25,6 +25,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "@/components/ui/Modal";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
   getHiringManagerName,
@@ -71,10 +72,6 @@ function formatCultureFit(job: JobRecord) {
   return job.coreSoftSkills.slice(0, 3).join(" · ");
 }
 
-function SkeletonBlock({ className }: { className: string }) {
-  return <div className={`animate-pulse rounded-md bg-surface-soft/80 ${className}`} />;
-}
-
 function JobRowSkeleton({ index }: { index: number }) {
   return (
     <li
@@ -83,23 +80,23 @@ function JobRowSkeleton({ index }: { index: number }) {
       }`}
     >
       <div className="space-y-2">
-        <SkeletonBlock className="h-4 w-40" />
-        <SkeletonBlock className="h-3 w-28" />
+        <Skeleton className="h-4 w-40" delayIndex={index} />
+        <Skeleton className="h-3 w-28" delayIndex={index + 1} />
       </div>
       <div className="flex items-center gap-2">
-        <SkeletonBlock className="h-6 w-6 rounded-full" />
-        <SkeletonBlock className="h-4 w-24" />
+        <Skeleton shape="circle" className="h-6 w-6" delayIndex={index + 2} />
+        <Skeleton className="h-4 w-24" delayIndex={index + 3} />
       </div>
-      <SkeletonBlock className="h-4 w-28" />
+      <Skeleton className="h-4 w-28" delayIndex={index + 4} />
       <div className="space-y-2">
-        <SkeletonBlock className="h-4 w-10" />
-        <SkeletonBlock className="h-3 w-16" />
+        <Skeleton className="h-4 w-10" delayIndex={index + 5} />
+        <Skeleton className="h-3 w-16" delayIndex={index + 6} />
       </div>
       <div className="md:flex md:justify-center">
-        <SkeletonBlock className="h-6 w-16 rounded-full" />
+        <Skeleton shape="pill" className="h-6 w-16" delayIndex={index + 7} />
       </div>
       <div className="flex justify-end">
-        <SkeletonBlock className="h-8 w-8 rounded-md" />
+        <Skeleton className="h-8 w-8" delayIndex={index + 8} />
       </div>
     </li>
   );
@@ -109,75 +106,75 @@ function JobsSidebarSkeleton() {
   return (
     <>
       <Card className="p-5">
-        <SkeletonBlock className="mx-auto h-3 w-28" />
+        <Skeleton className="mx-auto h-3 w-28" />
         <div className="mt-4 flex items-start justify-between">
-          <SkeletonBlock className="h-6 w-24 rounded-full" />
-          <SkeletonBlock className="h-6 w-16 rounded-full" />
+          <Skeleton shape="pill" className="h-6 w-24" delayIndex={1} />
+          <Skeleton shape="pill" className="h-6 w-16" delayIndex={2} />
         </div>
         <div className="mt-3 space-y-2">
-          <SkeletonBlock className="h-7 w-48" />
-          <SkeletonBlock className="h-3 w-24" />
+          <Skeleton className="h-7 w-48" delayIndex={3} />
+          <Skeleton className="h-3 w-24" delayIndex={4} />
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <SkeletonBlock className="h-3 w-16" />
-            <SkeletonBlock className="h-4 w-28" />
+            <Skeleton className="h-3 w-16" delayIndex={5} />
+            <Skeleton className="h-4 w-28" delayIndex={6} />
           </div>
           <div className="space-y-2">
-            <SkeletonBlock className="h-3 w-20" />
-            <SkeletonBlock className="h-4 w-24" />
+            <Skeleton className="h-3 w-20" delayIndex={7} />
+            <Skeleton className="h-4 w-24" delayIndex={8} />
           </div>
         </div>
 
         <div className="mt-5">
           <div className="flex items-center gap-2">
-            <SkeletonBlock className="h-4 w-4 rounded-full" />
-            <SkeletonBlock className="h-4 w-32" />
+            <Skeleton shape="circle" className="h-4 w-4" delayIndex={9} />
+            <Skeleton className="h-4 w-32" delayIndex={10} />
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
-            <SkeletonBlock className="h-6 w-20 rounded-full" />
-            <SkeletonBlock className="h-6 w-16 rounded-full" />
-            <SkeletonBlock className="h-6 w-24 rounded-full" />
+            <Skeleton shape="pill" className="h-6 w-20" delayIndex={11} />
+            <Skeleton shape="pill" className="h-6 w-16" delayIndex={12} />
+            <Skeleton shape="pill" className="h-6 w-24" delayIndex={13} />
           </div>
         </div>
 
         <div className="mt-5 grid grid-cols-2 gap-2">
-          <SkeletonBlock className="h-10 w-full" />
-          <SkeletonBlock className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" delayIndex={14} />
+          <Skeleton className="h-10 w-full" delayIndex={15} />
         </div>
         <div className="mt-2">
-          <SkeletonBlock className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" delayIndex={16} />
         </div>
       </Card>
 
       <Card className="bg-brand-soft p-5">
-        <SkeletonBlock className="h-4 w-40 bg-white/50" />
+        <Skeleton className="h-4 w-40 bg-white/50" delayIndex={17} />
         <div className="mt-3 space-y-2">
-          <SkeletonBlock className="h-3 w-full bg-white/50" />
-          <SkeletonBlock className="h-3 w-11/12 bg-white/50" />
-          <SkeletonBlock className="h-3 w-4/5 bg-white/50" />
+          <Skeleton className="h-3 w-full bg-white/50" delayIndex={18} />
+          <Skeleton className="h-3 w-11/12 bg-white/50" delayIndex={19} />
+          <Skeleton className="h-3 w-4/5 bg-white/50" delayIndex={20} />
         </div>
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <SkeletonBlock className="h-3 w-24 bg-white/50" />
-            <SkeletonBlock className="h-4 w-28 bg-white/50" />
+            <Skeleton className="h-3 w-24 bg-white/50" delayIndex={21} />
+            <Skeleton className="h-4 w-28 bg-white/50" delayIndex={22} />
           </div>
           <div className="space-y-2">
-            <SkeletonBlock className="h-3 w-20 bg-white/50" />
-            <SkeletonBlock className="h-4 w-24 bg-white/50" />
+            <Skeleton className="h-3 w-20 bg-white/50" delayIndex={23} />
+            <Skeleton className="h-4 w-24 bg-white/50" delayIndex={24} />
           </div>
         </div>
       </Card>
 
       <Card className="flex items-center justify-between p-5">
         <div className="space-y-2">
-          <SkeletonBlock className="h-3 w-24" />
-          <SkeletonBlock className="h-7 w-14" />
+          <Skeleton className="h-3 w-24" delayIndex={25} />
+          <Skeleton className="h-7 w-14" delayIndex={26} />
         </div>
         <div className="space-y-2 text-right">
-          <SkeletonBlock className="ml-auto h-4 w-20" />
-          <SkeletonBlock className="ml-auto h-3 w-16" />
+          <Skeleton className="ml-auto h-4 w-20" delayIndex={27} />
+          <Skeleton className="ml-auto h-3 w-16" delayIndex={28} />
         </div>
       </Card>
     </>

@@ -46,6 +46,9 @@ export interface IShortlist extends Document {
   screeningResults: IShortlistResultEntry[];
   shortlist: IShortlistEntry[];
   instructions?: string;
+  screeningStartedAt?: Date;
+  screeningCompletedAt?: Date;
+  screeningDurationSeconds?: number;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -114,6 +117,9 @@ const ShortlistSchema: Schema = new Schema(
     screeningResults: { type: [ShortlistResultEntrySchema], default: [] },
     shortlist: { type: [ShortlistEntrySchema], default: [] },
     instructions: { type: String, default: '' },
+    screeningStartedAt: { type: Date },
+    screeningCompletedAt: { type: Date },
+    screeningDurationSeconds: { type: Number, min: 0 },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   {

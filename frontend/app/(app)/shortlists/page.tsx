@@ -18,6 +18,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Progress } from "@/components/ui/Progress";
 import { Textarea } from "@/components/ui/Input";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
+import { ShortlistsPageSkeleton } from "@/components/page-skeletons";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
   getShortlist,
   listShortlists,
@@ -423,14 +425,7 @@ function ShortlistsPageInner() {
   const maxCount = Math.max(...scoreRanges.map((r) => r.count), 1);
 
   if (loadingJobs) {
-    return (
-      <div className="w-full px-6 py-5">
-        <Card className="flex items-center justify-center gap-3 p-10 text-sm text-ink-muted">
-          <LoaderCircle className="h-5 w-5 animate-spin" />
-          Loading saved shortlists…
-        </Card>
-      </div>
-    );
+    return <ShortlistsPageSkeleton />;
   }
 
   if (loadJobsError) {
@@ -478,10 +473,13 @@ function ShortlistsPageInner() {
         </div>
       )}
       {loadingActiveJob && candidates.length === 0 && (
-        <div className="mb-5 flex items-center gap-2 rounded-2xl border border-line bg-surface-soft/30 px-4 py-3 text-sm text-ink-muted">
-          <LoaderCircle className="h-4 w-4 animate-spin" />
-          Loading shortlist candidates…
-        </div>
+        <Card className="mb-5 p-5">
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-12 w-full" delayIndex={1} />
+            <Skeleton className="h-12 w-full" delayIndex={2} />
+          </div>
+        </Card>
       )}
       {/* Job context header */}
       <Card className="mb-5 p-5">

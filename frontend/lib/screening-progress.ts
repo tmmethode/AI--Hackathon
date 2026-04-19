@@ -64,6 +64,7 @@ async function executeRun(snapshot: ScreeningRunSnapshot) {
 
     let savedShortlistId: string | undefined;
     let persistWarning: string | undefined;
+    const completedAt = Date.now();
 
     try {
       const saved = await createShortlist(
@@ -71,7 +72,11 @@ async function executeRun(snapshot: ScreeningRunSnapshot) {
           snapshot.request.jobId,
           snapshot.request.runName,
           response,
-          snapshot.request.instructions
+          snapshot.request.instructions,
+          {
+            startedAt: snapshot.startedAt,
+            completedAt,
+          }
         )
       );
       savedShortlistId = saved.data._id;
@@ -85,7 +90,7 @@ async function executeRun(snapshot: ScreeningRunSnapshot) {
     setCurrentRun({
       ...snapshot,
       status: "completed",
-      completedAt: Date.now(),
+      completedAt,
       response,
       savedShortlistId,
       persistWarning,

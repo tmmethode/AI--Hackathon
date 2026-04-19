@@ -144,6 +144,35 @@ export async function listJobs(params: {
   return handleApiResponse<JobsResponse>(response, "Failed to load jobs.");
 }
 
+export async function listAllJobs(params: {
+  search?: string;
+  status?: JobStatus | "All";
+  pageSize?: number;
+} = {}) {
+  const pageSize = params.pageSize ?? 100;
+  const firstPage = await listJobs({
+    ...params,
+    page: 1,
+    pageSize,
+  });
+
+  if (firstPage.totalPages <= 1) {
+    return firstPage.data;
+  }
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: firstPage.totalPages - 1 }, (_, index) =>
+      listJobs({
+        ...params,
+        page: index + 2,
+        pageSize,
+      })
+    )
+  );
+
+  return firstPage.data.concat(...remainingPages.map((page) => page.data));
+}
+
 export async function createJob(payload: CreateJobPayload) {
   const response = await fetch(`${getApiBaseUrl()}/jobs/`, {
     method: "POST",

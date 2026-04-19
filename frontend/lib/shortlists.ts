@@ -17,6 +17,9 @@ export interface ShortlistRecord {
   screeningResults: GeminiBatchScreeningResultEntry[];
   shortlist: GeminiBatchShortlistEntry[];
   instructions?: string;
+  screeningStartedAt?: string;
+  screeningCompletedAt?: string;
+  screeningDurationSeconds?: number;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -33,6 +36,9 @@ export interface ShortlistSummary {
   shortlistCount: number;
   topMatchScore: number;
   topCandidateName: string;
+  screeningStartedAt?: string;
+  screeningCompletedAt?: string;
+  screeningDurationSeconds?: number;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -49,6 +55,14 @@ export interface CreateShortlistPayload {
   screeningResults: GeminiBatchScreeningResultEntry[];
   shortlist: GeminiBatchShortlistEntry[];
   instructions?: string;
+  screeningStartedAt?: string;
+  screeningCompletedAt?: string;
+  screeningDurationSeconds?: number;
+}
+
+interface ScreeningRuntimePayload {
+  startedAt?: number;
+  completedAt?: number;
 }
 
 interface ListShortlistsParams {
@@ -121,6 +135,31 @@ export async function listShortlists(params: ListShortlistsParams = {}) {
   return handleApiResponse<ShortlistListResponse>(response, "Failed to load shortlists.");
 }
 
+export async function listAllShortlists(params: ListShortlistsParams = {}) {
+  const pageSize = params.pageSize ?? 100;
+  const firstPage = await listShortlists({
+    ...params,
+    page: 1,
+    pageSize,
+  });
+
+  if (firstPage.totalPages <= 1) {
+    return firstPage.data;
+  }
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: firstPage.totalPages - 1 }, (_, index) =>
+      listShortlists({
+        ...params,
+        page: index + 2,
+        pageSize,
+      })
+    )
+  );
+
+  return firstPage.data.concat(...remainingPages.map((page) => page.data));
+}
+
 export async function getShortlist(id: string) {
   const response = await fetch(`${getApiBaseUrl()}/shortlists/${id}`, {
     headers: { ...getAuthHeader() },
@@ -159,8 +198,22 @@ export function buildCreatePayload(
   jobId: string,
   runName: string,
   response: GeminiBatchScreeningResponse,
-  instructions?: string
+  instructions?: string,
+  runtime?: ScreeningRuntimePayload
 ): CreateShortlistPayload {
+  const startedAt =
+    typeof runtime?.startedAt === "number" && Number.isFinite(runtime.startedAt)
+      ? new Date(runtime.startedAt)
+      : null;
+  const completedAt =
+    typeof runtime?.completedAt === "number" && Number.isFinite(runtime.completedAt)
+      ? new Date(runtime.completedAt)
+      : null;
+  const screeningDurationSeconds =
+    startedAt && completedAt && completedAt >= startedAt
+      ? Math.round((completedAt.getTime() - startedAt.getTime()) / 1000)
+      : undefined;
+
   return {
     jobId,
     runName,
@@ -172,5 +225,8 @@ export function buildCreatePayload(
     screeningResults: response.screeningResults,
     shortlist: response.shortlist,
     instructions,
+    screeningStartedAt: startedAt?.toISOString(),
+    screeningCompletedAt: completedAt?.toISOString(),
+    screeningDurationSeconds,
   };
 }

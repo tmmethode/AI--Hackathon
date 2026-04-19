@@ -92,12 +92,55 @@ export interface ApplicantRecord {
   updatedAt: string;
 }
 
+export interface ApplicantProfileInput {
+  firstName: string;
+  lastName: string;
+  email: string;
+  headline?: string;
+  bio?: string;
+  location?: string;
+  skills?: ApplicantSkill[];
+  languages?: ApplicantLanguage[];
+  experience?: ApplicantExperience[];
+  education?: ApplicantEducation[];
+  certifications?: ApplicantCertification[];
+  projects?: ApplicantProject[];
+  availability?: ApplicantAvailability;
+  socialLinks?: ApplicantSocialLinks;
+}
+
+export interface IngestFileItem {
+  filename: string;
+  mimeType?: string;
+  dataBase64?: string;
+  email?: string;
+}
+
+export interface IngestSummary {
+  received: number;
+  created: number;
+  skipped: number;
+  failed: number;
+  errors: Array<{
+    index: number;
+    email?: string;
+    message: string;
+  }>;
+  applicants: ApplicantRecord[];
+  message: string;
+}
+
 export interface ApplicantListResponse {
   data: ApplicantRecord[];
   total: number;
   page: number;
   pageSize: number;
   totalPages: number;
+  message: string;
+}
+
+interface DeleteApplicantResponse {
+  id: string;
   message: string;
 }
 
@@ -187,4 +230,70 @@ export async function listAllApplicants(jobId: string, params: { search?: string
   );
 
   return firstPage.data.concat(...remainingPages.map((page) => page.data));
+}
+
+export async function ingestApplicantsFromPlatform(jobId: string, applicants: ApplicantProfileInput[]) {
+  const response = await fetch(`${getApiBaseUrl()}/jobs/${jobId}/applicants/platform`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    body: JSON.stringify({ applicants }),
+  });
+
+  return handleApiResponse<IngestSummary>(response, "Failed to import applicants from JSON.");
+}
+
+export async function ingestApplicantsFromCsv(
+  jobId: string,
+  payload: { applicants?: ApplicantProfileInput[]; csvText?: string }
+) {
+  const response = await fetch(`${getApiBaseUrl()}/jobs/${jobId}/applicants/csv`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return handleApiResponse<IngestSummary>(response, "Failed to import applicants from CSV.");
+}
+
+export async function ingestApplicantsFromFiles(jobId: string, files: IngestFileItem[]) {
+  const response = await fetch(`${getApiBaseUrl()}/jobs/${jobId}/applicants/files`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    body: JSON.stringify({ files }),
+  });
+
+  return handleApiResponse<IngestSummary>(response, "Failed to queue resume files.");
+}
+
+export async function ingestApplicantsFromLinks(jobId: string, links: string[]) {
+  const response = await fetch(`${getApiBaseUrl()}/jobs/${jobId}/applicants/links`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    body: JSON.stringify({ links }),
+  });
+
+  return handleApiResponse<IngestSummary>(response, "Failed to queue candidate links.");
+}
+
+export async function deleteApplicant(jobId: string, applicantId: string) {
+  const response = await fetch(`${getApiBaseUrl()}/jobs/${jobId}/applicants/${applicantId}`, {
+    method: "DELETE",
+    headers: {
+      ...getAuthHeader(),
+    },
+  });
+
+  return handleApiResponse<DeleteApplicantResponse>(response, "Failed to delete the applicant.");
 }

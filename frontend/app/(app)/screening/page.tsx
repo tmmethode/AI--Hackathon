@@ -19,6 +19,8 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
+import { ScreeningPageSkeleton } from "@/components/page-skeletons";
+import { Skeleton } from "@/components/ui/Skeleton";
 import {
   type ApplicantRecord,
   type ApplicantSource,
@@ -434,6 +436,10 @@ export default function ScreeningPage() {
     }
   }
 
+  if (jobsLoading && jobs.length === 0) {
+    return <ScreeningPageSkeleton />;
+  }
+
   return (
     <div className="w-full px-6 py-5">
       <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -628,10 +634,13 @@ export default function ScreeningPage() {
                 </div>
               </div>
 
-              {applicantsLoading && (
-                <div className="mb-4 flex items-center gap-2 rounded-lg border border-line bg-surface-soft/30 px-4 py-3 text-sm text-ink-muted">
-                  <LoaderCircle className="h-4 w-4 animate-spin" />
-                  Loading applicants for the selected job...
+              {applicantsLoading && applicants.length === 0 && (
+                <div className="mb-4 rounded-lg border border-line bg-surface-soft/30 p-4">
+                  <div className="space-y-3">
+                    <Skeleton className="h-4 w-36" />
+                    <Skeleton className="h-10 w-full" delayIndex={1} />
+                    <Skeleton className="h-10 w-full" delayIndex={2} />
+                  </div>
                 </div>
               )}
 
@@ -832,10 +841,22 @@ export default function ScreeningPage() {
                 </Badge>
               </div>
 
-              {applicantsLoading ? (
-                <div className="mt-4 flex items-center gap-2 rounded-lg border border-line bg-surface-soft/30 px-3 py-3 text-sm text-ink-muted">
-                  <LoaderCircle className="h-4 w-4 animate-spin" />
-                  Loading screening assets...
+              {applicantsLoading && applicants.length === 0 ? (
+                <div className="mt-4 rounded-lg border border-line bg-surface-soft/30 p-4">
+                  <div className="space-y-3">
+                    {Array.from({ length: 4 }, (_, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between rounded-md border border-line bg-surface px-4 py-3"
+                      >
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-32" delayIndex={index} />
+                          <Skeleton className="h-3 w-24" delayIndex={index + 1} />
+                        </div>
+                        <Skeleton shape="pill" className="h-6 w-20" delayIndex={index + 2} />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : screeningAssets.length > 0 ? (
                 <ul className="mt-4 space-y-3 text-xs">

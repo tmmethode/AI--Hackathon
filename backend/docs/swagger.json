@@ -42,6 +42,16 @@
 					"topCandidateName": {
 						"type": "string"
 					},
+					"screeningStartedAt": {
+						"type": "string"
+					},
+					"screeningCompletedAt": {
+						"type": "string"
+					},
+					"screeningDurationSeconds": {
+						"type": "number",
+						"format": "double"
+					},
 					"createdBy": {
 						"type": "string"
 					},
@@ -283,6 +293,16 @@
 					"instructions": {
 						"type": "string"
 					},
+					"screeningStartedAt": {
+						"type": "string"
+					},
+					"screeningCompletedAt": {
+						"type": "string"
+					},
+					"screeningDurationSeconds": {
+						"type": "number",
+						"format": "double"
+					},
 					"createdBy": {
 						"type": "string"
 					},
@@ -366,6 +386,16 @@
 					},
 					"instructions": {
 						"type": "string"
+					},
+					"screeningStartedAt": {
+						"type": "string"
+					},
+					"screeningCompletedAt": {
+						"type": "string"
+					},
+					"screeningDurationSeconds": {
+						"type": "number",
+						"format": "double"
 					}
 				},
 				"required": [
