@@ -29,3 +29,7 @@ pnpm-debug.log*
 .claude/
 .codex/
 frontend/.claude/
+
+# Local tunnel helper files
+cloudflared.system.yml
+cloudflared.talent.yml
