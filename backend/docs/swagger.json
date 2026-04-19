@@ -2109,6 +2109,46 @@
 					"applicant"
 				]
 			},
+			"NotificationPreferences": {
+				"properties": {
+					"screening": {
+						"type": "boolean"
+					},
+					"applicants": {
+						"type": "boolean"
+					},
+					"export": {
+						"type": "boolean"
+					},
+					"system": {
+						"type": "boolean"
+					}
+				},
+				"required": [
+					"screening",
+					"applicants",
+					"export",
+					"system"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ThemePreference": {
+				"type": "string",
+				"enum": [
+					"light",
+					"dark",
+					"system"
+				]
+			},
+			"LanguagePreference": {
+				"type": "string",
+				"enum": [
+					"en",
+					"fr",
+					"rw"
+				]
+			},
 			"IUserResponse": {
 				"properties": {
 					"_id": {
@@ -2137,6 +2177,24 @@
 					},
 					"phoneNumber": {
 						"type": "string"
+					},
+					"department": {
+						"type": "string"
+					},
+					"location": {
+						"type": "string"
+					},
+					"bio": {
+						"type": "string"
+					},
+					"notificationPreferences": {
+						"$ref": "#/components/schemas/NotificationPreferences"
+					},
+					"themePreference": {
+						"$ref": "#/components/schemas/ThemePreference"
+					},
+					"languagePreference": {
+						"$ref": "#/components/schemas/LanguagePreference"
 					},
 					"createdAt": {
 						"type": "string"
@@ -2236,6 +2294,67 @@
 				"required": [
 					"user",
 					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UpdateProfileRequest": {
+				"properties": {
+					"email": {
+						"type": "string"
+					},
+					"firstName": {
+						"type": "string"
+					},
+					"lastName": {
+						"type": "string"
+					},
+					"phoneNumber": {
+						"type": "string"
+					},
+					"department": {
+						"type": "string"
+					},
+					"location": {
+						"type": "string"
+					},
+					"bio": {
+						"type": "string"
+					},
+					"profilePicture": {
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"UpdatePreferencesRequest": {
+				"properties": {
+					"notificationPreferences": {
+						"$ref": "#/components/schemas/NotificationPreferences"
+					},
+					"themePreference": {
+						"$ref": "#/components/schemas/ThemePreference"
+					},
+					"languagePreference": {
+						"$ref": "#/components/schemas/LanguagePreference"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ChangePasswordRequest": {
+				"properties": {
+					"currentPassword": {
+						"type": "string"
+					},
+					"newPassword": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"currentPassword",
+					"newPassword"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -3715,7 +3834,13 @@
 				"tags": [
 					"Authentication"
 				],
-				"security": [],
+				"security": [
+					{
+						"jwt": [
+							"admin"
+						]
+					}
+				],
 				"parameters": [],
 				"requestBody": {
 					"required": true,
@@ -3785,6 +3910,120 @@
 					}
 				],
 				"parameters": []
+			},
+			"patch": {
+				"operationId": "UpdateProfile",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProfileResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Authentication"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateProfileRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/me/preferences": {
+			"patch": {
+				"operationId": "UpdatePreferences",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProfileResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Authentication"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdatePreferencesRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/me/password": {
+			"post": {
+				"operationId": "ChangePassword",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									],
+									"type": "object"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Authentication"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ChangePasswordRequest"
+							}
+						}
+					}
+				}
 			}
 		},
 		"/auth/refresh": {

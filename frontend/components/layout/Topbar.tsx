@@ -36,7 +36,11 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
 
     syncAccount();
     window.addEventListener("storage", syncAccount);
-    return () => window.removeEventListener("storage", syncAccount);
+    window.addEventListener("umurava-auth-changed", syncAccount);
+    return () => {
+      window.removeEventListener("storage", syncAccount);
+      window.removeEventListener("umurava-auth-changed", syncAccount);
+    };
   }, []);
 
   function markAllRead() {

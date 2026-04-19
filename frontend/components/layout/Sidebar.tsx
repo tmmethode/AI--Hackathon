@@ -23,6 +23,7 @@ const navItems = [
   { label: "Shortlists", href: "/shortlists", icon: ListOrdered },
   { label: "Candidates", href: "/candidates", icon: Users },
   { label: "Exports", href: "/exports", icon: FileOutput },
+  { label: "Register User", href: "/users/new", icon: UserPlus },
   { label: "History & Settings", href: "/history", icon: Settings },
 ] as const;
 

@@ -14,6 +14,17 @@ export interface IUser extends Document {
   isEmailVerified: boolean;
   profilePicture?: string;
   phoneNumber?: string;
+  department?: string;
+  location?: string;
+  bio?: string;
+  notificationPreferences: {
+    screening: boolean;
+    applicants: boolean;
+    export: boolean;
+    system: boolean;
+  };
+  themePreference: 'light' | 'dark' | 'system';
+  languagePreference: 'en' | 'fr' | 'rw';
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -72,6 +83,40 @@ const UserSchema: Schema = new Schema({
   phoneNumber: {
     type: String,
     match: [/^\+?[\d\s\-\(\)]+$/, 'Please enter a valid phone number']
+  },
+  department: {
+    type: String,
+    trim: true,
+    maxlength: 100,
+    default: null
+  },
+  location: {
+    type: String,
+    trim: true,
+    maxlength: 120,
+    default: null
+  },
+  bio: {
+    type: String,
+    trim: true,
+    maxlength: 500,
+    default: null
+  },
+  notificationPreferences: {
+    screening: { type: Boolean, default: true },
+    applicants: { type: Boolean, default: true },
+    export: { type: Boolean, default: false },
+    system: { type: Boolean, default: true }
+  },
+  themePreference: {
+    type: String,
+    enum: ['light', 'dark', 'system'],
+    default: 'light'
+  },
+  languagePreference: {
+    type: String,
+    enum: ['en', 'fr', 'rw'],
+    default: 'en'
   }
 }, {
   timestamps: true,
