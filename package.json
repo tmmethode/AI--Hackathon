@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "description": "Umurava Screening monorepo (backend + frontend).",
   "scripts": {
-    "postinstall": "npm --prefix backend install --package-lock=true && npm --prefix frontend install --package-lock=true",
-    "install:all": "npm --prefix backend install --package-lock=true && npm --prefix frontend install --package-lock=true",
+    "postinstall": "npm --prefix backend install --include=dev --package-lock=true && npm --prefix frontend install --include=dev --package-lock=true",
+    "install:all": "npm --prefix backend install --include=dev --package-lock=true && npm --prefix frontend install --include=dev --package-lock=true",
     "build:backend": "npm --prefix backend run build",
     "build:frontend": "npm --prefix frontend run build",
     "build": "npm run build:backend && npm run build:frontend",
