@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ReactNode } from "react";
+import { AIAssistant } from "@/components/assistant/AIAssistant";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 
@@ -19,6 +20,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
         <main className="flex-1 overflow-y-auto bg-surface">{children}</main>
       </div>
+      <AIAssistant />
     </div>
   );
 }

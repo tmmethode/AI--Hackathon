@@ -309,3 +309,60 @@ export interface GeminiBatchScreeningResponse {
   shortlist: GeminiBatchShortlistEntry[];
   model?: string;
 }
+
+export type GeminiRecruiterAssistantRole = "user" | "assistant";
+
+export interface GeminiRecruiterAssistantMessage {
+  role: GeminiRecruiterAssistantRole;
+  content: string;
+}
+
+export interface GeminiRecruiterAssistantShortlistContext {
+  runName?: string;
+  jobTitle?: string;
+  department?: string;
+  model?: string;
+  totalApplicants?: number;
+  shortlistCount?: number;
+  instructions?: string;
+  screeningResults?: GeminiBatchScreeningResultEntry[];
+  shortlist?: GeminiBatchShortlistEntry[];
+}
+
+export interface GeminiRecruiterAssistantContext {
+  job?: GeminiBatchJob;
+  applicants?: GeminiBatchApplicant[];
+  shortlist?: GeminiRecruiterAssistantShortlistContext;
+  contextNote?: string;
+}
+
+export interface GeminiRecruiterAssistantRequest {
+  message: string;
+  history?: GeminiRecruiterAssistantMessage[];
+  jobId?: string;
+  shortlistId?: string;
+  applicantEmails?: string[];
+  includeApplicants?: boolean;
+  applicantLimit?: number;
+  context?: GeminiRecruiterAssistantContext;
+  temperature?: number;
+  maxOutputTokens?: number;
+}
+
+export interface GeminiRecruiterAssistantContextSummary {
+  source: "inline" | "database" | "mixed" | "none";
+  jobId?: string;
+  shortlistId?: string;
+  jobTitle?: string;
+  applicantCount: number;
+  screeningResultCount: number;
+  shortlistCount: number;
+  truncatedApplicants: boolean;
+}
+
+export interface GeminiRecruiterAssistantResponse {
+  reply: string;
+  model: string;
+  usage?: GeminiUsageMetadata;
+  contextUsed: GeminiRecruiterAssistantContextSummary;
+}

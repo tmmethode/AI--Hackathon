@@ -1,3 +1,4 @@
+export * from "./assistant";
 export * from "./client";
 export * from "./config";
 export * from "./frontend";

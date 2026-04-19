@@ -2131,6 +2131,208 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"GeminiRecruiterAssistantContextSummary": {
+				"properties": {
+					"source": {
+						"type": "string",
+						"enum": [
+							"inline",
+							"database",
+							"mixed",
+							"none"
+						]
+					},
+					"jobId": {
+						"type": "string"
+					},
+					"shortlistId": {
+						"type": "string"
+					},
+					"jobTitle": {
+						"type": "string"
+					},
+					"applicantCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"screeningResultCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"shortlistCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"truncatedApplicants": {
+						"type": "boolean"
+					}
+				},
+				"required": [
+					"source",
+					"applicantCount",
+					"screeningResultCount",
+					"shortlistCount",
+					"truncatedApplicants"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiRecruiterAssistantResponse": {
+				"properties": {
+					"reply": {
+						"type": "string"
+					},
+					"model": {
+						"type": "string"
+					},
+					"usage": {
+						"$ref": "#/components/schemas/GeminiUsageMetadata"
+					},
+					"contextUsed": {
+						"$ref": "#/components/schemas/GeminiRecruiterAssistantContextSummary"
+					}
+				},
+				"required": [
+					"reply",
+					"model",
+					"contextUsed"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiRecruiterAssistantRole": {
+				"type": "string",
+				"enum": [
+					"user",
+					"assistant"
+				]
+			},
+			"GeminiRecruiterAssistantMessage": {
+				"properties": {
+					"role": {
+						"$ref": "#/components/schemas/GeminiRecruiterAssistantRole"
+					},
+					"content": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"role",
+					"content"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiRecruiterAssistantShortlistContext": {
+				"properties": {
+					"runName": {
+						"type": "string"
+					},
+					"jobTitle": {
+						"type": "string"
+					},
+					"department": {
+						"type": "string"
+					},
+					"model": {
+						"type": "string"
+					},
+					"totalApplicants": {
+						"type": "number",
+						"format": "double"
+					},
+					"shortlistCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"instructions": {
+						"type": "string"
+					},
+					"screeningResults": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiBatchScreeningResultEntry"
+						},
+						"type": "array"
+					},
+					"shortlist": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiBatchShortlistEntry"
+						},
+						"type": "array"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiRecruiterAssistantContext": {
+				"properties": {
+					"job": {
+						"$ref": "#/components/schemas/GeminiBatchJob"
+					},
+					"applicants": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiBatchApplicant"
+						},
+						"type": "array"
+					},
+					"shortlist": {
+						"$ref": "#/components/schemas/GeminiRecruiterAssistantShortlistContext"
+					},
+					"contextNote": {
+						"type": "string"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiRecruiterAssistantRequest": {
+				"properties": {
+					"message": {
+						"type": "string"
+					},
+					"history": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiRecruiterAssistantMessage"
+						},
+						"type": "array"
+					},
+					"jobId": {
+						"type": "string"
+					},
+					"shortlistId": {
+						"type": "string"
+					},
+					"applicantEmails": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"includeApplicants": {
+						"type": "boolean"
+					},
+					"applicantLimit": {
+						"type": "number",
+						"format": "double"
+					},
+					"context": {
+						"$ref": "#/components/schemas/GeminiRecruiterAssistantContext"
+					},
+					"temperature": {
+						"type": "number",
+						"format": "double"
+					},
+					"maxOutputTokens": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"UserRole": {
 				"type": "string",
 				"enum": [
@@ -2296,18 +2498,26 @@
 				"type": "object",
 				"additionalProperties": false
 			},
-			"LoginRequest": {
+			"UserListResponse": {
 				"properties": {
-					"email": {
-						"type": "string"
+					"users": {
+						"items": {
+							"$ref": "#/components/schemas/IUserResponse"
+						},
+						"type": "array"
 					},
-					"password": {
+					"total": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
 						"type": "string"
 					}
 				},
 				"required": [
-					"email",
-					"password"
+					"users",
+					"total",
+					"message"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -2324,6 +2534,70 @@
 				"required": [
 					"user",
 					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"AdminUpdateUserRequest": {
+				"properties": {
+					"email": {
+						"type": "string"
+					},
+					"firstName": {
+						"type": "string"
+					},
+					"lastName": {
+						"type": "string"
+					},
+					"role": {
+						"$ref": "#/components/schemas/UserRole"
+					},
+					"phoneNumber": {
+						"type": "string"
+					},
+					"department": {
+						"type": "string"
+					},
+					"location": {
+						"type": "string"
+					},
+					"bio": {
+						"type": "string"
+					},
+					"profilePicture": {
+						"type": "string"
+					},
+					"isEmailVerified": {
+						"type": "boolean"
+					}
+				},
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ResetUserPasswordRequest": {
+				"properties": {
+					"newPassword": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"newPassword"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"LoginRequest": {
+				"properties": {
+					"email": {
+						"type": "string"
+					},
+					"password": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"email",
+					"password"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -3846,6 +4120,45 @@
 				}
 			}
 		},
+		"/gemini/assistant": {
+			"post": {
+				"operationId": "Assistant",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/GeminiRecruiterAssistantResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Gemini"
+				],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/GeminiRecruiterAssistantRequest"
+							}
+						}
+					}
+				}
+			}
+		},
 		"/auth/register": {
 			"post": {
 				"operationId": "Register",
@@ -3878,6 +4191,136 @@
 						"application/json": {
 							"schema": {
 								"$ref": "#/components/schemas/RegisterRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/users": {
+			"get": {
+				"operationId": "ListUsers",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/UserListResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Authentication"
+				],
+				"security": [
+					{
+						"jwt": [
+							"admin"
+						]
+					}
+				],
+				"parameters": []
+			}
+		},
+		"/auth/users/{id}": {
+			"patch": {
+				"operationId": "UpdateUser",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ProfileResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Authentication"
+				],
+				"security": [
+					{
+						"jwt": [
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/AdminUpdateUserRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/auth/users/{id}/reset-password": {
+			"post": {
+				"operationId": "ResetUserPassword",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									],
+									"type": "object"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Authentication"
+				],
+				"security": [
+					{
+						"jwt": [
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/ResetUserPasswordRequest"
 							}
 						}
 					}

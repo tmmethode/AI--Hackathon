@@ -54,6 +54,12 @@ export interface RegisterResult {
   message: string;
 }
 
+export interface UserListResult {
+  users: AuthUser[];
+  total: number;
+  message: string;
+}
+
 export interface ProfileResult {
   user: AuthUser;
   message: string;
@@ -79,6 +85,19 @@ export interface UpdatePreferencesPayload {
 export interface ChangePasswordPayload {
   currentPassword: string;
   newPassword: string;
+}
+
+export interface AdminUpdateUserPayload {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  role?: UserRole;
+  phoneNumber?: string;
+  department?: string;
+  location?: string;
+  bio?: string;
+  profilePicture?: string;
+  isEmailVerified?: boolean;
 }
 
 const AUTH_STORAGE_KEY = "umurava.auth";
@@ -381,6 +400,113 @@ export async function changePassword(payload: ChangePasswordPayload): Promise<{ 
 
   return {
     message: body?.message || "Password updated successfully",
+  };
+}
+
+export async function listUsers(): Promise<UserListResult> {
+  const session = getStoredAuth();
+
+  if (!session?.token) {
+    throw new Error("You must be signed in as an admin to view workspace users.");
+  }
+
+  const response = await fetch(`${getApiBaseUrl()}/auth/users`, {
+    headers: {
+      Authorization: `Bearer ${session.token}`,
+    },
+  });
+
+  const body = (await response.json().catch(() => null)) as
+    | { users?: AuthUser[]; total?: number; message?: string; error?: string }
+    | null;
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearStoredAuth();
+    }
+    throw new Error(body?.message || body?.error || "Failed to load workspace users.");
+  }
+
+  return {
+    users: Array.isArray(body?.users) ? body.users : [],
+    total: typeof body?.total === "number" ? body.total : Array.isArray(body?.users) ? body.users.length : 0,
+    message: body?.message || "Users retrieved successfully",
+  };
+}
+
+export async function updateManagedUser(id: string, payload: AdminUpdateUserPayload): Promise<ProfileResult> {
+  const session = getStoredAuth();
+
+  if (!session?.token) {
+    throw new Error("You must be signed in as an admin to update a user.");
+  }
+
+  const response = await fetch(`${getApiBaseUrl()}/auth/users/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const body = (await response.json().catch(() => null)) as
+    | { user?: AuthUser; message?: string; error?: string }
+    | null;
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearStoredAuth();
+    }
+    throw new Error(body?.message || body?.error || "Failed to update this user.");
+  }
+
+  if (!body?.user) {
+    throw new Error("Failed to update this user. The server response was incomplete.");
+  }
+
+  if (body.user._id === session.user._id) {
+    persistAuth({
+      token: session.token,
+      user: body.user,
+    });
+  }
+
+  return {
+    user: body.user,
+    message: body.message || "User updated successfully",
+  };
+}
+
+export async function resetManagedUserPassword(id: string, newPassword: string): Promise<{ message: string }> {
+  const session = getStoredAuth();
+
+  if (!session?.token) {
+    throw new Error("You must be signed in as an admin to reset a password.");
+  }
+
+  const response = await fetch(`${getApiBaseUrl()}/auth/users/${id}/reset-password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.token}`,
+    },
+    body: JSON.stringify({ newPassword }),
+  });
+
+  const body = (await response.json().catch(() => null)) as
+    | { message?: string; error?: string }
+    | null;
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearStoredAuth();
+    }
+    throw new Error(body?.message || body?.error || "Failed to reset this password.");
+  }
+
+  return {
+    message: body?.message || "Password reset successfully",
   };
 }
 

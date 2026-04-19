@@ -137,8 +137,8 @@ const EXAMPLE_JSON_SCHEMA = `{
     }
   ]
 }`;
-const CSV_TEMPLATE = `firstName,lastName,email,headline,bio,location,skills,languages,experience,education,certifications,projects,availability,socialLinks
-"Sarah","Jenkins","sarah.jenkins@example.com","Senior Frontend Engineer","Strong product-thinking and mentoring experience.","Kigali, Rwanda","[{""name"":""React"",""level"":""advanced"",""yearsOfExperience"":4},{""name"":""TypeScript"",""level"":""advanced"",""yearsOfExperience"":4}]","[{""name"":""English"",""proficiency"":""fluent""}]","[{""company"":""Acme Labs"",""role"":""Senior Frontend Engineer"",""startDate"":""2021-01-01"",""endDate"":""2024-12-31"",""description"":""Led frontend delivery for customer-facing dashboards."",""technologies"":[""React"",""TypeScript"",""Next.js""],""isCurrent"":false}]","[{""institution"":""University of Rwanda"",""degree"":""BSc Computer Science"",""fieldOfStudy"":""Computer Science"",""startYear"":2015,""endYear"":2019}]","[{""name"":""AWS Certified Developer"",""issuer"":""Amazon"",""issueDate"":""2023-06-15""}]","[{""name"":""Recruiting Analytics Platform"",""description"":""Built a recruiter reporting workspace."",""technologies"":[""React"",""Node.js"",""PostgreSQL""],""role"":""Frontend Lead"",""link"":""https://portfolio.example.com/sarah"",""startDate"":""2023-01-01"",""endDate"":""2023-10-01""}]","{""status"":""open"",""type"":""full-time"",""startDate"":""2025-01-15""}","{""linkedin"":""https://linkedin.com/in/sarah-jenkins"",""github"":""https://github.com/sarahjenkins"",""portfolio"":""https://portfolio.example.com/sarah""}"
+const CSV_TEMPLATE = `firstName,lastName,email,headline,bio,location,skills,languages,experienceCompany,experienceRole,experienceStartDate,experienceEndDate,experienceDescription,experienceTechnologies,experienceIsCurrent,educationInstitution,educationDegree,educationFieldOfStudy,educationStartYear,educationEndYear,certificationName,certificationIssuer,certificationIssueDate,projectName,projectDescription,projectTechnologies,projectRole,projectLink,projectStartDate,projectEndDate,availabilityStatus,availabilityType,availabilityStartDate,linkedin,github,portfolio
+"Sarah","Jenkins","sarah.jenkins@example.com","Senior Frontend Engineer","Strong product-thinking and mentoring experience.","Kigali, Rwanda","React|TypeScript|Node.js","English:fluent","Acme Labs","Senior Frontend Engineer","2021-01-01","2024-12-31","Led frontend delivery for customer-facing dashboards.","React|TypeScript|Next.js","false","University of Rwanda","BSc Computer Science","Computer Science","2015","2019","AWS Certified Developer","Amazon","2023-06-15","Recruiting Analytics Platform","Built a recruiter reporting workspace.","React|Node.js|PostgreSQL","Frontend Lead","https://portfolio.example.com/sarah","2023-01-01","2023-10-01","open","full-time","2025-01-15","https://linkedin.com/in/sarah-jenkins","https://github.com/sarahjenkins","https://portfolio.example.com/sarah"
 `;
 
 function formatBytes(value: number) {
@@ -238,18 +238,6 @@ function splitDelimitedText(value: string) {
     .filter(Boolean);
 }
 
-function parseStructuredJson<T>(value: unknown, fallback: T): T {
-  if (typeof value !== "string" || !value.trim()) {
-    return fallback;
-  }
-
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
-}
-
 function pickValue(record: Record<string, unknown>, ...keys: string[]) {
   for (const key of keys) {
     const value = record[key];
@@ -312,16 +300,56 @@ function normalizeSkills(value: unknown): ApplicantSkill[] {
   }
 
   if (typeof value === "string") {
-    const parsed = parseStructuredJson<unknown>(value, value);
-
-    if (Array.isArray(parsed)) {
-      return normalizeSkills(parsed);
-    }
-
     return splitDelimitedText(value).map((name) => ({ name }));
   }
 
   return [];
+}
+
+function normalizeLanguages(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) {
+    return [];
+  }
+
+  return splitDelimitedText(value)
+    .map((entry) => {
+      const [name, proficiency] = entry.split(":").map((item) => item.trim());
+      if (!name) {
+        return null;
+      }
+
+      return {
+        name,
+        proficiency: proficiency || undefined,
+      };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+}
+
+function normalizeBoolean(value: unknown) {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "true" || normalized === "yes" || normalized === "1") {
+    return true;
+  }
+
+  if (normalized === "false" || normalized === "no" || normalized === "0") {
+    return false;
+  }
+
+  return undefined;
+}
+
+function normalizeNumber(value: unknown) {
+  if (typeof value !== "string" || !value.trim()) {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 function normalizeApplicantInput(raw: unknown): ApplicantProfileInput {
@@ -348,32 +376,13 @@ function normalizeApplicantInput(raw: unknown): ApplicantProfileInput {
   const socialLinksRaw =
     record.socialLinks && typeof record.socialLinks === "object"
       ? (record.socialLinks as Record<string, unknown>)
-      : parseStructuredJson<Record<string, unknown>>(pickValue(record, "socialLinks"), {});
+      : {};
 
-  const languages = parseStructuredJson<ApplicantProfileInput["languages"]>(
-    pickValue(record, "languages"),
-    []
-  );
-  const experience = parseStructuredJson<ApplicantProfileInput["experience"]>(
-    pickValue(record, "experience"),
-    []
-  );
-  const education = parseStructuredJson<ApplicantProfileInput["education"]>(
-    pickValue(record, "education"),
-    []
-  );
-  const certifications = parseStructuredJson<ApplicantProfileInput["certifications"]>(
-    pickValue(record, "certifications"),
-    []
-  );
-  const projects = parseStructuredJson<ApplicantProfileInput["projects"]>(
-    pickValue(record, "projects"),
-    []
-  );
-  const availability = parseStructuredJson<ApplicantProfileInput["availability"]>(
-    pickValue(record, "availability"),
-    undefined
-  );
+  const experienceCompany = pickValue(record, "experienceCompany");
+  const experienceRole = pickValue(record, "experienceRole");
+  const educationInstitution = pickValue(record, "educationInstitution");
+  const certificationName = pickValue(record, "certificationName");
+  const projectName = pickValue(record, "projectName");
 
   return {
     firstName,
@@ -391,12 +400,110 @@ function normalizeApplicantInput(raw: unknown): ApplicantProfileInput {
       (typeof pickValue(record, "location") === "string" && String(pickValue(record, "location")).trim()) ||
       undefined,
     skills: normalizeSkills(pickValue(record, "skills")),
-    languages: Array.isArray(languages) ? languages : [],
-    experience: Array.isArray(experience) ? experience : [],
-    education: Array.isArray(education) ? education : [],
-    certifications: Array.isArray(certifications) ? certifications : [],
-    projects: Array.isArray(projects) ? projects : [],
-    availability: availability && typeof availability === "object" ? availability : undefined,
+    languages: normalizeLanguages(pickValue(record, "languages")),
+    experience:
+      typeof experienceCompany === "string" && experienceCompany.trim() && typeof experienceRole === "string" && experienceRole.trim()
+        ? [
+            {
+              company: experienceCompany.trim(),
+              role: experienceRole.trim(),
+              startDate:
+                (typeof pickValue(record, "experienceStartDate") === "string" &&
+                  String(pickValue(record, "experienceStartDate")).trim()) ||
+                undefined,
+              endDate:
+                (typeof pickValue(record, "experienceEndDate") === "string" &&
+                  String(pickValue(record, "experienceEndDate")).trim()) ||
+                undefined,
+              description:
+                (typeof pickValue(record, "experienceDescription") === "string" &&
+                  String(pickValue(record, "experienceDescription")).trim()) ||
+                undefined,
+              technologies: splitDelimitedText(String(pickValue(record, "experienceTechnologies") || "")),
+              isCurrent: normalizeBoolean(pickValue(record, "experienceIsCurrent")),
+            },
+          ]
+        : [],
+    education:
+      typeof educationInstitution === "string" && educationInstitution.trim()
+        ? [
+            {
+              institution: educationInstitution.trim(),
+              degree:
+                (typeof pickValue(record, "educationDegree") === "string" &&
+                  String(pickValue(record, "educationDegree")).trim()) ||
+                undefined,
+              fieldOfStudy:
+                (typeof pickValue(record, "educationFieldOfStudy") === "string" &&
+                  String(pickValue(record, "educationFieldOfStudy")).trim()) ||
+                undefined,
+              startYear: normalizeNumber(pickValue(record, "educationStartYear")),
+              endYear: normalizeNumber(pickValue(record, "educationEndYear")),
+            },
+          ]
+        : [],
+    certifications:
+      typeof certificationName === "string" && certificationName.trim()
+        ? [
+            {
+              name: certificationName.trim(),
+              issuer:
+                (typeof pickValue(record, "certificationIssuer") === "string" &&
+                  String(pickValue(record, "certificationIssuer")).trim()) ||
+                undefined,
+              issueDate:
+                (typeof pickValue(record, "certificationIssueDate") === "string" &&
+                  String(pickValue(record, "certificationIssueDate")).trim()) ||
+                undefined,
+            },
+          ]
+        : [],
+    projects:
+      typeof projectName === "string" && projectName.trim()
+        ? [
+            {
+              name: projectName.trim(),
+              description:
+                (typeof pickValue(record, "projectDescription") === "string" &&
+                  String(pickValue(record, "projectDescription")).trim()) ||
+                undefined,
+              technologies: splitDelimitedText(String(pickValue(record, "projectTechnologies") || "")),
+              role:
+                (typeof pickValue(record, "projectRole") === "string" &&
+                  String(pickValue(record, "projectRole")).trim()) ||
+                undefined,
+              link:
+                (typeof pickValue(record, "projectLink") === "string" &&
+                  String(pickValue(record, "projectLink")).trim()) ||
+                undefined,
+              startDate:
+                (typeof pickValue(record, "projectStartDate") === "string" &&
+                  String(pickValue(record, "projectStartDate")).trim()) ||
+                undefined,
+              endDate:
+                (typeof pickValue(record, "projectEndDate") === "string" &&
+                  String(pickValue(record, "projectEndDate")).trim()) ||
+                undefined,
+            },
+          ]
+        : [],
+    availability:
+      pickValue(record, "availabilityStatus", "availabilityType", "availabilityStartDate") !== undefined
+        ? {
+            status:
+              (typeof pickValue(record, "availabilityStatus") === "string" &&
+                String(pickValue(record, "availabilityStatus")).trim()) ||
+              undefined,
+            type:
+              (typeof pickValue(record, "availabilityType") === "string" &&
+                String(pickValue(record, "availabilityType")).trim()) ||
+              undefined,
+            startDate:
+              (typeof pickValue(record, "availabilityStartDate") === "string" &&
+                String(pickValue(record, "availabilityStartDate")).trim()) ||
+              undefined,
+          }
+        : undefined,
     socialLinks: {
       linkedin:
         (typeof pickValue(socialLinksRaw, "linkedin") === "string" &&
@@ -736,8 +843,8 @@ function CsvTab({
   return (
     <div className="flex flex-col gap-4 p-6">
       <p className="text-sm text-ink-muted">
-        Upload a CSV file with candidate data. Nested fields such as skills, experience, education, and social links
-        can be provided as JSON strings so the CSV matches the backend applicant schema.
+        Upload a CSV file with flat column fields. Related applicant sections such as experience, education,
+        certification, project, and social links are mapped from dedicated CSV columns.
       </p>
       <div
         onDragOver={(event) => {

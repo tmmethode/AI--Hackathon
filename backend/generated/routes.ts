@@ -736,6 +736,90 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiRecruiterAssistantContextSummary": {
+        "dataType": "refObject",
+        "properties": {
+            "source": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["inline"]},{"dataType":"enum","enums":["database"]},{"dataType":"enum","enums":["mixed"]},{"dataType":"enum","enums":["none"]}],"required":true},
+            "jobId": {"dataType":"string"},
+            "shortlistId": {"dataType":"string"},
+            "jobTitle": {"dataType":"string"},
+            "applicantCount": {"dataType":"double","required":true},
+            "screeningResultCount": {"dataType":"double","required":true},
+            "shortlistCount": {"dataType":"double","required":true},
+            "truncatedApplicants": {"dataType":"boolean","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiRecruiterAssistantResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "reply": {"dataType":"string","required":true},
+            "model": {"dataType":"string","required":true},
+            "usage": {"ref":"GeminiUsageMetadata"},
+            "contextUsed": {"ref":"GeminiRecruiterAssistantContextSummary","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiRecruiterAssistantRole": {
+        "dataType": "refAlias",
+        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["user"]},{"dataType":"enum","enums":["assistant"]}],"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiRecruiterAssistantMessage": {
+        "dataType": "refObject",
+        "properties": {
+            "role": {"ref":"GeminiRecruiterAssistantRole","required":true},
+            "content": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiRecruiterAssistantShortlistContext": {
+        "dataType": "refObject",
+        "properties": {
+            "runName": {"dataType":"string"},
+            "jobTitle": {"dataType":"string"},
+            "department": {"dataType":"string"},
+            "model": {"dataType":"string"},
+            "totalApplicants": {"dataType":"double"},
+            "shortlistCount": {"dataType":"double"},
+            "instructions": {"dataType":"string"},
+            "screeningResults": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiBatchScreeningResultEntry"}},
+            "shortlist": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiBatchShortlistEntry"}},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiRecruiterAssistantContext": {
+        "dataType": "refObject",
+        "properties": {
+            "job": {"ref":"GeminiBatchJob"},
+            "applicants": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiBatchApplicant"}},
+            "shortlist": {"ref":"GeminiRecruiterAssistantShortlistContext"},
+            "contextNote": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiRecruiterAssistantRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "message": {"dataType":"string","required":true},
+            "history": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiRecruiterAssistantMessage"}},
+            "jobId": {"dataType":"string"},
+            "shortlistId": {"dataType":"string"},
+            "applicantEmails": {"dataType":"array","array":{"dataType":"string"}},
+            "includeApplicants": {"dataType":"boolean"},
+            "applicantLimit": {"dataType":"double"},
+            "context": {"ref":"GeminiRecruiterAssistantContext"},
+            "temperature": {"dataType":"double"},
+            "maxOutputTokens": {"dataType":"double"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "UserRole": {
         "dataType": "refAlias",
         "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["recruiter"]},{"dataType":"enum","enums":["admin"]},{"dataType":"enum","enums":["applicant"]}],"validators":{}},
@@ -809,11 +893,12 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-    "LoginRequest": {
+    "UserListResponse": {
         "dataType": "refObject",
         "properties": {
-            "email": {"dataType":"string","required":true},
-            "password": {"dataType":"string","required":true},
+            "users": {"dataType":"array","array":{"dataType":"refObject","ref":"IUserResponse"},"required":true},
+            "total": {"dataType":"double","required":true},
+            "message": {"dataType":"string","required":true},
         },
         "additionalProperties": false,
     },
@@ -823,6 +908,40 @@ const models: TsoaRoute.Models = {
         "properties": {
             "user": {"ref":"IUserResponse","required":true},
             "message": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "AdminUpdateUserRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "email": {"dataType":"string"},
+            "firstName": {"dataType":"string"},
+            "lastName": {"dataType":"string"},
+            "role": {"ref":"UserRole"},
+            "phoneNumber": {"dataType":"string"},
+            "department": {"dataType":"string"},
+            "location": {"dataType":"string"},
+            "bio": {"dataType":"string"},
+            "profilePicture": {"dataType":"string"},
+            "isEmailVerified": {"dataType":"boolean"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ResetUserPasswordRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "newPassword": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "LoginRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "email": {"dataType":"string","required":true},
+            "password": {"dataType":"string","required":true},
         },
         "additionalProperties": false,
     },
@@ -1724,6 +1843,37 @@ export function RegisterRoutes(app: Router) {
             }
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsGeminiController_assistant: Record<string, TsoaRoute.ParameterSchema> = {
+                requestBody: {"in":"body","name":"requestBody","required":true,"ref":"GeminiRecruiterAssistantRequest"},
+        };
+        app.post('/gemini/assistant',
+            authenticateMiddleware([{"jwt":["recruiter","admin"]}]),
+            ...(fetchMiddlewares<RequestHandler>(GeminiController)),
+            ...(fetchMiddlewares<RequestHandler>(GeminiController.prototype.assistant)),
+
+            async function GeminiController_assistant(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsGeminiController_assistant, request, response });
+
+                const controller = new GeminiController();
+
+              await templateService.apiHandler({
+                methodName: 'assistant',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         const argsAuthController_register: Record<string, TsoaRoute.ParameterSchema> = {
                 requestBody: {"in":"body","name":"requestBody","required":true,"ref":"RegisterRequest"},
         };
@@ -1744,6 +1894,101 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'register',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsAuthController_listUsers: Record<string, TsoaRoute.ParameterSchema> = {
+        };
+        app.get('/auth/users',
+            authenticateMiddleware([{"jwt":["admin"]}]),
+            ...(fetchMiddlewares<RequestHandler>(AuthController)),
+            ...(fetchMiddlewares<RequestHandler>(AuthController.prototype.listUsers)),
+
+            async function AuthController_listUsers(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsAuthController_listUsers, request, response });
+
+                const controller = new AuthController();
+
+              await templateService.apiHandler({
+                methodName: 'listUsers',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsAuthController_updateUser: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                id: {"in":"path","name":"id","required":true,"dataType":"string"},
+                requestBody: {"in":"body","name":"requestBody","required":true,"ref":"AdminUpdateUserRequest"},
+        };
+        app.patch('/auth/users/:id',
+            authenticateMiddleware([{"jwt":["admin"]}]),
+            ...(fetchMiddlewares<RequestHandler>(AuthController)),
+            ...(fetchMiddlewares<RequestHandler>(AuthController.prototype.updateUser)),
+
+            async function AuthController_updateUser(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsAuthController_updateUser, request, response });
+
+                const controller = new AuthController();
+
+              await templateService.apiHandler({
+                methodName: 'updateUser',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsAuthController_resetUserPassword: Record<string, TsoaRoute.ParameterSchema> = {
+                id: {"in":"path","name":"id","required":true,"dataType":"string"},
+                requestBody: {"in":"body","name":"requestBody","required":true,"ref":"ResetUserPasswordRequest"},
+        };
+        app.post('/auth/users/:id/reset-password',
+            authenticateMiddleware([{"jwt":["admin"]}]),
+            ...(fetchMiddlewares<RequestHandler>(AuthController)),
+            ...(fetchMiddlewares<RequestHandler>(AuthController.prototype.resetUserPassword)),
+
+            async function AuthController_resetUserPassword(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsAuthController_resetUserPassword, request, response });
+
+                const controller = new AuthController();
+
+              await templateService.apiHandler({
+                methodName: 'resetUserPassword',
                 controller,
                 response,
                 next,

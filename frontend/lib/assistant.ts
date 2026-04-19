@@ -1,0 +1,89 @@
+import { getApiBaseUrl, getStoredAuth } from "@/lib/auth";
+
+export type AssistantRole = "user" | "assistant";
+
+export interface AssistantMessage {
+  role: AssistantRole;
+  content: string;
+}
+
+export interface AssistantContextSummary {
+  source: "inline" | "database" | "mixed" | "none";
+  jobId?: string;
+  shortlistId?: string;
+  jobTitle?: string;
+  applicantCount: number;
+  screeningResultCount: number;
+  shortlistCount: number;
+  truncatedApplicants: boolean;
+}
+
+export interface AssistantUsageMetadata {
+  promptTokenCount?: number;
+  candidatesTokenCount?: number;
+  totalTokenCount?: number;
+}
+
+export interface AssistantAskRequest {
+  message: string;
+  history?: AssistantMessage[];
+  jobId?: string;
+  shortlistId?: string;
+  applicantEmails?: string[];
+  includeApplicants?: boolean;
+  applicantLimit?: number;
+  temperature?: number;
+  maxOutputTokens?: number;
+}
+
+export interface AssistantAskResponse {
+  reply: string;
+  model: string;
+  usage?: AssistantUsageMetadata;
+  contextUsed: AssistantContextSummary;
+}
+
+function getAuthHeader() {
+  const session = getStoredAuth();
+
+  if (!session?.token) {
+    throw new Error("Your session has expired. Please sign in again.");
+  }
+
+  return {
+    Authorization: `Bearer ${session.token}`,
+  };
+}
+
+async function parseJson<T>(response: Response): Promise<T | null> {
+  return (await response.json().catch(() => null)) as T | null;
+}
+
+export async function askAssistant(request: AssistantAskRequest): Promise<AssistantAskResponse> {
+  const response = await fetch(`${getApiBaseUrl()}/gemini/assistant`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    body: JSON.stringify(request),
+  });
+
+  const payload = await parseJson<
+    (AssistantAskResponse & { message?: string; error?: string }) | null
+  >(response);
+
+  if (!response.ok) {
+    throw new Error(
+      payload?.message ||
+        payload?.error ||
+        "The AI assistant could not answer right now. Please try again."
+    );
+  }
+
+  if (!payload || typeof payload.reply !== "string") {
+    throw new Error("The AI assistant returned an empty response.");
+  }
+
+  return payload as AssistantAskResponse;
+}

@@ -16,6 +16,7 @@ const UserSchema = new mongoose.Schema({
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
   role: { type: String, enum: ['recruiter', 'admin', 'applicant'], default: 'applicant' },
+  isEmailVerified: { type: Boolean, default: false },
   phoneNumber: { type: String, default: null },
   department: { type: String, default: null },
   location: { type: String, default: null },
@@ -28,8 +29,9 @@ const UserSchema = new mongoose.Schema({
     system: { type: Boolean, default: true }
   },
   themePreference: { type: String, enum: ['light', 'dark', 'system'], default: 'light' },
-  languagePreference: { type: String, enum: ['en', 'fr', 'rw'], default: 'en' },
-  createdAt: { type: Date, default: Date.now }
+  languagePreference: { type: String, enum: ['en', 'fr', 'rw'], default: 'en' }
+}, {
+  timestamps: true
 });
 
 UserSchema.pre('save', async function(next) {
@@ -71,6 +73,67 @@ function generateToken(userId: string): string {
   );
 }
 
+function toUserResponse(user: any) {
+  return {
+    _id: user._id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    role: user.role,
+    isEmailVerified: Boolean(user.isEmailVerified),
+    phoneNumber: user.phoneNumber,
+    department: user.department,
+    location: user.location,
+    bio: user.bio,
+    profilePicture: user.profilePicture,
+    notificationPreferences: user.notificationPreferences,
+    themePreference: user.themePreference,
+    languagePreference: user.languagePreference,
+    createdAt: user.createdAt?.toISOString?.() ?? new Date().toISOString(),
+    updatedAt: user.updatedAt?.toISOString?.() ?? user.createdAt?.toISOString?.() ?? new Date().toISOString()
+  };
+}
+
+function normalizeOptional(value: unknown) {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : '';
+}
+
+async function requireAdmin(req: any, res: express.Response) {
+  const currentUser = await UserModel.findById(req.user.userId);
+
+  if (!currentUser || currentUser.role !== 'admin') {
+    res.status(403).json({
+      error: 'Forbidden',
+      message: 'Admin access required',
+      timestamp: new Date().toISOString()
+    });
+    return null;
+  }
+
+  return currentUser;
+}
+
+async function ensureAdminUserCountSafe(userId: string, nextRole?: string) {
+  if (nextRole === undefined || nextRole === 'admin') {
+    return;
+  }
+
+  const user = await UserModel.findById(userId);
+  if (!user || user.role !== 'admin') {
+    return;
+  }
+
+  const adminCount = await UserModel.countDocuments({ role: 'admin' });
+  if (adminCount <= 1) {
+    throw new Error('At least one admin account must remain in the workspace');
+  }
+}
+
 // Middleware to verify JWT
 const authenticateToken = (req: any, res: express.Response, next: express.NextFunction) => {
   const authHeader = req.headers.authorization;
@@ -102,13 +165,9 @@ const authenticateToken = (req: any, res: express.Response, next: express.NextFu
 // Register
 app.post('/auth/register', authenticateToken, async (req: any, res: express.Response) => {
   try {
-    const currentUser = await UserModel.findById(req.user.userId);
-    if (!currentUser || currentUser.role !== 'admin') {
-      return res.status(403).json({
-        error: 'Forbidden',
-        message: 'Admin access required',
-        timestamp: new Date().toISOString()
-      });
+    const currentUser = await requireAdmin(req, res);
+    if (!currentUser) {
+      return;
     }
 
     const { email, password, firstName, lastName, role = 'applicant' } = req.body;
@@ -137,27 +196,215 @@ app.post('/auth/register', authenticateToken, async (req: any, res: express.Resp
     const token = generateToken(user._id.toString());
 
     res.status(201).json({
-      user: {
-        _id: user._id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        phoneNumber: user.phoneNumber,
-        department: user.department,
-        location: user.location,
-        bio: user.bio,
-        profilePicture: user.profilePicture,
-        notificationPreferences: user.notificationPreferences,
-        themePreference: user.themePreference,
-        languagePreference: user.languagePreference
-      },
+      user: toUserResponse(user),
       token,
       message: 'User registered successfully'
     });
   } catch (error) {
     res.status(400).json({
       error: 'Registration failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.get('/auth/users', authenticateToken, async (req: any, res: express.Response) => {
+  try {
+    const currentUser = await requireAdmin(req, res);
+    if (!currentUser) {
+      return;
+    }
+
+    const users = await UserModel.find().sort({ createdAt: -1 });
+
+    res.status(200).json({
+      users: users.map((user) => toUserResponse(user)),
+      total: users.length,
+      message: 'Users retrieved successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to list users',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.patch('/auth/users/:id', authenticateToken, async (req: any, res: express.Response) => {
+  try {
+    const currentUser = await requireAdmin(req, res);
+    if (!currentUser) {
+      return;
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        error: 'User update failed',
+        message: 'Invalid user id',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const user = await UserModel.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({
+        error: 'User update failed',
+        message: 'User not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    if (typeof req.body.email === 'string') {
+      const email = req.body.email.trim().toLowerCase();
+      if (!email) {
+        return res.status(400).json({
+          error: 'User update failed',
+          message: 'Email is required',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      const existingUser = await UserModel.findOne({ email, _id: { $ne: user._id } });
+      if (existingUser) {
+        return res.status(409).json({
+          error: 'User update failed',
+          message: 'User with this email already exists',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      user.email = email;
+    }
+
+    if (typeof req.body.firstName === 'string') {
+      const firstName = req.body.firstName.trim();
+      if (!firstName) {
+        return res.status(400).json({
+          error: 'User update failed',
+          message: 'First name is required',
+          timestamp: new Date().toISOString()
+        });
+      }
+      user.firstName = firstName;
+    }
+
+    if (typeof req.body.lastName === 'string') {
+      const lastName = req.body.lastName.trim();
+      if (!lastName) {
+        return res.status(400).json({
+          error: 'User update failed',
+          message: 'Last name is required',
+          timestamp: new Date().toISOString()
+        });
+      }
+      user.lastName = lastName;
+    }
+
+    if (typeof req.body.role === 'string') {
+      await ensureAdminUserCountSafe(user._id.toString(), req.body.role);
+
+      if (String(user._id) === String(currentUser._id) && req.body.role !== 'admin') {
+        return res.status(400).json({
+          error: 'User update failed',
+          message: 'You cannot remove admin access from your current session',
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      user.role = req.body.role;
+    }
+
+    if (typeof req.body.phoneNumber === 'string') {
+      user.phoneNumber = normalizeOptional(req.body.phoneNumber) || null;
+    }
+
+    if (typeof req.body.department === 'string') {
+      user.department = normalizeOptional(req.body.department) || null;
+    }
+
+    if (typeof req.body.location === 'string') {
+      user.location = normalizeOptional(req.body.location) || null;
+    }
+
+    if (typeof req.body.bio === 'string') {
+      user.bio = normalizeOptional(req.body.bio) || null;
+    }
+
+    if (typeof req.body.profilePicture === 'string') {
+      user.profilePicture = normalizeOptional(req.body.profilePicture) || null;
+    }
+
+    if (typeof req.body.isEmailVerified === 'boolean') {
+      user.isEmailVerified = req.body.isEmailVerified;
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      user: toUserResponse(user),
+      message: 'User updated successfully'
+    });
+  } catch (error) {
+    res.status(400).json({
+      error: 'User update failed',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+app.post('/auth/users/:id/reset-password', authenticateToken, async (req: any, res: express.Response) => {
+  try {
+    const currentUser = await requireAdmin(req, res);
+    if (!currentUser) {
+      return;
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({
+        error: 'Password reset failed',
+        message: 'Invalid user id',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const { newPassword } = req.body;
+    if (!newPassword?.trim()) {
+      return res.status(400).json({
+        error: 'Password reset failed',
+        message: 'New password is required',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        error: 'Password reset failed',
+        message: 'New password must be at least 8 characters long',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    const user = await UserModel.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({
+        error: 'Password reset failed',
+        message: 'User not found',
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({
+      message: 'Password reset successfully'
+    });
+  } catch (error) {
+    res.status(400).json({
+      error: 'Password reset failed',
       message: error instanceof Error ? error.message : 'Unknown error',
       timestamp: new Date().toISOString()
     });
@@ -192,21 +439,7 @@ app.post('/auth/login', async (req: express.Request, res: express.Response) => {
     const token = generateToken(user._id.toString());
 
     res.status(200).json({
-      user: {
-        _id: user._id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        phoneNumber: user.phoneNumber,
-        department: user.department,
-        location: user.location,
-        bio: user.bio,
-        profilePicture: user.profilePicture,
-        notificationPreferences: user.notificationPreferences,
-        themePreference: user.themePreference,
-        languagePreference: user.languagePreference
-      },
+      user: toUserResponse(user),
       token,
       message: 'Login successful'
     });
@@ -232,21 +465,7 @@ app.get('/auth/me', authenticateToken, async (req: any, res: express.Response) =
     }
 
     res.status(200).json({
-      user: {
-        _id: user._id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        phoneNumber: user.phoneNumber,
-        department: user.department,
-        location: user.location,
-        bio: user.bio,
-        profilePicture: user.profilePicture,
-        notificationPreferences: user.notificationPreferences,
-        themePreference: user.themePreference,
-        languagePreference: user.languagePreference
-      },
+      user: toUserResponse(user),
       message: 'Profile retrieved successfully'
     });
   } catch (error) {
@@ -268,12 +487,6 @@ app.patch('/auth/me', authenticateToken, async (req: any, res: express.Response)
         timestamp: new Date().toISOString()
       });
     }
-
-    const normalize = (value: unknown) => {
-      if (typeof value !== 'string') return undefined;
-      const trimmed = value.trim();
-      return trimmed.length > 0 ? trimmed : '';
-    };
 
     if (typeof req.body.email === 'string') {
       const email = req.body.email.trim().toLowerCase();
@@ -322,43 +535,29 @@ app.patch('/auth/me', authenticateToken, async (req: any, res: express.Response)
     }
 
     if (typeof req.body.phoneNumber === 'string') {
-      user.phoneNumber = normalize(req.body.phoneNumber) || null;
+      user.phoneNumber = normalizeOptional(req.body.phoneNumber) || null;
     }
 
     if (typeof req.body.department === 'string') {
-      user.department = normalize(req.body.department) || null;
+      user.department = normalizeOptional(req.body.department) || null;
     }
 
     if (typeof req.body.location === 'string') {
-      user.location = normalize(req.body.location) || null;
+      user.location = normalizeOptional(req.body.location) || null;
     }
 
     if (typeof req.body.bio === 'string') {
-      user.bio = normalize(req.body.bio) || null;
+      user.bio = normalizeOptional(req.body.bio) || null;
     }
 
     if (typeof req.body.profilePicture === 'string') {
-      user.profilePicture = normalize(req.body.profilePicture) || null;
+      user.profilePicture = normalizeOptional(req.body.profilePicture) || null;
     }
 
     await user.save();
 
     res.status(200).json({
-      user: {
-        _id: user._id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        phoneNumber: user.phoneNumber,
-        department: user.department,
-        location: user.location,
-        bio: user.bio,
-        profilePicture: user.profilePicture,
-        notificationPreferences: user.notificationPreferences,
-        themePreference: user.themePreference,
-        languagePreference: user.languagePreference
-      },
+      user: toUserResponse(user),
       message: 'Profile updated successfully'
     });
   } catch (error) {
@@ -408,21 +607,7 @@ app.patch('/auth/me/preferences', authenticateToken, async (req: any, res: expre
     await user.save();
 
     res.status(200).json({
-      user: {
-        _id: user._id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
-        phoneNumber: user.phoneNumber,
-        department: user.department,
-        location: user.location,
-        bio: user.bio,
-        profilePicture: user.profilePicture,
-        notificationPreferences: user.notificationPreferences,
-        themePreference: user.themePreference,
-        languagePreference: user.languagePreference
-      },
+      user: toUserResponse(user),
       message: 'Preferences updated successfully'
     });
   } catch (error) {

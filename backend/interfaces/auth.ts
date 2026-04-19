@@ -40,6 +40,23 @@ export interface RegisterRequest {
   phoneNumber?: string;
 }
 
+export interface AdminUpdateUserRequest {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  role?: UserRole;
+  phoneNumber?: string;
+  department?: string;
+  location?: string;
+  bio?: string;
+  profilePicture?: string;
+  isEmailVerified?: boolean;
+}
+
+export interface ResetUserPasswordRequest {
+  newPassword: string;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;
@@ -83,5 +100,11 @@ export interface ChangePasswordRequest {
 
 export interface ProfileResponse {
   user: IUserResponse;
+  message: string;
+}
+
+export interface UserListResponse {
+  users: IUserResponse[];
+  total: number;
   message: string;
 }

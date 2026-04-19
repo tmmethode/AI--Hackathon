@@ -456,54 +456,103 @@ export function RegisterUserPageSkeleton() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.35fr)_360px]">
-        <Card className="overflow-hidden">
-          <div className="border-b border-line px-6 py-5">
-            <div className="flex items-start gap-4">
-              <Skeleton shape="circle" className="h-12 w-12" />
-              <div className="space-y-2">
-                <Skeleton className="h-7 w-40" delayIndex={1} />
-                <Skeleton className="h-4 w-80 max-w-full" delayIndex={2} />
+        <div className="flex flex-col gap-6">
+          <Card className="overflow-hidden">
+            <div className="border-b border-line px-6 py-5">
+              <div className="flex items-start gap-4">
+                <Skeleton shape="circle" className="h-12 w-12" />
+                <div className="space-y-2">
+                  <Skeleton className="h-7 w-40" delayIndex={1} />
+                  <Skeleton className="h-4 w-80 max-w-full" delayIndex={2} />
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="space-y-5 px-6 py-6">
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              <Skeleton className="h-16 w-full" delayIndex={3} />
-              <Skeleton className="h-16 w-full" delayIndex={4} />
-              <Skeleton className="h-16 w-full md:col-span-2" delayIndex={5} />
-              <Skeleton className="h-16 w-full" delayIndex={6} />
-              <Skeleton className="h-16 w-full" delayIndex={7} />
-              <Skeleton className="h-16 w-full" delayIndex={8} />
-              <Skeleton className="h-16 w-full" delayIndex={9} />
+            <div className="space-y-5 px-6 py-6">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <Skeleton className="h-16 w-full" delayIndex={3} />
+                <Skeleton className="h-16 w-full" delayIndex={4} />
+                <Skeleton className="h-16 w-full md:col-span-2" delayIndex={5} />
+                <Skeleton className="h-16 w-full" delayIndex={6} />
+                <Skeleton className="h-16 w-full" delayIndex={7} />
+                <Skeleton className="h-16 w-full" delayIndex={8} />
+                <Skeleton className="h-16 w-full" delayIndex={9} />
+              </div>
+
+              <div className="space-y-3">
+                <Skeleton className="h-14 w-full" delayIndex={10} />
+                <Skeleton className="h-14 w-full" delayIndex={11} />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3 border-t border-line pt-5">
+                <Skeleton className="h-11 w-36" delayIndex={12} />
+                <Skeleton className="h-11 w-28" delayIndex={13} />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="overflow-hidden">
+            <div className="border-b border-line px-6 py-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <Skeleton shape="circle" className="h-12 w-12" delayIndex={14} />
+                  <div className="space-y-2">
+                    <Skeleton className="h-7 w-44" delayIndex={15} />
+                    <Skeleton className="h-4 w-96 max-w-full" delayIndex={16} />
+                  </div>
+                </div>
+                <Skeleton className="h-10 w-32" delayIndex={17} />
+              </div>
             </div>
 
-            <div className="space-y-3">
-              <Skeleton className="h-14 w-full" delayIndex={10} />
-              <Skeleton className="h-14 w-full" delayIndex={11} />
+            <div className="border-b border-line px-6 py-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <Skeleton className="h-10 w-full md:max-w-md" delayIndex={18} />
+                <div className="flex gap-2">
+                  <Skeleton shape="pill" className="h-6 w-20" delayIndex={19} />
+                  <Skeleton shape="pill" className="h-6 w-20" delayIndex={20} />
+                </div>
+              </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 border-t border-line pt-5">
-              <Skeleton className="h-11 w-36" delayIndex={12} />
-              <Skeleton className="h-11 w-28" delayIndex={13} />
+            <div className="space-y-4 p-6">
+              {Array.from({ length: 3 }, (_, index) => (
+                <div key={index} className="rounded-2xl border border-line bg-surface-soft/40 p-5">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap gap-2">
+                        <Skeleton className="h-5 w-40" delayIndex={index + 21} />
+                        <Skeleton shape="pill" className="h-6 w-16" delayIndex={index + 22} />
+                        <Skeleton shape="pill" className="h-6 w-20" delayIndex={index + 23} />
+                      </div>
+                      <Skeleton className="h-4 w-64" delayIndex={index + 24} />
+                      <Skeleton className="h-4 w-56" delayIndex={index + 25} />
+                    </div>
+                    <div className="flex gap-2">
+                      <Skeleton className="h-10 w-28" delayIndex={index + 26} />
+                      <Skeleton className="h-10 w-36" delayIndex={index + 27} />
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
 
         <div className="flex flex-col gap-6">
-          {Array.from({ length: 3 }, (_, index) => (
+          {Array.from({ length: 4 }, (_, index) => (
             <Card key={index} className="p-6">
               <div className="flex items-center gap-3">
-                <Skeleton shape="circle" className="h-10 w-10" delayIndex={index + 14} />
+                <Skeleton shape="circle" className="h-10 w-10" delayIndex={index + 28} />
                 <div className="space-y-2">
-                  <Skeleton className="h-6 w-36" delayIndex={index + 15} />
-                  <Skeleton className="h-4 w-52" delayIndex={index + 16} />
+                  <Skeleton className="h-6 w-36" delayIndex={index + 29} />
+                  <Skeleton className="h-4 w-52" delayIndex={index + 30} />
                 </div>
               </div>
               <div className="mt-4 space-y-3">
-                <Skeleton className="h-14 w-full" delayIndex={index + 17} />
-                <Skeleton className="h-14 w-full" delayIndex={index + 18} />
-                <Skeleton className="h-14 w-full" delayIndex={index + 19} />
+                <Skeleton className="h-14 w-full" delayIndex={index + 31} />
+                <Skeleton className="h-14 w-full" delayIndex={index + 32} />
+                <Skeleton className="h-14 w-full" delayIndex={index + 33} />
               </div>
             </Card>
           ))}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -23,12 +24,18 @@ const navItems = [
   { label: "Shortlists", href: "/shortlists", icon: ListOrdered },
   { label: "Candidates", href: "/candidates", icon: Users },
   { label: "Exports", href: "/exports", icon: FileOutput },
-  { label: "Register User", href: "/users/new", icon: UserPlus },
+  { label: "User Management", href: "/users/new", icon: UserPlus },
   { label: "History & Settings", href: "/history", icon: Settings },
 ] as const;
 
 export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
+
+  useEffect(() => {
+    if (open) {
+      onClose?.();
+    }
+  }, [open, onClose, pathname]);
 
   return (
     <aside
@@ -40,6 +47,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
       <div className="flex-1 overflow-y-auto p-3">
         <Link
           href="/jobs/new"
+          onClick={onClose}
           className="mb-2 flex h-10 items-center justify-center gap-2 rounded-md bg-brand px-4 text-sm font-medium text-white shadow-card transition-colors hover:bg-brand-hover"
         >
           <CirclePlus className="h-4 w-4" aria-hidden />
@@ -52,6 +60,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
               <Link
                 key={href}
                 href={href}
+                onClick={onClose}
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex h-10 items-center gap-3 rounded-md px-3 text-sm transition-colors",

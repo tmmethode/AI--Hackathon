@@ -1,4 +1,5 @@
 import { Body, Get, Post, Route, Security, Tags } from "tsoa";
+import { GeminiRecruiterAssistantService } from "../gemini/assistant";
 import { GeminiClient } from "../gemini/client";
 import { GeminiFrontendService } from "../gemini/frontend";
 import { GeminiScreeningService } from "../gemini/screening";
@@ -13,6 +14,8 @@ import {
   GeminiFrontendScreeningRunResponse,
   GeminiGenerateRequest,
   GeminiGenerateResponse,
+  GeminiRecruiterAssistantRequest,
+  GeminiRecruiterAssistantResponse,
 } from "../gemini/types";
 
 @Tags("Gemini")
@@ -21,6 +24,7 @@ export class GeminiController {
   private readonly client = new GeminiClient();
   private readonly screeningService = new GeminiScreeningService(this.client);
   private readonly frontendService = new GeminiFrontendService(this.client, this.screeningService);
+  private readonly assistantService = new GeminiRecruiterAssistantService(this.client);
 
   private toHttpError(error: unknown): HttpError {
     if (error instanceof HttpError) {
@@ -101,6 +105,18 @@ export class GeminiController {
   ): Promise<GeminiBatchScreeningResponse> {
     try {
       return await this.screeningService.screenBatch(requestBody);
+    } catch (error) {
+      throw this.toHttpError(error);
+    }
+  }
+
+  @Post("assistant")
+  @Security('jwt', ['recruiter', 'admin'])
+  public async assistant(
+    @Body() requestBody: GeminiRecruiterAssistantRequest
+  ): Promise<GeminiRecruiterAssistantResponse> {
+    try {
+      return await this.assistantService.ask(requestBody);
     } catch (error) {
       throw this.toHttpError(error);
     }
