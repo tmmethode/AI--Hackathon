@@ -668,7 +668,9 @@ Return strict JSON ONLY, shape: {"jobTitle":string,"department":string,"shortlis
 Rules:
 - screeningResults.length MUST equal totalApplicants (${applicants.length}).
 - Return shortlist as []; the caller re-ranks and slices the final shortlist.
-- Token-lean output per applicant: strengths/gapsOrRisks max 3 items of ≤8 words each; summaryExplanation one sentence ≤25 words. No markdown, no newlines or nested quotes inside strings.
+- For each applicant, write summaryExplanation as a recruiter-friendly AI recommendation of 40 to 60 words.
+- Each strengths item and each gapsOrRisks item must be a short explanatory phrase of no more than 20 words.
+- Keep strengths and gapsOrRisks to a maximum of 3 items each. No markdown, no newlines or nested quotes inside strings.
 - Score 0–100 integers. Apply the weighted model and rules from the system instruction.
 - Never invent qualifications; call out missing evidence briefly in gapsOrRisks and lower confidenceScore.
 

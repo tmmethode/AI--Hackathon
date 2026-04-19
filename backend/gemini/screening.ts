@@ -25,7 +25,7 @@ const BATCH_RECOMMENDATIONS: readonly GeminiBatchRecommendation[] = [
   "Shortlist",
   "Strong Shortlist",
 ];
-const DETERMINISTIC_SCREENING_TEMPERATURE = 0;
+const DETERMINISTIC_SCREENING_TEMPERATURE = 0.2;
 
 const BATCH_CHUNK_SIZE = Math.max(
   1,
@@ -216,6 +216,72 @@ function toStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.map((item) => String(item)).filter(Boolean) : [];
 }
 
+function normalizeWhitespace(value: string | undefined): string {
+  return (value || "").replace(/\s+/g, " ").trim();
+}
+
+function countWords(value: string): number {
+  const normalized = normalizeWhitespace(value);
+  return normalized ? normalized.split(" ").length : 0;
+}
+
+function truncateWords(value: string, maxWords: number): string {
+  const normalized = normalizeWhitespace(value);
+
+  if (!normalized) {
+    return "";
+  }
+
+  const words = normalized.split(" ");
+  if (words.length <= maxWords) {
+    return normalized;
+  }
+
+  return words.slice(0, maxWords).join(" ");
+}
+
+function normalizeBatchExplanationItems(value: unknown): string[] {
+  return toStringArray(value)
+    .map((item) => truncateWords(item, 20))
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
+function buildFallbackBatchSummary(entry: {
+  finalRecommendation: GeminiBatchRecommendation;
+  matchScore: number;
+  confidenceScore: number;
+  strengths: string[];
+  gapsOrRisks: string[];
+}): string {
+  const strengths =
+    entry.strengths.slice(0, 2).join(" and ") || "limited verified strengths in the submitted evidence";
+  const risks =
+    entry.gapsOrRisks.slice(0, 2).join(" and ") || "no major additional risks were explicitly returned";
+
+  return truncateWords(
+    `This candidate received a ${entry.finalRecommendation} recommendation with a ${entry.matchScore}% match score based on the available application evidence. Key strengths include ${strengths}. Main gaps or risks include ${risks}. Confidence in this assessment is ${entry.confidenceScore}% because the evaluation only uses the information provided for screening.`,
+    60
+  );
+}
+
+function normalizeBatchSummaryExplanation(entry: {
+  finalRecommendation: GeminiBatchRecommendation;
+  matchScore: number;
+  confidenceScore: number;
+  strengths: string[];
+  gapsOrRisks: string[];
+  summaryExplanation: string;
+}): string {
+  const trimmedSummary = truncateWords(entry.summaryExplanation, 60);
+
+  if (countWords(trimmedSummary) >= 40) {
+    return trimmedSummary;
+  }
+
+  return buildFallbackBatchSummary(entry);
+}
+
 function toCriterionScores(value: unknown): GeminiModelCriterionScore[] {
   if (!Array.isArray(value)) {
     return [];
@@ -262,6 +328,18 @@ function parseBatchEntry(raw: unknown): ParsedBatchEntry | null {
 
   const matchScore = clampScore(entry.matchScore);
 
+  const finalRecommendation = normalizeRecommendation(entry.finalRecommendation);
+  const strengths = normalizeBatchExplanationItems(entry.strengths);
+  const gapsOrRisks = normalizeBatchExplanationItems(entry.gapsOrRisks);
+  const summaryExplanation = normalizeBatchSummaryExplanation({
+    finalRecommendation,
+    matchScore,
+    confidenceScore: clampScore(entry.confidenceScore),
+    strengths,
+    gapsOrRisks,
+    summaryExplanation: entry.summaryExplanation ? String(entry.summaryExplanation) : "",
+  });
+
   return {
     applicantEmail: email,
     fullName: entry.fullName ? String(entry.fullName).trim() : "",
@@ -271,10 +349,10 @@ function parseBatchEntry(raw: unknown): ParsedBatchEntry | null {
     experienceScore: clampScore(entry.experienceScore),
     educationScore: clampScore(entry.educationScore),
     relevanceScore: clampScore(entry.relevanceScore),
-    strengths: toStringArray(entry.strengths),
-    gapsOrRisks: toStringArray(entry.gapsOrRisks),
-    finalRecommendation: normalizeRecommendation(entry.finalRecommendation),
-    summaryExplanation: entry.summaryExplanation ? String(entry.summaryExplanation) : "",
+    strengths,
+    gapsOrRisks,
+    finalRecommendation,
+    summaryExplanation,
   };
 }
 

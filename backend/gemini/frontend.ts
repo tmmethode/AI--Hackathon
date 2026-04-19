@@ -24,7 +24,7 @@ export class GeminiFrontendService {
         shortlistSize: config.frontend.defaultShortlistSize,
         minShortlistSize: config.frontend.minShortlistSize,
         maxShortlistSize: config.frontend.maxShortlistSize,
-        temperature: 0,
+        temperature: 0.2,
         maxOutputTokens: config.maxOutputTokens,
       },
       contracts: {
