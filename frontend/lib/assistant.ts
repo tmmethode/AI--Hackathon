@@ -24,6 +24,11 @@ export interface AssistantUsageMetadata {
   totalTokenCount?: number;
 }
 
+export interface AssistantHealthResponse {
+  configured: boolean;
+  model: string;
+}
+
 export interface AssistantAskRequest {
   message: string;
   history?: AssistantMessage[];
@@ -86,4 +91,28 @@ export async function askAssistant(request: AssistantAskRequest): Promise<Assist
   }
 
   return payload as AssistantAskResponse;
+}
+
+export async function getAssistantHealth(): Promise<AssistantHealthResponse> {
+  const response = await fetch(`${getApiBaseUrl()}/gemini/health`, {
+    cache: "no-store",
+  });
+
+  const payload = await parseJson<
+    (AssistantHealthResponse & { message?: string; error?: string }) | null
+  >(response);
+
+  if (!response.ok) {
+    throw new Error(
+      payload?.message ||
+        payload?.error ||
+        "The assistant health check failed."
+    );
+  }
+
+  if (!payload || typeof payload.configured !== "boolean" || typeof payload.model !== "string") {
+    throw new Error("The assistant health response was incomplete.");
+  }
+
+  return payload;
 }

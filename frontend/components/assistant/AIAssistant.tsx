@@ -22,9 +22,11 @@ import {
 import { cn } from "@/lib/cn";
 import {
   AssistantAskResponse,
+  AssistantHealthResponse,
   AssistantContextSummary,
   AssistantMessage,
   askAssistant,
+  getAssistantHealth,
 } from "@/lib/assistant";
 import { getStoredAuth } from "@/lib/auth";
 import { listAllJobs, type JobRecord } from "@/lib/jobs";
@@ -57,9 +59,37 @@ function contextSummaryLabel(summary: AssistantContextSummary): string {
   if (summary.applicantCount > 0) parts.push(`${summary.applicantCount} applicants`);
   if (summary.truncatedApplicants) parts.push("truncated");
   if (parts.length === 0) {
-    return summary.source === "none" ? "No data grounding" : summary.source;
+    if (summary.source === "database") return "Workspace overview";
+    if (summary.source === "mixed") return "Mixed live context";
+    if (summary.source === "inline") return "Provided inline context";
+    return "No live data grounding";
   }
   return parts.join(" • ");
+}
+
+function buildStarterPrompts(selectedJob?: JobRecord, selectedShortlist?: ShortlistSummary): string[] {
+  if (selectedShortlist) {
+    const candidateLabel = selectedShortlist.topCandidateName || "the top shortlisted candidate";
+    return [
+      `Summarise the shortlist for ${selectedShortlist.jobTitle}.`,
+      `Why was ${candidateLabel} ranked first in ${selectedShortlist.runName}?`,
+      `Compare the top 2 shortlisted candidates for ${selectedShortlist.jobTitle}.`,
+      `Which shortlisted candidates have the biggest risks for ${selectedShortlist.jobTitle}?`,
+      `Generate interview notes for ${candidateLabel}.`,
+    ];
+  }
+
+  if (selectedJob) {
+    return [
+      `Summarise the current applicant pool for ${selectedJob.title}.`,
+      `Which candidates best meet the must-have requirements for ${selectedJob.title}?`,
+      `What are the biggest skill gaps in the ${selectedJob.title} pipeline?`,
+      `Which applicants look strongest for ${selectedJob.title}?`,
+      `Draft recruiter interview focus areas for the strongest ${selectedJob.title} candidates.`,
+    ];
+  }
+
+  return STARTER_PROMPTS;
 }
 
 export function AIAssistant() {
@@ -70,12 +100,16 @@ export function AIAssistant() {
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [assistantHealth, setAssistantHealth] = useState<AssistantHealthResponse | null>(null);
+  const [assistantHealthLoading, setAssistantHealthLoading] = useState(false);
+  const [assistantHealthError, setAssistantHealthError] = useState<string | null>(null);
 
   const [jobs, setJobs] = useState<JobRecord[]>([]);
   const [shortlists, setShortlists] = useState<ShortlistSummary[]>([]);
   const [scopeLoaded, setScopeLoaded] = useState(false);
   const [scopeLoading, setScopeLoading] = useState(false);
   const [scopeError, setScopeError] = useState<string | null>(null);
+  const [scopeInitialized, setScopeInitialized] = useState(false);
   const [jobId, setJobId] = useState<string>("");
   const [shortlistId, setShortlistId] = useState<string>("");
   const [includeApplicants, setIncludeApplicants] = useState(true);
@@ -104,8 +138,8 @@ export function AIAssistant() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, open, isSending]);
 
-  const loadScopeOptions = useCallback(async () => {
-    if (scopeLoaded || scopeLoading) return;
+  const loadScopeOptions = useCallback(async (force = false) => {
+    if ((scopeLoaded && !force) || scopeLoading) return;
     setScopeLoading(true);
     setScopeError(null);
     try {
@@ -116,6 +150,9 @@ export function AIAssistant() {
       setJobs(jobList);
       setShortlists(shortlistList);
       setScopeLoaded(true);
+      if (force) {
+        setScopeInitialized(false);
+      }
     } catch (err) {
       setScopeError(err instanceof Error ? err.message : "Failed to load scope options.");
     } finally {
@@ -128,6 +165,60 @@ export function AIAssistant() {
       void loadScopeOptions();
     }
   }, [open, visible, loadScopeOptions]);
+
+  useEffect(() => {
+    if (!open || !visible || assistantHealth || assistantHealthLoading) {
+      return;
+    }
+
+    let isMounted = true;
+    setAssistantHealthLoading(true);
+    setAssistantHealthError(null);
+
+    void getAssistantHealth()
+      .then((result) => {
+        if (isMounted) {
+          setAssistantHealth(result);
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setAssistantHealth(null);
+          setAssistantHealthError(
+            err instanceof Error ? err.message : "Unable to confirm the Gemini connection."
+          );
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setAssistantHealthLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [assistantHealth, assistantHealthLoading, open, visible]);
+
+  useEffect(() => {
+    if (!scopeLoaded || scopeInitialized || jobId || shortlistId) {
+      return;
+    }
+
+    const latestShortlist = shortlists[0];
+    if (latestShortlist) {
+      setShortlistId(latestShortlist._id);
+      setJobId(latestShortlist.job);
+      setScopeInitialized(true);
+      return;
+    }
+
+    const defaultJob = jobs.find((job) => job.status === "Active") ?? jobs[0];
+    if (defaultJob) {
+      setJobId(defaultJob._id);
+    }
+    setScopeInitialized(true);
+  }, [jobs, jobId, scopeInitialized, scopeLoaded, shortlistId, shortlists]);
 
   const filteredShortlists = useMemo(() => {
     if (!jobId) return shortlists;
@@ -148,6 +239,22 @@ export function AIAssistant() {
     const fromShortlist = shortlists.find((entry) => entry._id === shortlistId)?.job;
     return fromShortlist || "";
   }, [jobId, shortlistId, shortlists]);
+
+  const selectedShortlist = useMemo(
+    () => shortlists.find((entry) => entry._id === shortlistId),
+    [shortlistId, shortlists]
+  );
+
+  const selectedJob = useMemo(
+    () => jobs.find((entry) => entry._id === effectiveJobId),
+    [effectiveJobId, jobs]
+  );
+
+  const starterPrompts = useMemo(
+    () => buildStarterPrompts(selectedJob, selectedShortlist),
+    [selectedJob, selectedShortlist]
+  );
+  const assistantReady = assistantHealth?.configured === true;
 
   const resetConversation = useCallback(() => {
     setMessages([]);
@@ -183,6 +290,7 @@ export function AIAssistant() {
           jobId: effectiveJobId || undefined,
           shortlistId: shortlistId || undefined,
           includeApplicants,
+          temperature: 0.1,
         });
 
         const assistantTurn: ChatMessage = {
@@ -257,13 +365,19 @@ export function AIAssistant() {
                 <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-brand-soft text-brand">
                   <Bot className="h-4 w-4" />
                 </div>
-                <div>
-                  <div className="text-sm font-semibold text-ink leading-5">Recruiter Assistant</div>
-                  <div className="text-[11px] text-ink-muted leading-4">
-                    Grounded in your screening data
+                  <div>
+                    <div className="text-sm font-semibold text-ink leading-5">Recruiter Assistant</div>
+                    <div className="text-[11px] text-ink-muted leading-4">
+                      {assistantHealthLoading
+                        ? "Checking Gemini connection..."
+                        : assistantReady
+                          ? `Gemini connected • ${assistantHealth?.model}`
+                          : assistantHealthError
+                            ? "Gemini connection unavailable"
+                            : "Gemini is not configured"}
+                    </div>
                   </div>
                 </div>
-              </div>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
@@ -293,19 +407,30 @@ export function AIAssistant() {
               jobId={jobId}
               shortlistId={shortlistId}
               includeApplicants={includeApplicants}
+              scopeLabel={
+                selectedShortlist
+                  ? `${selectedShortlist.runName} • ${selectedShortlist.jobTitle}`
+                  : selectedJob
+                    ? selectedJob.title
+                    : "No scope selected"
+              }
               loading={scopeLoading}
               error={scopeError}
               onJobChange={setJobId}
               onShortlistChange={setShortlistId}
               onIncludeApplicantsChange={setIncludeApplicants}
+              onRefresh={() => void loadScopeOptions(true)}
             />
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-4 py-4">
               {messages.length === 0 ? (
                 <EmptyState
+                  selectedJob={selectedJob}
+                  selectedShortlist={selectedShortlist}
+                  prompts={starterPrompts}
                   onSelectPrompt={(prompt) => void sendMessage(prompt)}
-                  disabled={isSending}
+                  disabled={isSending || assistantHealthLoading || !assistantReady}
                 />
               ) : (
                 <div className="flex flex-col gap-3">
@@ -324,6 +449,16 @@ export function AIAssistant() {
                 {error}
               </div>
             )}
+            {assistantHealthError && (
+              <div className="border-t border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
+                {assistantHealthError}
+              </div>
+            )}
+            {assistantHealth && !assistantHealth.configured && (
+              <div className="border-t border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
+                Gemini is not configured on the backend. Add `GEMINI_API_KEY` to enable assistant replies.
+              </div>
+            )}
 
             {/* Composer */}
             <form onSubmit={handleSubmit} className="border-t border-line bg-surface px-3 py-3">
@@ -336,11 +471,11 @@ export function AIAssistant() {
                   rows={2}
                   placeholder="Ask about candidates, scores, or shortlists…"
                   className="min-h-[44px] max-h-36 flex-1 resize-none rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-                  disabled={isSending}
+                  disabled={isSending || assistantHealthLoading || !assistantReady}
                 />
                 <button
                   type="submit"
-                  disabled={isSending || input.trim().length === 0}
+                  disabled={isSending || input.trim().length === 0 || assistantHealthLoading || !assistantReady}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-brand text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label="Send"
                 >
@@ -352,8 +487,14 @@ export function AIAssistant() {
                 </button>
               </div>
               <p className="mt-1.5 text-[10.5px] leading-4 text-ink-subtle">
-                Enter to send • Shift+Enter for a new line. The assistant only uses your provided
-                job, candidate, and shortlist data.
+                Enter to send • Shift+Enter for a new line.{" "}
+                {!assistantReady
+                  ? "Replies are disabled until the Gemini connection is confirmed."
+                  : selectedShortlist
+                    ? `Grounded in live data from ${selectedShortlist.runName} for ${selectedShortlist.jobTitle}.`
+                    : selectedJob
+                      ? `Grounded in live job and applicant data for ${selectedJob.title}.`
+                      : "Grounded in the live workspace overview until you choose a job or shortlist."}
               </p>
             </form>
           </div>
@@ -369,11 +510,13 @@ interface ScopeSelectorProps {
   jobId: string;
   shortlistId: string;
   includeApplicants: boolean;
+  scopeLabel: string;
   loading: boolean;
   error: string | null;
   onJobChange: (value: string) => void;
   onShortlistChange: (value: string) => void;
   onIncludeApplicantsChange: (value: boolean) => void;
+  onRefresh: () => void;
 }
 
 function ScopeSelector({
@@ -382,14 +525,15 @@ function ScopeSelector({
   jobId,
   shortlistId,
   includeApplicants,
+  scopeLabel,
   loading,
   error,
   onJobChange,
   onShortlistChange,
   onIncludeApplicantsChange,
+  onRefresh,
 }: ScopeSelectorProps) {
   const [expanded, setExpanded] = useState(false);
-  const scopeLabel = jobId || shortlistId ? "Scoped" : "No scope selected";
 
   return (
     <div className="border-b border-line bg-surface-soft px-4 py-2">
@@ -409,6 +553,18 @@ function ScopeSelector({
 
       {expanded && (
         <div className="mt-2 space-y-2">
+          <div className="flex items-center justify-between gap-2 rounded-md border border-line bg-surface px-2.5 py-2 text-[11px] text-ink-muted">
+            <span>{scopeLabel}</span>
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={loading}
+              className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-ink hover:bg-surface-soft disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Refresh
+            </button>
+          </div>
           <div>
             <label className="mb-1 block text-[11px] font-medium text-ink-muted">Job</label>
             <select
@@ -465,9 +621,15 @@ function ScopeSelector({
 }
 
 function EmptyState({
+  selectedJob,
+  selectedShortlist,
+  prompts,
   onSelectPrompt,
   disabled,
 }: {
+  selectedJob?: JobRecord;
+  selectedShortlist?: ShortlistSummary;
+  prompts: string[];
   onSelectPrompt: (prompt: string) => void;
   disabled: boolean;
 }) {
@@ -482,9 +644,16 @@ function EmptyState({
           I explain rankings, compare candidates, draft interview notes, and answer questions
           grounded only in your data.
         </p>
+        <p className="mt-2 text-[11px] text-ink-subtle">
+          {selectedShortlist
+            ? `Current live scope: ${selectedShortlist.runName} for ${selectedShortlist.jobTitle}.`
+            : selectedJob
+              ? `Current live scope: ${selectedJob.title}.`
+              : "No specific job selected yet, so I will use the live workspace overview."}
+        </p>
       </div>
       <div className="flex w-full flex-col gap-1.5">
-        {STARTER_PROMPTS.map((prompt) => (
+        {prompts.map((prompt) => (
           <button
             key={prompt}
             type="button"

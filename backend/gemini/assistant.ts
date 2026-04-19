@@ -21,6 +21,105 @@ import {
 const DEFAULT_APPLICANT_LIMIT = 25;
 const MAX_APPLICANT_LIMIT = 60;
 
+function normalizeEmail(email?: string): string {
+  return (email || "").trim().toLowerCase();
+}
+
+function dedupeEmails(emails: string[]): string[] {
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+
+  for (const email of emails.map(normalizeEmail)) {
+    if (!email || seen.has(email)) {
+      continue;
+    }
+    seen.add(email);
+    ordered.push(email);
+  }
+
+  return ordered;
+}
+
+function collectShortlistPriorityEmails(shortlist: IShortlist): string[] {
+  return dedupeEmails([
+    ...(shortlist.shortlist || []).map((entry) => entry.applicantEmail),
+    ...(shortlist.screeningResults || []).map((entry) => entry.applicantEmail),
+  ]);
+}
+
+function sortApplicantsByEmailPriority(
+  applicants: IApplicant[],
+  priorityEmails: string[]
+): IApplicant[] {
+  if (priorityEmails.length === 0) {
+    return applicants;
+  }
+
+  const priorityIndex = new Map(priorityEmails.map((email, index) => [email, index]));
+
+  return [...applicants].sort((left, right) => {
+    const leftRank = priorityIndex.get(normalizeEmail(left.email));
+    const rightRank = priorityIndex.get(normalizeEmail(right.email));
+
+    if (leftRank === undefined && rightRank === undefined) {
+      return 0;
+    }
+    if (leftRank === undefined) {
+      return 1;
+    }
+    if (rightRank === undefined) {
+      return -1;
+    }
+    return leftRank - rightRank;
+  });
+}
+
+function formatDateLabel(value?: Date): string {
+  if (!value) {
+    return "unknown date";
+  }
+
+  return value.toISOString().slice(0, 10);
+}
+
+function buildWorkspaceOverviewNote(input: {
+  totalJobs: number;
+  activeJobs: number;
+  totalShortlists: number;
+  recentJobs: IJob[];
+  recentShortlists: IShortlist[];
+}): string | undefined {
+  const lines: string[] = [
+    "WORKSPACE OVERVIEW:",
+    `- Jobs: ${input.totalJobs} total (${input.activeJobs} active)`,
+    `- Shortlist runs: ${input.totalShortlists} total`,
+  ];
+
+  if (input.recentJobs.length > 0) {
+    lines.push("Recent jobs:");
+    for (const job of input.recentJobs) {
+      lines.push(
+        `- ${job.title} | ${job.department || "No department"} | ${job.status} | created ${formatDateLabel(job.createdAt)}`
+      );
+    }
+  }
+
+  if (input.recentShortlists.length > 0) {
+    lines.push("Recent shortlist runs:");
+    for (const shortlist of input.recentShortlists) {
+      const topCandidate =
+        shortlist.shortlist?.find((entry) => entry.candidateRank === 1)?.fullName ||
+        shortlist.shortlist?.[0]?.fullName ||
+        "Top candidate not saved";
+      lines.push(
+        `- ${shortlist.runName} for ${shortlist.jobTitle} | shortlisted ${shortlist.shortlistCount}/${shortlist.totalApplicants} | top candidate: ${topCandidate} | created ${formatDateLabel(shortlist.createdAt)}`
+      );
+    }
+  }
+
+  return lines.length > 0 ? lines.join("\n") : undefined;
+}
+
 function toBatchJobFromModel(job: IJob): GeminiBatchJob {
   return {
     id: job._id.toString(),
@@ -239,6 +338,8 @@ export class GeminiRecruiterAssistantService {
     let resolvedJobId: string | undefined = request.jobId;
     let resolvedShortlistId: string | undefined;
     let truncatedApplicants = false;
+    let shortlistedApplicantsPrioritized = false;
+    let shortlistPriorityEmails: string[] = [];
 
     if (request.shortlistId) {
       if (!mongoose.Types.ObjectId.isValid(request.shortlistId)) {
@@ -253,6 +354,7 @@ export class GeminiRecruiterAssistantService {
       usedDatabase = true;
       resolvedShortlistId = shortlistDoc._id.toString();
       shortlistContext = toShortlistContextFromModel(shortlistDoc as IShortlist);
+      shortlistPriorityEmails = collectShortlistPriorityEmails(shortlistDoc as IShortlist);
       resolvedJobId = resolvedJobId || shortlistDoc.job.toString();
     }
 
@@ -271,21 +373,54 @@ export class GeminiRecruiterAssistantService {
 
     if (opts.includeApplicants && resolvedJobId) {
       const jobObjectId = new mongoose.Types.ObjectId(resolvedJobId);
-      const filter: Record<string, unknown> = { job: jobObjectId };
+      const requestedApplicantEmails = dedupeEmails(request.applicantEmails || []);
+      const priorityEmails =
+        requestedApplicantEmails.length > 0 ? requestedApplicantEmails : shortlistPriorityEmails;
+      const applicantDocs: IApplicant[] = [];
+      const includedEmails = new Set<string>();
 
-      if (request.applicantEmails && request.applicantEmails.length > 0) {
-        filter.email = {
-          $in: request.applicantEmails.map((email) => email.trim().toLowerCase()).filter(Boolean),
-        };
+      if (priorityEmails.length > 0) {
+        const prioritizedDocs = sortApplicantsByEmailPriority(
+          await Applicant.find({
+            job: jobObjectId,
+            email: { $in: priorityEmails },
+          }).lean<IApplicant[]>(),
+          priorityEmails
+        );
+
+        const cappedPrioritizedDocs = prioritizedDocs.slice(0, opts.applicantLimit);
+        if (prioritizedDocs.length > cappedPrioritizedDocs.length || priorityEmails.length > opts.applicantLimit) {
+          truncatedApplicants = true;
+        }
+
+        for (const doc of cappedPrioritizedDocs) {
+          const email = normalizeEmail(doc.email);
+          if (!email || includedEmails.has(email)) {
+            continue;
+          }
+          includedEmails.add(email);
+          applicantDocs.push(doc);
+        }
+
+        shortlistedApplicantsPrioritized =
+          requestedApplicantEmails.length === 0 && shortlistPriorityEmails.length > 0 && applicantDocs.length > 0;
       }
 
-      const applicantDocs = await Applicant.find(filter)
-        .limit(opts.applicantLimit + 1)
-        .lean<IApplicant[]>();
+      if (requestedApplicantEmails.length === 0 && applicantDocs.length < opts.applicantLimit) {
+        const remainingDocs = await Applicant.find({
+          job: jobObjectId,
+          ...(includedEmails.size > 0 ? { email: { $nin: Array.from(includedEmails) } } : {}),
+        })
+          .sort({ createdAt: -1 })
+          .limit(opts.applicantLimit - applicantDocs.length + 1)
+          .lean<IApplicant[]>();
 
-      if (applicantDocs.length > opts.applicantLimit) {
-        truncatedApplicants = true;
-        applicantDocs.length = opts.applicantLimit;
+        if (remainingDocs.length > opts.applicantLimit - applicantDocs.length) {
+          truncatedApplicants = true;
+          remainingDocs.length = opts.applicantLimit - applicantDocs.length;
+        }
+
+        applicantDocs.push(...remainingDocs);
       }
 
       if (applicantDocs.length > 0) {
@@ -296,8 +431,33 @@ export class GeminiRecruiterAssistantService {
 
     const applicants = mergeApplicants(inlineContext.applicants, dbApplicants);
 
+    let workspaceOverviewNote: string | undefined;
+    const hasResolvedStructuredContext = Boolean(job || applicants?.length || shortlistContext);
+    if (!hasResolvedStructuredContext && !hasInline) {
+      const [totalJobs, activeJobs, totalShortlists, recentJobs, recentShortlists] = await Promise.all([
+        Job.countDocuments(),
+        Job.countDocuments({ status: "Active" }),
+        Shortlist.countDocuments(),
+        Job.find().sort({ createdAt: -1 }).limit(5).lean<IJob[]>(),
+        Shortlist.find().sort({ createdAt: -1 }).limit(5).lean<IShortlist[]>(),
+      ]);
+
+      workspaceOverviewNote = buildWorkspaceOverviewNote({
+        totalJobs,
+        activeJobs,
+        totalShortlists,
+        recentJobs,
+        recentShortlists,
+      });
+      usedDatabase = usedDatabase || Boolean(workspaceOverviewNote);
+    }
+
     const contextNote = [
       inlineContext.contextNote,
+      workspaceOverviewNote,
+      shortlistedApplicantsPrioritized
+        ? "Applicant profiles were prioritized from the selected shortlist's ranked and scored candidates before filling remaining slots from the same job."
+        : undefined,
       truncatedApplicants
         ? `Applicant list truncated to the first ${opts.applicantLimit} of a larger set; ask to narrow by skill, score range, or email list for deeper review.`
         : undefined,
@@ -312,7 +472,7 @@ export class GeminiRecruiterAssistantService {
       contextNote,
     };
 
-    const anyData = Boolean(job || applicants?.length || shortlistContext);
+    const anyData = Boolean(job || applicants?.length || shortlistContext || contextNote);
     const source: GeminiRecruiterAssistantContextSummary["source"] = !anyData
       ? "none"
       : hasInline && usedDatabase
@@ -325,7 +485,7 @@ export class GeminiRecruiterAssistantService {
       source,
       jobId: resolvedJobId,
       shortlistId: resolvedShortlistId,
-      jobTitle: job?.title,
+      jobTitle: job?.title || shortlistContext?.jobTitle,
       applicantCount: applicants?.length || 0,
       screeningResultCount: shortlistContext?.screeningResults?.length || 0,
       shortlistCount: shortlistContext?.shortlist?.length || 0,
