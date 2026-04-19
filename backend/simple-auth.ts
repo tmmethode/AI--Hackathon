@@ -58,7 +58,7 @@ app.use(cors({
   origin: ["http://localhost:3000", "capacitor://localhost", "http://localhost:8080"],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
 }));
 
 app.use(express.json());

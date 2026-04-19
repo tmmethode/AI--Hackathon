@@ -254,7 +254,13 @@ export function AIAssistant() {
     () => buildStarterPrompts(selectedJob, selectedShortlist),
     [selectedJob, selectedShortlist]
   );
+  const assistantExplicitlyUnavailable = assistantHealth?.configured === false;
   const assistantReady = assistantHealth?.configured === true;
+
+  const refreshAssistantHealth = useCallback(() => {
+    setAssistantHealth(null);
+    setAssistantHealthError(null);
+  }, []);
 
   const resetConversation = useCallback(() => {
     setMessages([]);
@@ -430,7 +436,7 @@ export function AIAssistant() {
                   selectedShortlist={selectedShortlist}
                   prompts={starterPrompts}
                   onSelectPrompt={(prompt) => void sendMessage(prompt)}
-                  disabled={isSending || assistantHealthLoading || !assistantReady}
+                  disabled={isSending || assistantHealthLoading || assistantExplicitlyUnavailable}
                 />
               ) : (
                 <div className="flex flex-col gap-3">
@@ -450,8 +456,15 @@ export function AIAssistant() {
               </div>
             )}
             {assistantHealthError && (
-              <div className="border-t border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
-                {assistantHealthError}
+              <div className="flex items-center justify-between gap-3 border-t border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
+                <span>{assistantHealthError}</span>
+                <button
+                  type="button"
+                  onClick={refreshAssistantHealth}
+                  className="rounded px-2 py-1 font-medium text-amber-900 hover:bg-amber-100"
+                >
+                  Retry check
+                </button>
               </div>
             )}
             {assistantHealth && !assistantHealth.configured && (
@@ -471,11 +484,11 @@ export function AIAssistant() {
                   rows={2}
                   placeholder="Ask about candidates, scores, or shortlists…"
                   className="min-h-[44px] max-h-36 flex-1 resize-none rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-                  disabled={isSending || assistantHealthLoading || !assistantReady}
+                  disabled={isSending || assistantHealthLoading || assistantExplicitlyUnavailable}
                 />
                 <button
                   type="submit"
-                  disabled={isSending || input.trim().length === 0 || assistantHealthLoading || !assistantReady}
+                  disabled={isSending || input.trim().length === 0 || assistantHealthLoading || assistantExplicitlyUnavailable}
                   className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-brand text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
                   aria-label="Send"
                 >
@@ -488,8 +501,12 @@ export function AIAssistant() {
               </div>
               <p className="mt-1.5 text-[10.5px] leading-4 text-ink-subtle">
                 Enter to send • Shift+Enter for a new line.{" "}
-                {!assistantReady
-                  ? "Replies are disabled until the Gemini connection is confirmed."
+                {assistantExplicitlyUnavailable
+                  ? "Replies are disabled until Gemini is configured on the backend."
+                  : assistantHealthLoading
+                    ? "Checking Gemini connection before the first prompt."
+                    : assistantHealthError
+                      ? "Gemini health could not be confirmed automatically, but you can still try sending a prompt."
                   : selectedShortlist
                     ? `Grounded in live data from ${selectedShortlist.runName} for ${selectedShortlist.jobTitle}.`
                     : selectedJob

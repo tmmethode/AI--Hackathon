@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/Input";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
 import { ShortlistsPageSkeleton } from "@/components/page-skeletons";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { buildCandidateId } from "@/lib/candidates";
 import {
   getShortlist,
   listShortlists,
@@ -30,6 +31,7 @@ import type { GeminiBatchScreeningResultEntry } from "@/lib/screening";
 
 interface Candidate {
   id: number; rank: number; name: string; title: string; match: number;
+  candidateRecordId: string;
   skills: string[]; extras: number; summary: string; years: number;
   strength: string; cultureFit: string; retentionRisk: string;
   location: string; email: string;
@@ -85,6 +87,7 @@ function retentionRiskFromScore(confidenceScore: number): string {
 
 function buildCandidateFromResult(
   entry: GeminiBatchScreeningResultEntry,
+  shortlistJobId: string,
   candidateKey: number,
   pillarLabels: { skills: string; experience: string; education: string; relevance: string },
   shortlistedEmails: Set<string>
@@ -96,6 +99,7 @@ function buildCandidateFromResult(
   return {
     id: candidateKey,
     rank: entry.candidateRank,
+    candidateRecordId: buildCandidateId(shortlistJobId, entry.applicantEmail),
     name: nameFromEntry(entry.fullName, entry.applicantEmail),
     title: entry.finalRecommendation,
     match: entry.matchScore,
@@ -151,7 +155,7 @@ function buildCandidatesFromRecord(record: ShortlistRecord): Candidate[] {
   );
 
   return (record.screeningResults || []).map((entry, index) =>
-    buildCandidateFromResult(entry, index + 1, labels, shortlistedEmails)
+    buildCandidateFromResult(entry, record.job, index + 1, labels, shortlistedEmails)
   );
 }
 
@@ -776,7 +780,7 @@ function ShortlistsPageInner() {
                         )}
                       </div>
 
-                      <Link href={`/candidates/${c.id}`} onClick={(e) => e.stopPropagation()}>
+                      <Link href={`/candidates/${encodeURIComponent(c.candidateRecordId)}`} onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="sm" leftIcon={<Eye className="h-3.5 w-3.5" />}>
                           Profile
                         </Button>
@@ -821,7 +825,7 @@ function ShortlistsPageInner() {
                   </div>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2">
-                  <Link href={`/candidates/${selected.id}`}>
+                  <Link href={`/candidates/${encodeURIComponent(selected.candidateRecordId)}`}>
                     <Button variant="secondary" size="sm" fullWidth leftIcon={<Eye className="h-3.5 w-3.5" />}>
                       Full Profile
                     </Button>

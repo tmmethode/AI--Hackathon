@@ -424,7 +424,7 @@ export default function ScreeningPage() {
         estimatedMinSeconds,
         estimatedMaxSeconds,
         instructions: screeningInstructions,
-        temperature: screeningConfig?.defaults.temperature,
+        temperature: 0,
         job: buildScreeningJob(selectedJob),
         applicants: parsedApplicants.map(buildScreeningApplicant),
       });

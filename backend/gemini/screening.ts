@@ -25,6 +25,7 @@ const BATCH_RECOMMENDATIONS: readonly GeminiBatchRecommendation[] = [
   "Shortlist",
   "Strong Shortlist",
 ];
+const DETERMINISTIC_SCREENING_TEMPERATURE = 0;
 
 const BATCH_CHUNK_SIZE = Math.max(
   1,
@@ -309,7 +310,8 @@ export class GeminiScreeningService {
       prompt: buildCandidateScreeningPrompt(request),
       systemInstruction: GEMINI_HIRING_SYSTEM_INSTRUCTION,
       responseMimeType: "application/json",
-      temperature: request.temperature ?? 0,
+      // Screening should remain deterministic so saved rankings stay stable across reruns.
+      temperature: DETERMINISTIC_SCREENING_TEMPERATURE,
       maxOutputTokens: 1200,
       seed: deriveScreeningSeed(request.job.id, request.job.title),
     });
@@ -353,7 +355,8 @@ export class GeminiScreeningService {
       }),
       systemInstruction: GEMINI_BATCH_SCREENING_SYSTEM_INSTRUCTION,
       responseMimeType: "application/json",
-      temperature: request.temperature ?? 0,
+      // Batch ranking should remain deterministic so shortlist order matches across repeated runs.
+      temperature: DETERMINISTIC_SCREENING_TEMPERATURE,
       maxOutputTokens: estimateBatchTokenBudget(request.applicants.length),
       seed: deriveScreeningSeed(request.job.id, request.job.title),
     });
