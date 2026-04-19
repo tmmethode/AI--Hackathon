@@ -28,67 +28,18 @@ Core behaviour:
 export const GEMINI_BATCH_SCREENING_SYSTEM_INSTRUCTION = `
 ${GEMINI_HIRING_SYSTEM_INSTRUCTION}
 
-Evaluation rules:
-A. Relevance-first. Score candidates on fit for this exact job, not general impressiveness.
-B. Evidence-based. Every positive match must be supported by evidence from the
-   applicant's skills, experience, projects, education, certifications, languages,
-   availability, or location.
-C. Conservative inference. Limited relevance may be inferred only when strongly
-   supported by profile evidence; never overstate certainty.
-D. Consistent comparison. Apply the same scoring logic to every applicant in a run.
+Scoring model — overall matchScore 0–100, integer, weighted:
+- Skills 35% (coreHardSkills + preferredSkills + skill-related must-haves; exact matches win; partial credit for closely related skills; general knowledge ≠ specific skill)
+- Experience 30% (relevant years, seniority fit, role/tech relevance, ownership; current roles count to today; conservative on missing dates — flag in gapsOrRisks and lower confidenceScore)
+- Education 10% (required level + field relevance; do not penalise heavily when educationLevel="none")
+- Relevance 25% (responsibilities, industry, certifications, projects, soft skills, location, availability, languages)
 
-Weighted scoring model (overall matchScore from 0 to 100):
-- Skills Match: 35% (coreHardSkills, preferredSkills, skill-related must-haves)
-- Experience Match: 30% (years of relevant experience, seniority fit, role/tech
-  relevance, complexity, ownership)
-- Education Match: 10% (required education level, field of study relevance;
-  do not penalise heavily when educationLevel is "none")
-- Overall Relevance: 25% (responsibilities fit, industry/domain, certifications,
-  projects, soft skills evidence, location fit, availability fit, language fit)
-
-Skill matching rules:
-- Exact skill matches score highest.
-- Closely related skills may receive partial credit if genuinely transferable.
-- General technical knowledge must not replace a specific required skill.
-- Certifications support but do not replace real experience unless the job
-  explicitly allows it.
-
-Experience rules:
-- Use declared yearsOfExperience when reliable; otherwise estimate conservatively
-  from dated entries. Current roles count until present. If dates are incomplete,
-  mention this in gapsOrRisks and lower confidenceScore.
-
-Recommendation values (use exactly one, with this suggested mapping):
-- 85–100: "Strong Shortlist"
-- 70–84: "Shortlist"
-- 55–69: "Consider"
-- 35–54: "Reject"
-- 0–34: "Strong Reject"
-Adjust downward when critical requirements are missing, profile data is
-incomplete, evidence is weak, or major gaps or risks exist.
-
-Shortlist rules:
-- Rank all applicants by matchScore descending.
-- Return the top N applicants where N = shortlistCount.
-- If total applicants < shortlistCount, return all evaluated applicants.
-- An applicant with a critical disqualifying gap may be excluded from the
-  shortlist; continue to the next ranked candidate.
-
-Tie-break order when matchScore is equal:
-1. Higher skillsScore
-2. Higher experienceScore
-3. Higher relevanceScore
-4. Higher confidenceScore
-
-Output validation:
-- Every applicant in the input must appear in screeningResults.
-- matchScore, confidenceScore, skillsScore, experienceScore, educationScore,
-  relevanceScore are integers between 0 and 100.
-- candidateRank is sorted ascending and reflects ranking by matchScore then the
-  tie-break order above.
-- shortlist contains no more than shortlistCount entries and matches the
-  top-ranked eligible candidates from screeningResults.
-- Return valid JSON only. No markdown fences or commentary.
+Rules:
+- Relevance-first, evidence-based; every positive match cites evidence from skills/experience/projects/education/certifications/languages/availability/location.
+- Never invent qualifications; certifications support but do not replace experience unless the job allows it.
+- All sub-scores are 0–100 integers. Rank by matchScore desc, tie-break: skills → experience → relevance → confidence.
+- finalRecommendation uses: 85–100 "Strong Shortlist", 70–84 "Shortlist", 55–69 "Consider", 35–54 "Reject", 0–34 "Strong Reject". Adjust down when critical requirements missing, evidence weak, or data incomplete.
+- Output strict JSON only, no markdown, no commentary, no newlines or nested quotes inside strings.
 `.trim();
 
 function formatList(title: string, items?: string[]): string {
@@ -195,192 +146,198 @@ Important:
 `.trim();
 }
 
+function clip(value: string | undefined, max: number): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const collapsed = value.replace(/\s+/g, " ").trim();
+
+  if (!collapsed) {
+    return undefined;
+  }
+
+  if (collapsed.length <= max) {
+    return collapsed;
+  }
+
+  return `${collapsed.slice(0, max - 1).trimEnd()}…`;
+}
+
+function appendIf(lines: string[], label: string, value: string | undefined): void {
+  if (value) {
+    lines.push(`${label}: ${value}`);
+  }
+}
+
+function appendListIf(lines: string[], label: string, values?: string[]): void {
+  if (!values || values.length === 0) {
+    return;
+  }
+
+  lines.push(`${label}: ${values.join(", ")}`);
+}
+
 function formatBatchJob(job: GeminiBatchJob): string {
-  const lines: string[] = [
-    `Title: ${job.title}`,
-    `Department: ${job.department || "Not specified"}`,
-    `Hiring Manager: ${job.hiringManager || "Not specified"}`,
-    `Location: ${job.location || "Not specified"}`,
-    `Location Policy: ${job.locationPolicy || "Not specified"}`,
-    `Employment Type: ${job.employmentType || "Not specified"}`,
-    `Salary Band: ${job.salaryBand || "Not specified"}`,
-    `Seniority Level: ${job.seniorityLevel || "Not specified"}`,
-    `Experience Required (years): ${
-      typeof job.experienceYears === "number" ? job.experienceYears : "Not specified"
-    }`,
-    `Education Level: ${job.educationLevel || "Not specified"}`,
-    `Status: ${job.status || "Not specified"}`,
-    "",
-    `Summary:\n${job.summary || "Not provided"}`,
-    "",
-    `Responsibilities:\n${job.responsibilities || "Not provided"}`,
-    "",
-    `Must-have Qualifications:\n${job.mustHaveQualifications || "Not provided"}`,
-    "",
-    `Nice-to-have Qualifications:\n${job.niceToHaveQualifications || "Not provided"}`,
-    "",
-    formatList("Core Hard Skills", job.coreHardSkills),
-    formatList("Preferred Skills", job.preferredSkills),
-    formatList("Core Soft Skills", job.coreSoftSkills),
-  ];
+  const lines: string[] = [`Title: ${job.title}`];
+
+  appendIf(lines, "Department", job.department);
+  appendIf(lines, "Location", job.location);
+  appendIf(lines, "Policy", job.locationPolicy);
+  appendIf(lines, "Type", job.employmentType);
+  appendIf(lines, "Seniority", job.seniorityLevel);
+  if (typeof job.experienceYears === "number") {
+    lines.push(`Experience (yrs): ${job.experienceYears}`);
+  }
+  appendIf(lines, "Education", job.educationLevel);
+
+  appendIf(lines, "Summary", clip(job.summary, 400));
+  appendIf(lines, "Responsibilities", clip(job.responsibilities, 400));
+  appendIf(lines, "Must-have", clip(job.mustHaveQualifications, 400));
+  appendIf(lines, "Nice-to-have", clip(job.niceToHaveQualifications, 300));
+
+  appendListIf(lines, "Core Hard Skills", job.coreHardSkills);
+  appendListIf(lines, "Preferred Skills", job.preferredSkills);
+  appendListIf(lines, "Core Soft Skills", job.coreSoftSkills);
 
   if (job.weightCriteria && job.weightCriteria.length > 0) {
     lines.push(
-      "",
-      "Weight Criteria (informational; the weighted scoring model defined in the",
-      "system instruction still applies):"
+      `Weight Criteria (informational): ${job.weightCriteria
+        .map((c) => `${c.label} ${c.value}%`)
+        .join(", ")}`
     );
-    for (const criterion of job.weightCriteria) {
-      lines.push(`- ${criterion.label} (${criterion.value}%)`);
-    }
   }
 
   return lines.join("\n");
 }
 
-function formatApplicantSkills(skills?: GeminiBatchApplicant["skills"]): string {
+function formatApplicantSkills(skills?: GeminiBatchApplicant["skills"]): string | undefined {
   if (!skills || skills.length === 0) {
-    return "  Skills: None provided";
+    return undefined;
   }
 
-  return [
-    "  Skills:",
-    ...skills.map((skill) => {
-      const level = skill.level ? ` — ${skill.level}` : "";
-      const years =
-        typeof skill.yearsOfExperience === "number" ? ` (${skill.yearsOfExperience}y)` : "";
+  const inline = skills
+    .slice(0, 20)
+    .map((skill) => {
+      const parts = [skill.name];
+      if (skill.level) parts.push(skill.level);
+      if (typeof skill.yearsOfExperience === "number") {
+        parts.push(`${skill.yearsOfExperience}y`);
+      }
+      return parts.join("/");
+    })
+    .join(", ");
 
-      return `    - ${skill.name}${level}${years}`;
-    }),
-  ].join("\n");
+  return `Skills: ${inline}`;
 }
 
-function formatApplicantLanguages(languages?: GeminiBatchApplicant["languages"]): string {
+function formatApplicantLanguages(languages?: GeminiBatchApplicant["languages"]): string | undefined {
   if (!languages || languages.length === 0) {
-    return "  Languages: None provided";
+    return undefined;
   }
 
-  return [
-    "  Languages:",
-    ...languages.map((language) => {
-      const proficiency = language.proficiency ? ` — ${language.proficiency}` : "";
+  const inline = languages
+    .slice(0, 8)
+    .map((language) => (language.proficiency ? `${language.name}/${language.proficiency}` : language.name))
+    .join(", ");
 
-      return `    - ${language.name}${proficiency}`;
-    }),
-  ].join("\n");
+  return `Languages: ${inline}`;
 }
 
-function formatApplicantExperience(experience?: GeminiBatchApplicant["experience"]): string {
+function formatApplicantExperience(experience?: GeminiBatchApplicant["experience"]): string | undefined {
   if (!experience || experience.length === 0) {
-    return "  Experience: None provided";
+    return undefined;
   }
 
-  const entries = experience.map((entry) => {
-    const header = [entry.role || "Role unknown", entry.company || "Company unknown"]
-      .filter(Boolean)
-      .join(" @ ");
-    const range = [
-      entry.startDate || "?",
-      entry.isCurrent ? "present" : entry.endDate || "?",
-    ].join(" → ");
+  const entries = experience.slice(0, 5).map((entry) => {
+    const header = [entry.role, entry.company].filter(Boolean).join(" @ ") || "—";
+    const start = entry.startDate || "?";
+    const end = entry.isCurrent ? "present" : entry.endDate || "?";
     const tech =
       entry.technologies && entry.technologies.length > 0
-        ? `      Technologies: ${entry.technologies.join(", ")}`
-        : null;
-    const description = entry.description ? `      Description: ${entry.description}` : null;
+        ? ` | tech: ${entry.technologies.slice(0, 8).join(", ")}`
+        : "";
+    const description = clip(entry.description, 180);
 
-    return ["    - " + header + " (" + range + ")", tech, description]
-      .filter(Boolean)
-      .join("\n");
+    return `- ${header} (${start}→${end})${tech}${description ? ` | ${description}` : ""}`;
   });
 
-  return ["  Experience:", ...entries].join("\n");
+  return [`Experience:`, ...entries].join("\n");
 }
 
-function formatApplicantEducation(education?: GeminiBatchApplicant["education"]): string {
+function formatApplicantEducation(education?: GeminiBatchApplicant["education"]): string | undefined {
   if (!education || education.length === 0) {
-    return "  Education: None provided";
+    return undefined;
   }
 
-  const entries = education.map((entry) => {
-    const degree = [entry.degree, entry.fieldOfStudy].filter(Boolean).join(", ");
-    const years = [entry.startYear, entry.endYear].filter(Boolean).join(" → ") || "dates unknown";
-
-    return `    - ${degree || "Degree unknown"} at ${entry.institution || "Institution unknown"} (${years})`;
+  const entries = education.slice(0, 3).map((entry) => {
+    const degree = [entry.degree, entry.fieldOfStudy].filter(Boolean).join(", ") || "—";
+    const years = [entry.startYear, entry.endYear].filter(Boolean).join("→") || "?";
+    const institution = entry.institution || "—";
+    return `- ${degree} @ ${institution} (${years})`;
   });
 
-  return ["  Education:", ...entries].join("\n");
+  return ["Education:", ...entries].join("\n");
 }
 
 function formatApplicantCertifications(
   certifications?: GeminiBatchApplicant["certifications"]
-): string {
+): string | undefined {
   if (!certifications || certifications.length === 0) {
-    return "  Certifications: None provided";
+    return undefined;
   }
 
-  return [
-    "  Certifications:",
-    ...certifications.map((certification) => {
-      const issuer = certification.issuer ? ` — ${certification.issuer}` : "";
-      const date = certification.issueDate ? ` (${certification.issueDate})` : "";
+  const inline = certifications
+    .slice(0, 8)
+    .map((c) => (c.issuer ? `${c.name}/${c.issuer}` : c.name))
+    .join(", ");
 
-      return `    - ${certification.name}${issuer}${date}`;
-    }),
-  ].join("\n");
+  return `Certifications: ${inline}`;
 }
 
-function formatApplicantProjects(projects?: GeminiBatchApplicant["projects"]): string {
+function formatApplicantProjects(projects?: GeminiBatchApplicant["projects"]): string | undefined {
   if (!projects || projects.length === 0) {
-    return "  Projects: None provided";
+    return undefined;
   }
 
-  const entries = projects.map((project) => {
+  const entries = projects.slice(0, 5).map((project) => {
     const role = project.role ? ` [${project.role}]` : "";
-    const range =
-      project.startDate || project.endDate
-        ? ` (${project.startDate || "?"} → ${project.endDate || "?"})`
-        : "";
     const tech =
       project.technologies && project.technologies.length > 0
-        ? `      Technologies: ${project.technologies.join(", ")}`
-        : null;
-    const description = project.description ? `      Description: ${project.description}` : null;
-
-    return ["    - " + project.name + role + range, tech, description]
-      .filter(Boolean)
-      .join("\n");
+        ? ` | tech: ${project.technologies.slice(0, 8).join(", ")}`
+        : "";
+    const description = clip(project.description, 140);
+    return `- ${project.name}${role}${tech}${description ? ` | ${description}` : ""}`;
   });
 
-  return ["  Projects:", ...entries].join("\n");
+  return ["Projects:", ...entries].join("\n");
 }
 
 function formatApplicantAvailability(
   availability?: GeminiBatchApplicant["availability"]
-): string {
+): string | undefined {
   if (!availability) {
-    return "  Availability: Not provided";
+    return undefined;
   }
 
   const parts = [
     availability.status && `status=${availability.status}`,
     availability.type && `type=${availability.type}`,
-    availability.startDate && `startDate=${availability.startDate}`,
+    availability.startDate && `start=${availability.startDate}`,
   ].filter(Boolean);
 
-  return `  Availability: ${parts.length > 0 ? parts.join(", ") : "Not provided"}`;
+  return parts.length > 0 ? `Availability: ${parts.join(", ")}` : undefined;
 }
 
 function formatBatchApplicant(applicant: GeminiBatchApplicant, index: number): string {
   const fullName = [applicant.firstName, applicant.lastName].filter(Boolean).join(" ") || "Unknown";
+  const blocks: string[] = [`#${index + 1} ${fullName} <${applicant.email}>`];
 
-  return [
-    `Applicant #${index + 1}`,
-    `  Email: ${applicant.email}`,
-    `  Name: ${fullName}`,
-    `  Headline: ${applicant.headline || "Not provided"}`,
-    `  Location: ${applicant.location || "Not provided"}`,
-    applicant.bio ? `  Bio: ${applicant.bio}` : "  Bio: Not provided",
+  appendIf(blocks, "Headline", clip(applicant.headline, 120));
+  appendIf(blocks, "Location", applicant.location);
+  appendIf(blocks, "Bio", clip(applicant.bio, 200));
+
+  for (const section of [
     formatApplicantSkills(applicant.skills),
     formatApplicantLanguages(applicant.languages),
     formatApplicantExperience(applicant.experience),
@@ -388,7 +345,13 @@ function formatBatchApplicant(applicant: GeminiBatchApplicant, index: number): s
     formatApplicantCertifications(applicant.certifications),
     formatApplicantProjects(applicant.projects),
     formatApplicantAvailability(applicant.availability),
-  ].join("\n");
+  ]) {
+    if (section) {
+      blocks.push(section);
+    }
+  }
+
+  return blocks.join("\n");
 }
 
 export function buildBatchScreeningPrompt(request: GeminiBatchScreeningRequest): string {
@@ -398,72 +361,23 @@ export function buildBatchScreeningPrompt(request: GeminiBatchScreeningRequest):
     .join("\n\n");
 
   return `
-Screen all applicants against the job below, apply the weighted scoring model
-and rules from the system instruction, and return strict JSON matching this
-exact shape (no markdown, no commentary):
+Return strict JSON ONLY, shape: {"jobTitle":string,"department":string,"shortlistCount":number,"totalApplicants":number,"screeningResults":[{"candidateRank":number,"applicantEmail":string,"fullName":string,"matchScore":number,"confidenceScore":number,"skillsScore":number,"experienceScore":number,"educationScore":number,"relevanceScore":number,"strengths":string[],"gapsOrRisks":string[],"finalRecommendation":"Strong Reject|Reject|Consider|Shortlist|Strong Shortlist","summaryExplanation":string}],"shortlist":[]}
 
-{
-  "jobTitle": "string",
-  "department": "string",
-  "shortlistCount": 0,
-  "totalApplicants": 0,
-  "screeningResults": [
-    {
-      "candidateRank": 1,
-      "applicantEmail": "string",
-      "fullName": "string",
-      "matchScore": 0,
-      "confidenceScore": 0,
-      "skillsScore": 0,
-      "experienceScore": 0,
-      "educationScore": 0,
-      "relevanceScore": 0,
-      "strengths": ["string"],
-      "gapsOrRisks": ["string"],
-      "finalRecommendation": "Strong Reject | Reject | Consider | Shortlist | Strong Shortlist",
-      "summaryExplanation": "string"
-    }
-  ],
-  "shortlist": [
-    {
-      "candidateRank": 1,
-      "applicantEmail": "string",
-      "fullName": "string",
-      "matchScore": 0,
-      "strengths": ["string"],
-      "gapsOrRisks": ["string"],
-      "finalRecommendation": "Strong Reject | Reject | Consider | Shortlist | Strong Shortlist",
-      "summaryExplanation": "string"
-    }
-  ]
-}
+Rules:
+- screeningResults.length MUST equal totalApplicants (${applicants.length}).
+- Return shortlist as []; the caller re-ranks and slices the final shortlist.
+- Token-lean output per applicant: strengths/gapsOrRisks max 3 items of ≤8 words each; summaryExplanation one sentence ≤25 words. No markdown, no newlines or nested quotes inside strings.
+- Score 0–100 integers. Apply the weighted model and rules from the system instruction.
+- Never invent qualifications; call out missing evidence briefly in gapsOrRisks and lower confidenceScore.
 
-Requested shortlistCount: ${shortlistCount}
-Total applicants provided: ${applicants.length}
+shortlistCount (context only): ${shortlistCount}
+totalApplicants: ${applicants.length}
 
-=== JOB ===
+JOB:
 ${formatBatchJob(job)}
 
-=== APPLICANTS ===
+APPLICANTS:
 ${applicantBlocks}
-
-=== INSTRUCTIONS ===
-- Evaluate every applicant listed above. screeningResults.length must equal
-  totalApplicants (${applicants.length}).
-- Rank all applicants by matchScore descending; apply the tie-break order
-  (skillsScore, experienceScore, relevanceScore, confidenceScore).
-- shortlist must contain the top ${Math.min(
-    shortlistCount,
-    applicants.length
-  )} eligible candidates in the same rank order. If an applicant has a critical
-  disqualifying gap, you may exclude them and continue to the next ranked
-  candidate.
-- Keep strengths, gapsOrRisks, and summaryExplanation concise, recruiter-friendly,
-  and evidence-based. Cite evidence drawn from the applicant's skills,
-  experience, projects, education, certifications, languages, availability, or
-  location.
-- Never invent qualifications. If a field is missing, call it out in gapsOrRisks
-  and lower confidenceScore.
-${instructions ? `- Additional recruiter instructions: ${instructions}` : ""}
+${instructions ? `\nRecruiter instructions: ${instructions}` : ""}
 `.trim();
 }

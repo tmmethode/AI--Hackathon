@@ -26,7 +26,7 @@ export function getGeminiConfig(): GeminiConfig {
 
   cachedConfig = {
     apiKey: process.env.GEMINI_API_KEY || "",
-    model: process.env.GEMINI_MODEL || "gemini-1.5-flash",
+    model: process.env.GEMINI_MODEL || "gemini-2.5-flash-lite",
     baseUrl: process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta/models",
     defaultTemperature: parseNumber(process.env.GEMINI_DEFAULT_TEMPERATURE, 0.2),
     maxOutputTokens: parseNumber(process.env.GEMINI_MAX_OUTPUT_TOKENS, 1200),

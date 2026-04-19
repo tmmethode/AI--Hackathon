@@ -82,34 +82,68 @@ export class GeminiFrontendService {
     );
 
     const results: GeminiFrontendScreeningResult[] = [];
+    const failures: Array<{ candidateName?: string; reason: string }> = [];
+    const activeModel = this.client.getModel();
 
     for (const candidate of request.candidates) {
-      const screening = await this.screeningService.screenCandidate({
-        job: request.job,
-        candidate,
-        instructions: request.instructions,
-        temperature: request.temperature,
-      });
+      try {
+        const screening = await this.screeningService.screenCandidate({
+          job: request.job,
+          candidate,
+          instructions: request.instructions,
+          temperature: request.temperature,
+        });
 
-      results.push({
-        ...screening,
-        candidateId: candidate.id,
-        candidateName: candidate.fullName,
-        shortlisted: false,
-        rank: 0,
-      });
+        results.push({
+          ...screening,
+          candidateId: candidate.id,
+          candidateName: candidate.fullName,
+          shortlisted: false,
+          rank: 0,
+        });
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+
+        failures.push({ candidateName: candidate.fullName, reason });
+
+        results.push({
+          recommendation: "maybe",
+          score: 0,
+          mustHaveMatchScore: 0,
+          dataCompletenessScore: 0,
+          summary: `Screening failed: ${reason}`,
+          strengths: [],
+          concerns: [`Screening failed for this candidate: ${reason}`],
+          evidence: [],
+          criterionAssessments: [],
+          raw: "",
+          model: activeModel,
+          candidateId: candidate.id,
+          candidateName: candidate.fullName,
+          shortlisted: false,
+          rank: 0,
+        });
+      }
     }
 
-    results.sort((left, right) => right.score - left.score);
-    results.sort((left, right) => right.score - left.score || right.mustHaveMatchScore - left.mustHaveMatchScore);
+    results.sort(
+      (left, right) =>
+        right.score - left.score || right.mustHaveMatchScore - left.mustHaveMatchScore
+    );
 
     results.forEach((result, index) => {
       result.rank = index + 1;
-      result.shortlisted = index < normalizedShortlistSize;
+      result.shortlisted = index < normalizedShortlistSize && result.score > 0;
     });
 
     const shortlisted = results.filter((result) => result.shortlisted);
-    const strongMatches = results.filter((result) => result.recommendation === "strong_yes" || result.recommendation === "yes").length;
+    const strongMatches = results.filter(
+      (result) => result.recommendation === "strong_yes" || result.recommendation === "yes"
+    ).length;
+
+    const failureSuffix = failures.length
+      ? ` ${failures.length} candidate${failures.length === 1 ? "" : "s"} could not be screened (see concerns).`
+      : "";
 
     return {
       runName: request.runName,
@@ -117,9 +151,9 @@ export class GeminiFrontendService {
       totalCandidates: results.length,
       shortlistSize: normalizedShortlistSize,
       shortlistedCount: shortlisted.length,
-      model: results[0]?.model || this.client.getModel(),
+      model: results.find((result) => result.raw)?.model || activeModel,
       rankingCriteria: request.job.rankingCriteria,
-      summary: `Processed ${results.length} candidates for ${request.job.title}. ${strongMatches} candidates received a yes or strong_yes recommendation.`,
+      summary: `Processed ${results.length} candidates for ${request.job.title}. ${strongMatches} candidates received a yes or strong_yes recommendation.${failureSuffix}`,
       results,
     };
   }

@@ -4,6 +4,8 @@
 import type { TsoaRoute } from '@tsoa/runtime';
 import {  fetchMiddlewares, ExpressTemplateService } from '@tsoa/runtime';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { ShortlistController } from './../controllers/ShortlistController';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { JobController } from './../controllers/JobController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { GeminiController } from './../controllers/GeminiController';
@@ -21,6 +23,135 @@ const expressAuthenticationRecasted = expressAuthentication as (req: ExRequest, 
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 
 const models: TsoaRoute.Models = {
+    "ShortlistSummaryDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "_id": {"dataType":"string","required":true},
+            "job": {"dataType":"string","required":true},
+            "jobTitle": {"dataType":"string","required":true},
+            "department": {"dataType":"string","required":true},
+            "runName": {"dataType":"string","required":true},
+            "model": {"dataType":"string","required":true},
+            "totalApplicants": {"dataType":"double","required":true},
+            "shortlistCount": {"dataType":"double","required":true},
+            "topMatchScore": {"dataType":"double","required":true},
+            "topCandidateName": {"dataType":"string","required":true},
+            "createdBy": {"dataType":"string","required":true},
+            "createdAt": {"dataType":"string","required":true},
+            "updatedAt": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ShortlistListResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "data": {"dataType":"array","array":{"dataType":"refObject","ref":"ShortlistSummaryDTO"},"required":true},
+            "total": {"dataType":"double","required":true},
+            "page": {"dataType":"double","required":true},
+            "pageSize": {"dataType":"double","required":true},
+            "totalPages": {"dataType":"double","required":true},
+            "message": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ShortlistRecommendation": {
+        "dataType": "refAlias",
+        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["Strong Reject"]},{"dataType":"enum","enums":["Reject"]},{"dataType":"enum","enums":["Consider"]},{"dataType":"enum","enums":["Shortlist"]},{"dataType":"enum","enums":["Strong Shortlist"]}],"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ShortlistResultEntryDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "candidateRank": {"dataType":"double","required":true},
+            "applicantEmail": {"dataType":"string","required":true},
+            "fullName": {"dataType":"string","required":true},
+            "matchScore": {"dataType":"double","required":true},
+            "confidenceScore": {"dataType":"double","required":true},
+            "skillsScore": {"dataType":"double","required":true},
+            "experienceScore": {"dataType":"double","required":true},
+            "educationScore": {"dataType":"double","required":true},
+            "relevanceScore": {"dataType":"double","required":true},
+            "strengths": {"dataType":"array","array":{"dataType":"string"},"required":true},
+            "gapsOrRisks": {"dataType":"array","array":{"dataType":"string"},"required":true},
+            "finalRecommendation": {"ref":"ShortlistRecommendation","required":true},
+            "summaryExplanation": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ShortlistEntryDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "candidateRank": {"dataType":"double","required":true},
+            "applicantEmail": {"dataType":"string","required":true},
+            "fullName": {"dataType":"string","required":true},
+            "matchScore": {"dataType":"double","required":true},
+            "strengths": {"dataType":"array","array":{"dataType":"string"},"required":true},
+            "gapsOrRisks": {"dataType":"array","array":{"dataType":"string"},"required":true},
+            "finalRecommendation": {"ref":"ShortlistRecommendation","required":true},
+            "summaryExplanation": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ShortlistDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "_id": {"dataType":"string","required":true},
+            "job": {"dataType":"string","required":true},
+            "jobTitle": {"dataType":"string","required":true},
+            "department": {"dataType":"string","required":true},
+            "runName": {"dataType":"string","required":true},
+            "model": {"dataType":"string","required":true},
+            "totalApplicants": {"dataType":"double","required":true},
+            "shortlistCount": {"dataType":"double","required":true},
+            "screeningResults": {"dataType":"array","array":{"dataType":"refObject","ref":"ShortlistResultEntryDTO"},"required":true},
+            "shortlist": {"dataType":"array","array":{"dataType":"refObject","ref":"ShortlistEntryDTO"},"required":true},
+            "instructions": {"dataType":"string"},
+            "createdBy": {"dataType":"string","required":true},
+            "createdAt": {"dataType":"string","required":true},
+            "updatedAt": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ShortlistResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "data": {"ref":"ShortlistDTO","required":true},
+            "message": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "CreateShortlistRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "jobId": {"dataType":"string","required":true},
+            "runName": {"dataType":"string"},
+            "jobTitle": {"dataType":"string","required":true},
+            "department": {"dataType":"string"},
+            "model": {"dataType":"string"},
+            "totalApplicants": {"dataType":"double","required":true},
+            "shortlistCount": {"dataType":"double","required":true},
+            "screeningResults": {"dataType":"array","array":{"dataType":"refObject","ref":"ShortlistResultEntryDTO"},"required":true},
+            "shortlist": {"dataType":"array","array":{"dataType":"refObject","ref":"ShortlistEntryDTO"},"required":true},
+            "instructions": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "DeleteShortlistResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"string","required":true},
+            "message": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "HiringManagerSummary": {
         "dataType": "refObject",
         "properties": {
@@ -955,6 +1086,133 @@ export function RegisterRoutes(app: Router) {
 
 
     
+        const argsShortlistController_listShortlists: Record<string, TsoaRoute.ParameterSchema> = {
+                jobId: {"in":"query","name":"jobId","dataType":"string"},
+                page: {"default":1,"in":"query","name":"page","dataType":"double"},
+                pageSize: {"default":20,"in":"query","name":"pageSize","dataType":"double"},
+        };
+        app.get('/shortlists',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(ShortlistController)),
+            ...(fetchMiddlewares<RequestHandler>(ShortlistController.prototype.listShortlists)),
+
+            async function ShortlistController_listShortlists(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsShortlistController_listShortlists, request, response });
+
+                const controller = new ShortlistController();
+
+              await templateService.apiHandler({
+                methodName: 'listShortlists',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsShortlistController_getShortlist: Record<string, TsoaRoute.ParameterSchema> = {
+                id: {"in":"path","name":"id","required":true,"dataType":"string"},
+        };
+        app.get('/shortlists/:id',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(ShortlistController)),
+            ...(fetchMiddlewares<RequestHandler>(ShortlistController.prototype.getShortlist)),
+
+            async function ShortlistController_getShortlist(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsShortlistController_getShortlist, request, response });
+
+                const controller = new ShortlistController();
+
+              await templateService.apiHandler({
+                methodName: 'getShortlist',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsShortlistController_createShortlist: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                body: {"in":"body","name":"body","required":true,"ref":"CreateShortlistRequest"},
+        };
+        app.post('/shortlists',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(ShortlistController)),
+            ...(fetchMiddlewares<RequestHandler>(ShortlistController.prototype.createShortlist)),
+
+            async function ShortlistController_createShortlist(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsShortlistController_createShortlist, request, response });
+
+                const controller = new ShortlistController();
+
+              await templateService.apiHandler({
+                methodName: 'createShortlist',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: 201,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsShortlistController_deleteShortlist: Record<string, TsoaRoute.ParameterSchema> = {
+                id: {"in":"path","name":"id","required":true,"dataType":"string"},
+        };
+        app.delete('/shortlists/:id',
+            authenticateMiddleware([{"jwt":["recruiter","admin"]}]),
+            ...(fetchMiddlewares<RequestHandler>(ShortlistController)),
+            ...(fetchMiddlewares<RequestHandler>(ShortlistController.prototype.deleteShortlist)),
+
+            async function ShortlistController_deleteShortlist(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsShortlistController_deleteShortlist, request, response });
+
+                const controller = new ShortlistController();
+
+              await templateService.apiHandler({
+                methodName: 'deleteShortlist',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         const argsJobController_listJobs: Record<string, TsoaRoute.ParameterSchema> = {
                 search: {"in":"query","name":"search","dataType":"string"},
                 status: {"in":"query","name":"status","dataType":"union","subSchemas":[{"ref":"JobStatus"},{"dataType":"enum","enums":["All"]}]},

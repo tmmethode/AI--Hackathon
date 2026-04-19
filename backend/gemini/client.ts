@@ -8,6 +8,7 @@ interface GeminiApiResponse {
         text?: string;
       }>;
     };
+    finishReason?: string;
   }>;
   usageMetadata?: GeminiUsageMetadata;
   error?: {
@@ -43,6 +44,18 @@ export class GeminiClient {
       throw new Error("GEMINI_API_KEY is not configured");
     }
 
+    const requestedTokens = Number(request.maxOutputTokens);
+    const maxOutputTokens =
+      Number.isFinite(requestedTokens) && requestedTokens > 0
+        ? Math.floor(requestedTokens)
+        : this.maxOutputTokens;
+
+    const requestedTemperature = Number(request.temperature);
+    const temperature =
+      Number.isFinite(requestedTemperature) && requestedTemperature >= 0
+        ? requestedTemperature
+        : this.defaultTemperature;
+
     const response = await fetch(`${this.baseUrl}/${this.model}:generateContent`, {
       method: "POST",
       headers: {
@@ -62,8 +75,8 @@ export class GeminiClient {
             }
           : undefined,
         generationConfig: {
-          temperature: request.temperature ?? this.defaultTemperature,
-          maxOutputTokens: request.maxOutputTokens ?? this.maxOutputTokens,
+          temperature,
+          maxOutputTokens,
           responseMimeType: request.responseMimeType ?? "text/plain",
         },
       }),
@@ -76,9 +89,20 @@ export class GeminiClient {
     }
 
     const text = data.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim() || "";
+    const finishReason = data.candidates?.[0]?.finishReason;
 
     if (!text) {
-      throw new Error("Gemini returned an empty response");
+      throw new Error(
+        finishReason
+          ? `Gemini returned an empty response (finishReason=${finishReason})`
+          : "Gemini returned an empty response"
+      );
+    }
+
+    if (finishReason && finishReason !== "STOP") {
+      throw new Error(
+        `Gemini response was not completed normally (finishReason=${finishReason}); reduce the batch size or raise maxOutputTokens.`
+      );
     }
 
     return {

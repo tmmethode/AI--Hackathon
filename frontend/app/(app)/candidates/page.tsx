@@ -1,21 +1,24 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Search, Filter, ArrowDownUp, Check, Users, Eye,
   Download, Mail, Calendar,
   Briefcase, ChevronDown, Send, Video, Phone, X,
   ClipboardCheck, GraduationCap, Wrench, ChevronRight,
+  LoaderCircle,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
-import { Progress } from "@/components/ui/Progress";
 import { Field, Input, Textarea, Select } from "@/components/ui/Input";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
+import { listAllApplicants, type ApplicantRecord, type ApplicantSource } from "@/lib/applicants";
+import { getShortlist, listShortlists } from "@/lib/shortlists";
+import { listJobs, type JobRecord } from "@/lib/jobs";
 
 /* ── Types ── */
 type CandidateStatus = "shortlisted" | "interview" | "exam" | "assessment" | "practical" | "rejected" | "new";
@@ -44,20 +47,6 @@ const advanceOptions = [
 
 type AdvanceKey = typeof advanceOptions[number]["key"];
 
-/* ── Static data ── */
-const initialCandidates: Candidate[] = [
-  { id: "C-001", name: "Sarah Jenkins", title: "Senior Full Stack Engineer", matchScore: 98, skills: ["React", "Node.js", "AWS"], experience: "8 Years", location: "Remote (GMT+2)", source: "Umurava Platform", status: "shortlisted", job: "Senior Frontend Engineer", appliedDate: "2023-10-24" },
-  { id: "C-002", name: "Michael Chen", title: "Technical Product Lead", matchScore: 94, skills: ["Agile", "Python", "Product"], experience: "6 Years", location: "Kigali, Rwanda", source: "CSV Import", status: "interview", job: "Senior Frontend Engineer", appliedDate: "2023-10-23" },
-  { id: "C-003", name: "Elena Rodriguez", title: "DevOps & Infrastructure Specialist", matchScore: 91, skills: ["Kubernetes", "Terraform", "CI/CD"], experience: "7 Years", location: "Remote (US)", source: "PDF Upload", status: "exam", job: "DevOps Architect", appliedDate: "2023-10-22" },
-  { id: "C-004", name: "David Okafor", title: "Backend Architect", matchScore: 88, skills: ["Java", "Spring Boot", "Kafka"], experience: "9 Years", location: "Lagos, Nigeria", source: "Umurava Platform", status: "new", job: "Fullstack Developer", appliedDate: "2023-10-21" },
-  { id: "C-005", name: "Aisha Gupta", title: "Frontend Developer", matchScore: 85, skills: ["TypeScript", "Tailwind", "Next.js"], experience: "4 Years", location: "Remote (EU)", source: "Linked Profile", status: "assessment", job: "Senior Frontend Engineer", appliedDate: "2023-10-20" },
-  { id: "C-006", name: "James Osei", title: "Cloud Engineer", matchScore: 80, skills: ["GCP", "Docker", "Python"], experience: "5 Years", location: "Accra, Ghana", source: "Umurava Platform", status: "rejected", job: "DevOps Architect", appliedDate: "2023-10-19" },
-  { id: "C-007", name: "Priya Nair", title: "Data Engineer", matchScore: 76, skills: ["Spark", "SQL", "Airflow"], experience: "5 Years", location: "Bangalore, India", source: "CSV Import", status: "new", job: "Data Scientist", appliedDate: "2023-10-18" },
-  { id: "C-008", name: "Kevin Mwangi", title: "Full Stack Developer", matchScore: 72, skills: ["Python", "Django", "PostgreSQL"], experience: "7 Years", location: "Nairobi, Kenya", source: "PDF Upload", status: "practical", job: "Fullstack Developer", appliedDate: "2023-10-17" },
-  { id: "C-009", name: "Julie Tran", title: "Product Designer", matchScore: 89, skills: ["Figma", "User Research", "Prototyping"], experience: "5 Years", location: "Ho Chi Minh, Vietnam", source: "Umurava Platform", status: "shortlisted", job: "Product Designer", appliedDate: "2023-10-16" },
-  { id: "C-010", name: "Amara Diallo", title: "Junior Frontend Developer", matchScore: 65, skills: ["HTML", "CSS", "JavaScript"], experience: "2 Years", location: "Dakar, Senegal", source: "Linked Profile", status: "new", job: "Senior Frontend Engineer", appliedDate: "2023-10-15" },
-];
-
 const statusTone: Record<CandidateStatus, React.ComponentProps<typeof Badge>["tone"]> = {
   shortlisted: "brand",
   interview: "success",
@@ -82,9 +71,108 @@ type SortKey = "matchScore" | "name" | "appliedDate";
 type FilterStatus = "all" | "shortlisted" | "advanced" | "interview" | "exam" | "assessment" | "practical" | "rejected" | "new";
 
 const ADVANCED_STATUSES: CandidateStatus[] = ["interview", "exam", "assessment", "practical"];
-
-const jobList = Array.from(new Set(initialCandidates.map((c) => c.job)));
 const PAGE_SIZE = 10;
+
+function humanizeApplicantSource(source: ApplicantSource) {
+  switch (source) {
+    case "umurava-platform":
+      return "JSON Upload";
+    case "pdf-upload":
+      return "Resume Upload";
+    case "csv-import":
+      return "CSV Import";
+    case "paste-links":
+      return "Paste Links";
+    default:
+      return "Applicant Source";
+  }
+}
+
+function buildCandidateId(jobId: string, email: string) {
+  return `${jobId}:${email.trim().toLowerCase()}`;
+}
+
+function applicantDisplayName(applicant?: ApplicantRecord, fallbackValue?: string) {
+  if (!applicant) {
+    return fallbackValue || "Unknown Candidate";
+  }
+
+  const fullName = `${applicant.firstName} ${applicant.lastName}`.trim();
+  return fullName || applicant.email || fallbackValue || "Unknown Candidate";
+}
+
+function deriveExperienceYears(applicant?: ApplicantRecord) {
+  if (!applicant?.experience?.length) {
+    return 0;
+  }
+
+  let earliestYear = Number.POSITIVE_INFINITY;
+  let latestYear = 0;
+
+  for (const entry of applicant.experience) {
+    const startYear = entry.startDate ? new Date(entry.startDate).getFullYear() : NaN;
+    const endYear = entry.isCurrent
+      ? new Date().getFullYear()
+      : entry.endDate
+      ? new Date(entry.endDate).getFullYear()
+      : NaN;
+
+    if (Number.isFinite(startYear)) {
+      earliestYear = Math.min(earliestYear, startYear);
+      latestYear = Math.max(latestYear, Number.isFinite(endYear) ? endYear : startYear);
+    }
+  }
+
+  if (!Number.isFinite(earliestYear) || latestYear <= 0) {
+    return 0;
+  }
+
+  return Math.max(0, latestYear - earliestYear + 1);
+}
+
+function formatExperience(applicant?: ApplicantRecord) {
+  const years = deriveExperienceYears(applicant);
+  return years > 0 ? `${years} Years` : "—";
+}
+
+function formatAppliedDate(value?: string) {
+  if (!value) {
+    return "";
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toISOString().slice(0, 10);
+}
+
+function listApplicantSkills(applicant?: ApplicantRecord) {
+  return (applicant?.skills || [])
+    .map((skill) => skill.name.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
+async function listAllJobs() {
+  const firstPage = await listJobs({ page: 1, pageSize: 100 });
+
+  if (firstPage.totalPages <= 1) {
+    return firstPage.data;
+  }
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: firstPage.totalPages - 1 }, (_, index) =>
+      listJobs({
+        page: index + 2,
+        pageSize: 100,
+      })
+    )
+  );
+
+  return firstPage.data.concat(...remainingPages.map((page) => page.data));
+}
 
 /* ── Context-aware helpers ── */
 function getEmailSubject(c: Candidate): string {
@@ -144,7 +232,9 @@ function getScheduleDefaults(c: Candidate): { round: string; notes: string; dura
 
 /* ── Main Page ── */
 export default function CandidatesPage() {
-  const [candidates, setCandidates] = useState<Candidate[]>(initialCandidates);
+  const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("matchScore");
   const [sortAsc, setSortAsc] = useState(false);
@@ -159,6 +249,148 @@ export default function CandidatesPage() {
   const [emailSent, setEmailSent] = useState(false);
   const [scheduleSent, setScheduleSent] = useState(false);
   const [advanceDropdownId, setAdvanceDropdownId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadCandidates() {
+      setLoading(true);
+      setLoadError("");
+
+      try {
+        const [jobs, shortlistSummaryResponse] = await Promise.all([
+          listAllJobs(),
+          listShortlists({ page: 1, pageSize: 100 }),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        const jobsById = new Map<string, JobRecord>(jobs.map((job) => [job._id, job]));
+        const applicantsByJob = new Map<string, ApplicantRecord[]>();
+
+        await Promise.all(
+          jobs.map(async (job) => {
+            const applicants = await listAllApplicants(job._id);
+            applicantsByJob.set(job._id, applicants);
+          })
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        const latestShortlistByJob = new Map<string, string>();
+        for (const summary of shortlistSummaryResponse.data) {
+          if (!latestShortlistByJob.has(summary.job)) {
+            latestShortlistByJob.set(summary.job, summary._id);
+          }
+        }
+
+        const shortlistRecords = await Promise.all(
+          Array.from(latestShortlistByJob.values()).map(async (id) => (await getShortlist(id)).data)
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        const nextCandidates: Candidate[] = [];
+        const seenCandidateIds = new Set<string>();
+
+        for (const record of shortlistRecords) {
+          const applicants = applicantsByJob.get(record.job) ?? [];
+          const applicantsByEmail = new Map(
+            applicants.map((applicant) => [applicant.email.trim().toLowerCase(), applicant])
+          );
+          const shortlistedEmails = new Set(
+            (record.shortlist || []).map((entry) => entry.applicantEmail.trim().toLowerCase())
+          );
+
+          for (const result of record.screeningResults || []) {
+            const emailKey = result.applicantEmail.trim().toLowerCase();
+            const applicant = applicantsByEmail.get(emailKey);
+            const candidateId = buildCandidateId(record.job, result.applicantEmail);
+
+            nextCandidates.push({
+              id: candidateId,
+              name: applicantDisplayName(applicant, result.fullName || result.applicantEmail),
+              title: applicant?.headline?.trim() || result.finalRecommendation,
+              matchScore: result.matchScore,
+              skills: listApplicantSkills(applicant).length > 0 ? listApplicantSkills(applicant) : result.strengths.slice(0, 3),
+              experience: formatExperience(applicant),
+              location: applicant?.location?.trim() || "—",
+              source: applicant ? humanizeApplicantSource(applicant.source) : "Screening Run",
+              status: shortlistedEmails.has(emailKey) ? "shortlisted" : "rejected",
+              job: record.jobTitle || jobsById.get(record.job)?.title || "Unknown Job",
+              appliedDate: formatAppliedDate(applicant?.createdAt || record.createdAt),
+            });
+
+            seenCandidateIds.add(candidateId);
+          }
+        }
+
+        for (const job of jobs) {
+          const applicants = applicantsByJob.get(job._id) ?? [];
+
+          for (const applicant of applicants) {
+            const candidateId = buildCandidateId(job._id, applicant.email);
+
+            if (seenCandidateIds.has(candidateId)) {
+              continue;
+            }
+
+            nextCandidates.push({
+              id: candidateId,
+              name: applicantDisplayName(applicant),
+              title: applicant.headline?.trim() || "Applicant",
+              matchScore: 0,
+              skills: listApplicantSkills(applicant),
+              experience: formatExperience(applicant),
+              location: applicant.location?.trim() || "—",
+              source: humanizeApplicantSource(applicant.source),
+              status: "new",
+              job: job.title,
+              appliedDate: formatAppliedDate(applicant.createdAt),
+            });
+          }
+        }
+
+        nextCandidates.sort((left, right) => {
+          if (right.matchScore !== left.matchScore) {
+            return right.matchScore - left.matchScore;
+          }
+
+          return right.appliedDate.localeCompare(left.appliedDate);
+        });
+
+        setCandidates(nextCandidates);
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        setCandidates([]);
+        setLoadError(error instanceof Error ? error.message : "Failed to load candidates.");
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void loadCandidates();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const jobList = useMemo(
+    () => Array.from(new Set(candidates.map((candidate) => candidate.job))).sort((left, right) => left.localeCompare(right)),
+    [candidates]
+  );
 
   const jobFiltered = useMemo(() =>
     filterJob === "all" ? candidates : candidates.filter((c) => c.job === filterJob),
@@ -246,6 +478,12 @@ export default function CandidatesPage() {
           </>
         }
       />
+
+      {loadError && (
+        <div className="mt-6 rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+          {loadError}
+        </div>
+      )}
 
       {/* Job selector */}
       <div className="relative mt-6">
@@ -396,7 +634,12 @@ export default function CandidatesPage() {
         </div>
 
         {/* Candidates grid */}
-        {paginated.length === 0 ? (
+        {loading ? (
+          <div className="px-5 py-16 text-center text-sm text-ink-muted">
+            <LoaderCircle className="mx-auto mb-2 h-5 w-5 animate-spin" />
+            Loading candidates from screening and shortlist data…
+          </div>
+        ) : paginated.length === 0 ? (
           <div className="px-5 py-16 text-center text-sm text-ink-muted">
             No candidates match your filters.
           </div>

@@ -26,8 +26,47 @@ const BATCH_RECOMMENDATIONS: readonly GeminiBatchRecommendation[] = [
   "Strong Shortlist",
 ];
 
+const BATCH_CHUNK_SIZE = Math.max(
+  1,
+  Math.floor(Number(process.env.GEMINI_BATCH_CHUNK_SIZE) || 15)
+);
+const BATCH_MAX_OUTPUT_TOKENS = 8192;
+
 function estimateBatchTokenBudget(applicantCount: number): number {
-  return Math.max(1500, Math.min(8192, 600 + applicantCount * 350));
+  return Math.max(1500, Math.min(BATCH_MAX_OUTPUT_TOKENS, 600 + applicantCount * 450));
+}
+
+function isMaxTokensError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("finishReason=MAX_TOKENS") || message.includes("MAX_TOKENS");
+}
+
+function splitShortlistCount(
+  shortlistCount: number,
+  leftSize: number,
+  rightSize: number
+): [number, number] {
+  const totalSize = leftSize + rightSize;
+
+  if (shortlistCount <= 0) {
+    return [0, 0];
+  }
+
+  if (shortlistCount >= totalSize) {
+    return [leftSize, rightSize];
+  }
+
+  const leftCount = Math.min(
+    leftSize,
+    Math.max(1, Math.round((shortlistCount * leftSize) / totalSize))
+  );
+  const remaining = Math.max(0, shortlistCount - leftCount);
+  const rightCount = Math.min(
+    rightSize,
+    remaining > 0 ? remaining : Math.min(1, rightSize)
+  );
+
+  return [leftCount, rightCount];
 }
 
 function normalizeRecommendation(value: unknown): GeminiBatchRecommendation {
@@ -97,6 +136,25 @@ function extractJsonObject(raw: string): string {
   }
 
   return trimmed.slice(firstBrace, lastBrace + 1);
+}
+
+function safeParseJson<T>(raw: string, context: string): T {
+  const candidate = extractJsonObject(raw);
+
+  if (!candidate) {
+    throw new Error(`${context}: Gemini returned a non-JSON response (empty).`);
+  }
+
+  try {
+    return JSON.parse(candidate) as T;
+  } catch (error) {
+    const snippet = candidate.length > 240 ? `${candidate.slice(0, 240)}…` : candidate;
+    const reason = error instanceof Error ? error.message : String(error);
+
+    throw new Error(
+      `${context}: Gemini returned a non-JSON response (${reason}). Raw: ${snippet}`
+    );
+  }
 }
 
 function clampScore(value: unknown): number {
@@ -211,9 +269,9 @@ export class GeminiScreeningService {
       maxOutputTokens: 1200,
     });
 
-    const parsed = JSON.parse(extractJsonObject(response.text)) as Partial<GeminiCandidateScreenResponse> & {
+    const parsed = safeParseJson<Partial<GeminiCandidateScreenResponse> & {
       criterionScores?: unknown;
-    };
+    }>(response.text, "screenCandidate");
     const criterionAssessments = buildCriterionAssessments(rankingCriteria, toCriterionScores(parsed.criterionScores));
 
     const recommendation =
@@ -239,35 +297,22 @@ export class GeminiScreeningService {
     };
   }
 
-  public async screenBatch(request: GeminiBatchScreeningRequest): Promise<GeminiBatchScreeningResponse> {
-    if (!request.applicants || request.applicants.length === 0) {
-      throw new Error("At least one applicant is required for Gemini batch screening");
-    }
-
-    const shortlistCount = Math.max(
-      0,
-      Math.min(Math.floor(request.shortlistCount ?? 0), request.applicants.length)
-    );
-
+  private async runGeminiBatchCall(
+    request: GeminiBatchScreeningRequest,
+    effectiveShortlistCount: number
+  ): Promise<{ entries: Map<string, ParsedBatchEntry>; model: string }> {
     const response = await this.client.generateText({
-      prompt: buildBatchScreeningPrompt({ ...request, shortlistCount }),
+      prompt: buildBatchScreeningPrompt({
+        ...request,
+        shortlistCount: effectiveShortlistCount,
+      }),
       systemInstruction: GEMINI_BATCH_SCREENING_SYSTEM_INSTRUCTION,
       responseMimeType: "application/json",
       temperature: request.temperature ?? 0.2,
       maxOutputTokens: estimateBatchTokenBudget(request.applicants.length),
     });
 
-    const parsed = JSON.parse(extractJsonObject(response.text)) as {
-      screeningResults?: unknown;
-      shortlist?: unknown;
-    };
-
-    const applicantIndex = new Map<string, GeminiBatchApplicant>();
-    for (const applicant of request.applicants) {
-      if (applicant.email) {
-        applicantIndex.set(applicant.email.trim().toLowerCase(), applicant);
-      }
-    }
+    const parsed = safeParseJson<{ screeningResults?: unknown }>(response.text, "screenBatch");
 
     const parsedEntries = Array.isArray(parsed.screeningResults)
       ? (parsed.screeningResults as unknown[])
@@ -282,10 +327,111 @@ export class GeminiScreeningService {
       }
     }
 
+    return { entries: entryByEmail, model: response.model };
+  }
+
+  private async runGeminiBatchChunkWithRetry(
+    request: GeminiBatchScreeningRequest,
+    effectiveShortlistCount: number
+  ): Promise<{ entries: Map<string, ParsedBatchEntry>; model: string }> {
+    try {
+      return await this.runGeminiBatchCall(request, effectiveShortlistCount);
+    } catch (error) {
+      if (!isMaxTokensError(error) || request.applicants.length <= 1) {
+        throw error;
+      }
+
+      const midpoint = Math.ceil(request.applicants.length / 2);
+      const leftApplicants = request.applicants.slice(0, midpoint);
+      const rightApplicants = request.applicants.slice(midpoint);
+      const [leftShortlistCount, rightShortlistCount] = splitShortlistCount(
+        effectiveShortlistCount,
+        leftApplicants.length,
+        rightApplicants.length
+      );
+
+      const [leftResult, rightResult] = await Promise.all([
+        this.runGeminiBatchChunkWithRetry(
+          { ...request, applicants: leftApplicants },
+          leftShortlistCount
+        ),
+        this.runGeminiBatchChunkWithRetry(
+          { ...request, applicants: rightApplicants },
+          rightShortlistCount
+        ),
+      ]);
+
+      const mergedEntries = new Map<string, ParsedBatchEntry>();
+
+      for (const [email, entry] of leftResult.entries) {
+        mergedEntries.set(email, entry);
+      }
+
+      for (const [email, entry] of rightResult.entries) {
+        if (!mergedEntries.has(email)) {
+          mergedEntries.set(email, entry);
+        }
+      }
+
+      return {
+        entries: mergedEntries,
+        model: rightResult.model || leftResult.model,
+      };
+    }
+  }
+
+  public async screenBatch(request: GeminiBatchScreeningRequest): Promise<GeminiBatchScreeningResponse> {
+    if (!request.applicants || request.applicants.length === 0) {
+      throw new Error("At least one applicant is required for Gemini batch screening");
+    }
+
+    const totalApplicants = request.applicants.length;
+    const shortlistCount = Math.max(
+      0,
+      Math.min(Math.floor(request.shortlistCount ?? 0), totalApplicants)
+    );
+
+    const chunkSize = Math.max(1, BATCH_CHUNK_SIZE);
+    const chunks: GeminiBatchApplicant[][] = [];
+    for (let i = 0; i < totalApplicants; i += chunkSize) {
+      chunks.push(request.applicants.slice(i, i + chunkSize));
+    }
+
+    const mergedEntries = new Map<string, ParsedBatchEntry>();
+    const failures: Array<{ chunkIndex: number; reason: string }> = [];
+    let lastModel = this.client.getModel();
+
+    for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex += 1) {
+      const chunk = chunks[chunkIndex];
+
+      try {
+        const { entries, model } = await this.runGeminiBatchChunkWithRetry(
+          { ...request, applicants: chunk },
+          Math.min(chunk.length, shortlistCount || chunk.length)
+        );
+
+        for (const [email, entry] of entries) {
+          if (!mergedEntries.has(email)) {
+            mergedEntries.set(email, entry);
+          }
+        }
+        lastModel = model || lastModel;
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        failures.push({ chunkIndex, reason });
+      }
+    }
+
+    if (mergedEntries.size === 0 && failures.length > 0) {
+      throw new Error(
+        `screenBatch: all ${chunks.length} Gemini chunk(s) failed. First error: ${failures[0].reason}`
+      );
+    }
+
     const screeningResults: GeminiBatchScreeningResultEntry[] = request.applicants.map(
       (applicant) => {
         const key = applicant.email.trim().toLowerCase();
-        const entry = entryByEmail.get(key);
+        const entry = mergedEntries.get(key);
         const fallbackName = fullNameFromApplicant(applicant) || applicant.email;
 
         if (entry) {
@@ -351,10 +497,10 @@ export class GeminiScreeningService {
       jobTitle: request.job.title,
       department: request.job.department || "",
       shortlistCount,
-      totalApplicants: request.applicants.length,
+      totalApplicants,
       screeningResults,
       shortlist,
-      model: response.model,
+      model: lastModel,
     };
   }
 }

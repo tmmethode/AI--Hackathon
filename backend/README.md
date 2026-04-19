@@ -32,7 +32,8 @@ GEMINI_API_KEY=your-gemini-api-key
 
 Optional Gemini tuning for frontend-driven screening:
 ```
-GEMINI_MODEL=gemini-1.5-flash
+GEMINI_MODEL=gemini-2.5-flash-lite
+GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/models
 GEMINI_DEFAULT_TEMPERATURE=0.2
 GEMINI_MAX_OUTPUT_TOKENS=1200
 GEMINI_FRONTEND_DEFAULT_SHORTLIST_SIZE=10

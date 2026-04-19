@@ -7,6 +7,394 @@
 		"requestBodies": {},
 		"responses": {},
 		"schemas": {
+			"ShortlistSummaryDTO": {
+				"properties": {
+					"_id": {
+						"type": "string"
+					},
+					"job": {
+						"type": "string"
+					},
+					"jobTitle": {
+						"type": "string"
+					},
+					"department": {
+						"type": "string"
+					},
+					"runName": {
+						"type": "string"
+					},
+					"model": {
+						"type": "string"
+					},
+					"totalApplicants": {
+						"type": "number",
+						"format": "double"
+					},
+					"shortlistCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"topMatchScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"topCandidateName": {
+						"type": "string"
+					},
+					"createdBy": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string"
+					},
+					"updatedAt": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"_id",
+					"job",
+					"jobTitle",
+					"department",
+					"runName",
+					"model",
+					"totalApplicants",
+					"shortlistCount",
+					"topMatchScore",
+					"topCandidateName",
+					"createdBy",
+					"createdAt",
+					"updatedAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ShortlistListResponse": {
+				"properties": {
+					"data": {
+						"items": {
+							"$ref": "#/components/schemas/ShortlistSummaryDTO"
+						},
+						"type": "array"
+					},
+					"total": {
+						"type": "number",
+						"format": "double"
+					},
+					"page": {
+						"type": "number",
+						"format": "double"
+					},
+					"pageSize": {
+						"type": "number",
+						"format": "double"
+					},
+					"totalPages": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"data",
+					"total",
+					"page",
+					"pageSize",
+					"totalPages",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ShortlistRecommendation": {
+				"type": "string",
+				"enum": [
+					"Strong Reject",
+					"Reject",
+					"Consider",
+					"Shortlist",
+					"Strong Shortlist"
+				]
+			},
+			"ShortlistResultEntryDTO": {
+				"properties": {
+					"candidateRank": {
+						"type": "number",
+						"format": "double"
+					},
+					"applicantEmail": {
+						"type": "string"
+					},
+					"fullName": {
+						"type": "string"
+					},
+					"matchScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"confidenceScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"skillsScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"experienceScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"educationScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"relevanceScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"strengths": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"gapsOrRisks": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"finalRecommendation": {
+						"$ref": "#/components/schemas/ShortlistRecommendation"
+					},
+					"summaryExplanation": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"candidateRank",
+					"applicantEmail",
+					"fullName",
+					"matchScore",
+					"confidenceScore",
+					"skillsScore",
+					"experienceScore",
+					"educationScore",
+					"relevanceScore",
+					"strengths",
+					"gapsOrRisks",
+					"finalRecommendation",
+					"summaryExplanation"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ShortlistEntryDTO": {
+				"properties": {
+					"candidateRank": {
+						"type": "number",
+						"format": "double"
+					},
+					"applicantEmail": {
+						"type": "string"
+					},
+					"fullName": {
+						"type": "string"
+					},
+					"matchScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"strengths": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"gapsOrRisks": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"finalRecommendation": {
+						"$ref": "#/components/schemas/ShortlistRecommendation"
+					},
+					"summaryExplanation": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"candidateRank",
+					"applicantEmail",
+					"fullName",
+					"matchScore",
+					"strengths",
+					"gapsOrRisks",
+					"finalRecommendation",
+					"summaryExplanation"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ShortlistDTO": {
+				"properties": {
+					"_id": {
+						"type": "string"
+					},
+					"job": {
+						"type": "string"
+					},
+					"jobTitle": {
+						"type": "string"
+					},
+					"department": {
+						"type": "string"
+					},
+					"runName": {
+						"type": "string"
+					},
+					"model": {
+						"type": "string"
+					},
+					"totalApplicants": {
+						"type": "number",
+						"format": "double"
+					},
+					"shortlistCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"screeningResults": {
+						"items": {
+							"$ref": "#/components/schemas/ShortlistResultEntryDTO"
+						},
+						"type": "array"
+					},
+					"shortlist": {
+						"items": {
+							"$ref": "#/components/schemas/ShortlistEntryDTO"
+						},
+						"type": "array"
+					},
+					"instructions": {
+						"type": "string"
+					},
+					"createdBy": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string"
+					},
+					"updatedAt": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"_id",
+					"job",
+					"jobTitle",
+					"department",
+					"runName",
+					"model",
+					"totalApplicants",
+					"shortlistCount",
+					"screeningResults",
+					"shortlist",
+					"createdBy",
+					"createdAt",
+					"updatedAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ShortlistResponse": {
+				"properties": {
+					"data": {
+						"$ref": "#/components/schemas/ShortlistDTO"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"data",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"CreateShortlistRequest": {
+				"properties": {
+					"jobId": {
+						"type": "string"
+					},
+					"runName": {
+						"type": "string"
+					},
+					"jobTitle": {
+						"type": "string"
+					},
+					"department": {
+						"type": "string"
+					},
+					"model": {
+						"type": "string"
+					},
+					"totalApplicants": {
+						"type": "number",
+						"format": "double"
+					},
+					"shortlistCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"screeningResults": {
+						"items": {
+							"$ref": "#/components/schemas/ShortlistResultEntryDTO"
+						},
+						"type": "array"
+					},
+					"shortlist": {
+						"items": {
+							"$ref": "#/components/schemas/ShortlistEntryDTO"
+						},
+						"type": "array"
+					},
+					"instructions": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"jobId",
+					"jobTitle",
+					"totalApplicants",
+					"shortlistCount",
+					"screeningResults",
+					"shortlist"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"DeleteShortlistResponse": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"id",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"HiringManagerSummary": {
 				"properties": {
 					"_id": {
@@ -2564,6 +2952,170 @@
 		}
 	},
 	"paths": {
+		"/shortlists": {
+			"get": {
+				"operationId": "ListShortlists",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ShortlistListResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "List shortlists with pagination, optionally filtered by job.",
+				"tags": [
+					"Shortlists"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "jobId",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "page",
+						"required": false,
+						"schema": {
+							"default": 1,
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "pageSize",
+						"required": false,
+						"schema": {
+							"default": 20,
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			},
+			"post": {
+				"operationId": "CreateShortlist",
+				"responses": {
+					"201": {
+						"description": "Created",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ShortlistResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Persist a screening run result as a shortlist record.",
+				"tags": [
+					"Shortlists"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/CreateShortlistRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/shortlists/{id}": {
+			"get": {
+				"operationId": "GetShortlist",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ShortlistResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Get a single shortlist by ID (includes full screening results).",
+				"tags": [
+					"Shortlists"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			},
+			"delete": {
+				"operationId": "DeleteShortlist",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/DeleteShortlistResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Delete a shortlist permanently.",
+				"tags": [
+					"Shortlists"
+				],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
 		"/jobs": {
 			"get": {
 				"operationId": "ListJobs",
