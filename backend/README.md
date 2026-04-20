@@ -1,6 +1,6 @@
 # Backend API
 
-A simple backend API with Hello World endpoint using TypeScript, Express, tsoa for automatic documentation, and Mongoose for MongoDB integration.
+Backend service for the Umurava Screening platform, built with TypeScript, Express, tsoa, Mongoose, and Gemini integrations.
 
 ## Features
 
@@ -48,12 +48,20 @@ GEMINI_FRONTEND_MAX_SHORTLIST_SIZE=50
 
 ## API Endpoints
 
-### Hello World
+### Core APIs
 
-- `GET /hello/` - Get the latest Hello World message
-- `GET /hello/create` - Create a new Hello World message in the database
+- `POST /auth/login` - Authenticate user credentials and issue a JWT
+- `POST /auth/register` - Register a new user (admin-protected)
+- `GET /auth/me` - Return the authenticated user profile
+- `GET /jobs` - List job requisitions
+- `POST /jobs` - Create a job requisition
+- `GET /applicants` - List applicants
+- `POST /applicants` - Create applicants (including ingestion payloads)
+- `GET /shortlists` - List shortlist runs
+- `POST /shortlists` - Persist shortlist outcomes
+- `GET /notifications` - Retrieve in-app notifications
 
-### Gemini
+### Gemini APIs
 
 - `GET /gemini/health` - Check whether Gemini is configured and which model is active
 - `GET /gemini/frontend-config` - Return frontend-facing Gemini defaults, limits, and endpoint paths
@@ -74,8 +82,12 @@ backend_api/
 ├── config/
 │   └── database.ts       # MongoDB connection
 ├── controllers/
-│   ├── GeminiController.ts      # Gemini API endpoints
-│   └── HelloWorldController.ts  # API controllers
+│   ├── ApplicantController.ts   # Applicant APIs
+│   ├── AuthController.ts        # Authentication APIs
+│   ├── GeminiController.ts      # Gemini endpoints
+│   ├── JobController.ts         # Job requisition APIs
+│   ├── NotificationController.ts # Notification APIs
+│   └── ShortlistController.ts   # Shortlist APIs
 ├── gemini/
 │   ├── config.ts         # Centralized Gemini environment and frontend defaults
 │   ├── client.ts         # Gemini REST client
@@ -84,7 +96,10 @@ backend_api/
 │   ├── screening.ts      # Candidate screening service
 │   └── types.ts          # Gemini request/response types
 ├── models/
-│   └── HelloWorld.ts     # Mongoose models
+│   ├── Applicant.ts      # Applicant model
+│   ├── Job.ts            # Job model
+│   ├── Shortlist.ts      # Shortlist model
+│   └── User.ts           # User model
 ├── generated/           # Auto-generated tsoa routes
 ├── docs/               # Auto-generated swagger docs
 ├── index.ts            # Application entry point

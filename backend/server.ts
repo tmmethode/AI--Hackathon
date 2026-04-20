@@ -61,6 +61,28 @@ function createAuthToken(userId: string) {
   );
 }
 
+type ErrorWithStatus = {
+  status: number;
+  name?: string;
+  message?: string;
+};
+
+function hasStatus(error: unknown): error is ErrorWithStatus {
+  return typeof error === "object" && error !== null && "status" in error && typeof (error as { status?: unknown }).status === "number";
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === "object" && error !== null && "message" in error && typeof (error as { message?: unknown }).message === "string") {
+    return (error as { message: string }).message;
+  }
+
+  return fallback;
+}
+
 function redirectToFrontendLogin(res: Response, message: string, nextPath?: unknown) {
   const redirectUrl = new URL("/login", getFrontendBaseUrl());
   redirectUrl.searchParams.set("error", message);
@@ -77,7 +99,7 @@ function redirectToFrontendGoogleCallback(res: Response, user: IUser, nextPath?:
 }
 
 let databaseConnected = false;
-let databaseError: any = null;
+let databaseError: unknown = null;
 
 connectDatabase().then((result) => {
   databaseConnected = result.success;
@@ -131,7 +153,7 @@ app.get('/', (req: Request, res: Response) => {
     return res.status(503).json({
       error: 'Failed to connect to database',
       message: 'Database connection failed during startup',
-      details: databaseError?.message || 'Unknown database error',
+      details: getErrorMessage(databaseError, 'Unknown database error'),
       timestamp: new Date().toISOString()
     });
   }
@@ -202,11 +224,11 @@ app.use((req: Request, res: Response) => {
   });
 });
 
-app.use((err: any, req: Request, res: Response, next: any) => {
-  if (err instanceof HttpError || typeof err?.status === 'number') {
+app.use((err: unknown, req: Request, res: Response, _next: unknown) => {
+  if (err instanceof HttpError || hasStatus(err)) {
     return res.status(err.status).json({
-      error: err.name || 'Error',
-      message: err.message,
+      error: (typeof err.name === "string" ? err.name : 'Error'),
+      message: getErrorMessage(err, 'Unexpected error'),
       timestamp: new Date().toISOString()
     });
   }
