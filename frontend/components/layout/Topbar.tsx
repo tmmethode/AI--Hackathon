@@ -87,7 +87,6 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   return (
     <>
       <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-line bg-surface px-4 md:px-8">
-        {/* Hamburger — mobile only */}
         <button type="button" aria-label="Open menu" onClick={onMenuClick}
           className="flex h-10 w-10 items-center justify-center rounded-md text-ink-muted hover:bg-surface-soft md:hidden">
           <Menu className="h-5 w-5" />
@@ -110,13 +109,11 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          {/* Help */}
           <button type="button" aria-label="Help"
             className="flex h-10 w-10 items-center justify-center rounded-md text-ink-muted hover:bg-surface-soft">
             <CircleHelp className="h-5 w-5" />
           </button>
 
-          {/* Notifications */}
           <div className="relative">
             <button type="button" aria-label="Notifications"
               onClick={() => { setShowNotif((v) => !v); setShowProfile(false); }}
@@ -131,7 +128,6 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
 
             {showNotif && (
               <div className="fixed left-2 right-2 top-16 z-30 rounded-xl border border-line bg-surface shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-80">
-                {/* Header */}
                 <div className="flex items-center justify-between border-b border-line px-4 py-3">
                   <h3 className="text-sm font-semibold text-ink">Notifications</h3>
                   {unread > 0 && (
@@ -141,7 +137,6 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
                   )}
                 </div>
 
-                {/* Tabs */}
                 <div className="flex border-b border-line">
                   {(["all", "unread"] as const).map((t) => (
                     <button key={t} onClick={() => setNotifTab(t)}
@@ -153,7 +148,6 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
                   ))}
                 </div>
 
-                {/* List */}
                 <ul className={`divide-y divide-line overflow-y-auto ${viewAll ? "max-h-[420px]" : "max-h-64"}`}>
                   {(() => {
                     const list = notifTab === "unread" ? notifs.filter((n) => !n.read) : notifs;
@@ -192,7 +186,6 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
 
           <div className="mx-2 h-8 w-px bg-line" aria-hidden />
 
-          {/* Profile menu */}
           <div className="relative flex items-center gap-2">
             <div className="hidden text-right sm:block">
               <p className="text-sm text-ink">{displayName}</p>
@@ -239,7 +232,6 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
         </div>
       </header>
 
-      {/* Backdrop to close dropdowns */}
       {(showNotif || showProfile) && (
         <div className="fixed inset-0 z-[19]" onClick={closeAll} />
       )}

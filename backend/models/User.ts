@@ -44,10 +44,10 @@ const UserSchema: Schema = new Schema({
   password: {
     type: String,
     required: function(this: IUser) {
-      return !this.googleId; // Password is required if not using Google OAuth
+      return !this.googleId;
     },
     minlength: 6,
-    select: false // Don't include password in queries by default
+    select: false
   },
   firstName: {
     type: String,
@@ -129,7 +129,6 @@ const UserSchema: Schema = new Schema({
   }
 });
 
-// Hash password before saving
 UserSchema.pre<IUser>('save', async function(next) {
   if (!this.isModified('password') || !this.password) {
     return next();
@@ -144,7 +143,6 @@ UserSchema.pre<IUser>('save', async function(next) {
   }
 });
 
-// Compare password method
 UserSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
   if (!this.password) {
     return false;
@@ -152,7 +150,6 @@ UserSchema.methods.comparePassword = async function(candidatePassword: string): 
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Get full name method
 UserSchema.methods.getFullName = function(): string {
   return `${this.firstName} ${this.lastName}`;
 };

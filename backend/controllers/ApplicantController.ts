@@ -35,8 +35,6 @@ import {
 @Tags('Applicants')
 @Route('jobs/{jobId}/applicants')
 export class ApplicantController {
-  // ───────────────────────── helpers ─────────────────────────
-
   private assertJobId(jobId: string) {
     if (!mongoose.Types.ObjectId.isValid(jobId)) {
       throw new HttpError(400, 'Invalid job id');
@@ -297,8 +295,6 @@ export class ApplicantController {
     return rows;
   }
 
-  // ───────────────────────── routes ─────────────────────────
-
   /**
    * List applicants for a job (paginated + searchable).
    */
@@ -462,7 +458,7 @@ export class ApplicantController {
           throw new Error('filename is required');
         }
 
-        // Synthesize a placeholder email so we can keep uniqueness per-job.
+        // Placeholder emails keep MongoDB uniqueness constraints intact until parsing resolves a real email.
         const placeholderEmail = (
           file.email?.toLowerCase() ||
           `pending+${Date.now()}-${i}@ingest.local`

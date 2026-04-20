@@ -31,7 +31,6 @@ import {
 @Route('jobs')
 export class JobController {
   private toHiringManagerSummary(hm: any): HiringManagerSummary {
-    // Populated user doc
     if (hm && typeof hm === 'object' && 'email' in hm) {
       const u = hm as IUser;
       return {
@@ -42,7 +41,6 @@ export class JobController {
         profilePicture: u.profilePicture,
       };
     }
-    // Unpopulated ObjectId — return minimal info
     return {
       _id: hm?.toString?.() ?? String(hm),
       firstName: '',
@@ -63,7 +61,7 @@ export class JobController {
   ): Promise<mongoose.Types.ObjectId> {
     const actingRole = actingUser.role;
 
-    // Recruiter/admin default: themselves
+    // Defaulting to the acting user avoids silent ownership reassignment.
     if (!requestedId) {
       if (actingRole === 'recruiter' || actingRole === 'admin') {
         return actingUser._id;
@@ -75,7 +73,7 @@ export class JobController {
       throw new Error('Invalid hiringManager id');
     }
 
-    // Recruiter cannot assign someone else as hiring manager
+    // Recruiters are intentionally restricted to themselves to prevent privilege escalation.
     if (actingRole === 'recruiter' && requestedId !== actingUser._id.toString()) {
       throw new Error('Recruiters can only assign themselves as hiring manager');
     }
@@ -144,7 +142,7 @@ export class JobController {
       if (search && search.trim().length > 0) {
         const regex = new RegExp(search.trim(), 'i');
 
-        // Also search by hiring manager's name/email
+        // Include hiring manager identity in search so recruiters can find all of their requisitions.
         const matchingManagers = await User.find({
           role: { $in: ['recruiter', 'admin'] },
           $or: [
@@ -275,7 +273,6 @@ export class JobController {
 
       const update: Record<string, any> = { ...body };
 
-      // If caller is changing the hiring manager, validate them
       if (body.hiringManager !== undefined) {
         const actingUser: IUser | undefined = req.user;
         if (!actingUser) {
@@ -399,7 +396,7 @@ export class JobController {
     weightCriteria: { value: number }[] | undefined,
     status: JobStatus | undefined
   ) {
-    // Only enforce 100% total when saving as Active. Drafts can be partial.
+    // Draft jobs can be saved incrementally; enforce a strict 100% only at activation time.
     if (!weightCriteria || weightCriteria.length === 0) return;
     if (status && status !== 'Active') return;
 

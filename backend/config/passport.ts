@@ -15,7 +15,6 @@ export const hasGoogleOAuthConfig = Boolean(
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
-// Local Strategy for email/password login
 passport.use(
   new LocalStrategy(
     {
@@ -47,7 +46,7 @@ passport.use(
   )
 );
 
-// Google OAuth Strategy (only configure if credentials are available)
+// Only register Google OAuth when credentials are present so local/dev environments still boot cleanly.
 if (hasGoogleOAuthConfig) {
   passport.use(
     new GoogleStrategy(
@@ -104,7 +103,6 @@ if (hasGoogleOAuthConfig) {
   console.warn('Google OAuth credentials not found. Google login will be disabled.');
 }
 
-// JWT Strategy for token-based authentication
 passport.use(
   new JwtStrategy(
     {
@@ -125,7 +123,6 @@ passport.use(
   )
 );
 
-// Serialize and deserialize user for sessions
 passport.serializeUser((user: any, done) => {
   done(null, user._id);
 });
