@@ -74,28 +74,16 @@ function formatDateTime(iso?: string): string {
   });
 }
 
-function estimateExportSize(totalRows: number, format: ExportFormat): string {
-  const bytesPerRow = format === "json" ? 750 : format === "pdf" ? 420 : 280;
-  const bytes = Math.max(4096, totalRows * bytesPerRow);
-  const kb = bytes / 1024;
-  if (kb < 1024) {
-    return `${Math.round(kb)} KB`;
-  }
-  return `${(kb / 1024).toFixed(1)} MB`;
-}
-
 function mapSummaryToExport(summary: ShortlistSummary, format: ExportFormat): ExportRecord {
-  const ts = Date.now().toString(36).slice(-4);
-
   return {
-    id: `EXP-${summary._id.slice(-6).toUpperCase()}-${format.toUpperCase()}-${ts}`,
+    id: `EXP-${summary._id.slice(-6).toUpperCase()}-${format.toUpperCase()}`,
     shortlistId: summary._id,
     name: `${summary.jobTitle} - ${summary.runName}`,
     job: summary.jobTitle,
     format,
     candidates: summary.shortlistCount || summary.totalApplicants,
     createdAt: formatDateTime(summary.createdAt),
-    size: estimateExportSize(summary.totalApplicants, format),
+    size: "Calculated on download",
     status: "ready",
   };
 }

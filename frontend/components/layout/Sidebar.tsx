@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -15,6 +15,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { listAllShortlists } from "@/lib/shortlists";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -31,6 +32,16 @@ const navItems = [
 export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const previousPathname = useRef(pathname);
+  const [weeklyUsage, setWeeklyUsage] = useState<{ weeklyCount: number; totalCount: number } | null>(null);
+  const [usageError, setUsageError] = useState(false);
+
+  const usagePct = useMemo(() => {
+    if (!weeklyUsage || weeklyUsage.totalCount <= 0) {
+      return 0;
+    }
+
+    return Math.max(0, Math.min(100, Math.round((weeklyUsage.weeklyCount / weeklyUsage.totalCount) * 100)));
+  }, [weeklyUsage]);
 
   useEffect(() => {
     if (open && previousPathname.current !== pathname) {
@@ -38,6 +49,37 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
     }
     previousPathname.current = pathname;
   }, [open, onClose, pathname]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadUsage() {
+      setUsageError(false);
+
+      try {
+        const shortlists = await listAllShortlists({ pageSize: 100 });
+        if (cancelled) {
+          return;
+        }
+
+        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const weeklyCount = shortlists.filter((run) => new Date(run.createdAt).getTime() >= sevenDaysAgo).length;
+        setWeeklyUsage({
+          weeklyCount,
+          totalCount: shortlists.length,
+        });
+      } catch {
+        if (!cancelled) {
+          setUsageError(true);
+        }
+      }
+    }
+
+    void loadUsage();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <aside
@@ -79,11 +121,17 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
 
       <div className="border-t border-line p-4">
         <div className="rounded-card border border-line bg-surface p-3 shadow-card">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">Weekly Usage</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">Weekly Screening Runs</p>
           <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-surface-soft">
-            <div className="h-full bg-brand" style={{ width: "75%" }} />
+            <div className="h-full bg-brand" style={{ width: `${usagePct}%` }} />
           </div>
-          <p className="mt-1.5 text-[10px] text-ink-muted">75/100 Screenings used</p>
+          <p className="mt-1.5 text-[10px] text-ink-muted">
+            {usageError
+              ? "Usage currently unavailable."
+              : weeklyUsage
+              ? `${weeklyUsage.weeklyCount} run(s) this week • ${weeklyUsage.totalCount} total recorded`
+              : "Loading live usage..."}
+          </p>
         </div>
       </div>
     </aside>
