@@ -450,7 +450,7 @@ export default function DashboardPage() {
                   action={
                     <Link href="/history">
                       <Button variant="ghost" size="sm">
-                        View All History
+                        View Full History
                       </Button>
                     </Link>
                   }
@@ -596,7 +596,7 @@ export default function DashboardPage() {
                 <div className="mt-2 text-center">
                   <Link href="/history">
                     <Button variant="ghost" size="sm">
-                      Review Screening History
+                      Open Screening History
                     </Button>
                   </Link>
                 </div>
