@@ -1,6 +1,10 @@
 import mongoose from 'mongoose';
 
-export const connectDatabase = async (): Promise<{ success: boolean; error?: any }> => {
+type DatabaseConnectionResult =
+  | { success: true }
+  | { success: false; error: unknown };
+
+export const connectDatabase = async (): Promise<DatabaseConnectionResult> => {
   try {
     const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/ai-hackathon';
     
@@ -8,7 +12,7 @@ export const connectDatabase = async (): Promise<{ success: boolean; error?: any
     
     console.log('Connected to MongoDB successfully');
     return { success: true };
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('MongoDB connection error:', error);
     return { success: false, error };
   }
