@@ -726,7 +726,7 @@ export default function ScreeningPage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                      <span>Only candidates that meet the backend shortlist criteria will appear as shortlisted, even if the cap is higher.</span>
+                      <span>Top-ranked candidates at 54% match or higher will be shortlisted until the requested cap is filled.</span>
                     </li>
                   </ul>
                 </div>

@@ -43,7 +43,7 @@ Rules:
 - Relevance-first, evidence-based; every positive match cites evidence from skills/experience/projects/education/certifications/languages/availability/location.
 - Never invent qualifications; certifications support but do not replace experience unless the job allows it.
 - All sub-scores are 0–100 integers. Rank by matchScore desc, tie-break: skills → experience → relevance → confidence.
-- finalRecommendation uses: 85–100 "Strong Shortlist", 70–84 "Shortlist", 55–69 "Consider", 35–54 "Reject", 0–34 "Strong Reject". Adjust down when critical requirements missing, evidence weak, or data incomplete.
+- finalRecommendation uses: 85–100 "Strong Shortlist", 70–84 "Shortlist", 54–69 "Consider", 35–53 "Reject", 0–34 "Strong Reject". Adjust down when critical requirements missing, evidence weak, or data incomplete.
 - Set criticalRequirementGap=true when a must-have or other critical requirement is clearly missing or unsupported by the evidence.
 - Use "Shortlist" or "Strong Shortlist" only when the candidate clearly meets the core must-have requirements with evidence. If a critical must-have is missing or unsupported, use "Consider" or a reject label instead.
 - Output strict JSON only, no markdown, no commentary, no newlines or nested quotes inside strings.

@@ -326,7 +326,7 @@ export default function ScreeningProgressPage() {
 
               {run.response.shortlist.length < run.request.shortlistSize && (
                 <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
-                  The requested shortlist cap was {run.request.shortlistSize}, but only {run.response.shortlist.length} candidate{run.response.shortlist.length === 1 ? "" : "s"} met the shortlist criteria.
+                  The requested shortlist cap was {run.request.shortlistSize}, but only {run.response.shortlist.length} candidate{run.response.shortlist.length === 1 ? "" : "s"} reached the 54% shortlist cutoff.
                 </div>
               )}
 
@@ -353,7 +353,7 @@ export default function ScreeningProgressPage() {
                 </ul>
               ) : (
                 <div className="mt-5 rounded-md border border-line bg-surface-soft/30 p-4 text-sm text-ink-muted">
-                  Gemini completed the run, but no candidates met the shortlist criteria.
+                  Gemini completed the run, but no candidates reached the 54% shortlist cutoff.
                 </div>
               )}
             </Card>

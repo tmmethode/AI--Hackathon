@@ -130,6 +130,12 @@ export interface IngestSummary {
   message: string;
 }
 
+export interface IngestUploadProgress {
+  loaded: number;
+  total?: number;
+  percent: number;
+}
+
 export interface ApplicantListResponse {
   data: ApplicantRecord[];
   total: number;
@@ -172,6 +178,96 @@ async function handleApiResponse<T>(response: Response, fallbackMessage: string)
   }
 
   return payload as T;
+}
+
+async function handleApiPayload<T>(
+  payload: ({ message?: string; error?: string } & T) | null,
+  ok: boolean,
+  fallbackMessage: string
+): Promise<T> {
+  if (!ok) {
+    throw new Error(payload?.message || payload?.error || fallbackMessage);
+  }
+
+  if (!payload) {
+    throw new Error("The server returned an empty response.");
+  }
+
+  return payload as T;
+}
+
+async function postJsonWithProgress<T>(
+  url: string,
+  payload: unknown,
+  fallbackMessage: string,
+  onProgress?: (progress: IngestUploadProgress) => void
+) {
+  if (!onProgress || typeof XMLHttpRequest === "undefined") {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify(payload),
+    });
+
+    return handleApiResponse<T>(response, fallbackMessage);
+  }
+
+  const body = JSON.stringify(payload);
+  const bodySize = new Blob([body]).size;
+
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+
+    const headers = {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    };
+
+    Object.entries(headers).forEach(([key, value]) => {
+      xhr.setRequestHeader(key, value);
+    });
+
+    xhr.upload.onprogress = (event) => {
+      const total =
+        event.lengthComputable && event.total > 0
+          ? event.total
+          : bodySize > 0
+            ? bodySize
+            : undefined;
+      const loaded = typeof event.loaded === "number" ? event.loaded : 0;
+      const percent =
+        total && total > 0
+          ? Math.max(0, Math.min(100, Math.round((loaded / total) * 100)))
+          : loaded > 0
+            ? 80
+            : 0;
+
+      onProgress({ loaded, total, percent });
+    };
+
+    xhr.onerror = () => reject(new Error("Network error while uploading applicants."));
+    xhr.onabort = () => reject(new Error("Applicant upload was aborted."));
+    xhr.onload = async () => {
+      onProgress({ loaded: bodySize, total: bodySize, percent: 100 });
+
+      const payload =
+        xhr.responseText?.trim().length > 0
+          ? ((JSON.parse(xhr.responseText) as unknown) as { message?: string; error?: string } & T)
+          : null;
+
+      try {
+        resolve(await handleApiPayload<T>(payload, xhr.status >= 200 && xhr.status < 300, fallbackMessage));
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    xhr.send(body);
+  });
 }
 
 export async function listApplicants(
@@ -232,59 +328,56 @@ export async function listAllApplicants(jobId: string, params: { search?: string
   return firstPage.data.concat(...remainingPages.map((page) => page.data));
 }
 
-export async function ingestApplicantsFromPlatform(jobId: string, applicants: ApplicantProfileInput[]) {
-  const response = await fetch(`${getApiBaseUrl()}/jobs/${jobId}/applicants/platform`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeader(),
-    },
-    body: JSON.stringify({ applicants }),
-  });
-
-  return handleApiResponse<IngestSummary>(response, "Failed to import applicants from JSON.");
+export async function ingestApplicantsFromPlatform(
+  jobId: string,
+  applicants: ApplicantProfileInput[],
+  onProgress?: (progress: IngestUploadProgress) => void
+) {
+  return postJsonWithProgress<IngestSummary>(
+    `${getApiBaseUrl()}/jobs/${jobId}/applicants/platform`,
+    { applicants },
+    "Failed to import applicants from JSON.",
+    onProgress
+  );
 }
 
 export async function ingestApplicantsFromCsv(
   jobId: string,
-  payload: { applicants?: ApplicantProfileInput[]; csvText?: string }
+  payload: { applicants?: ApplicantProfileInput[]; csvText?: string },
+  onProgress?: (progress: IngestUploadProgress) => void
 ) {
-  const response = await fetch(`${getApiBaseUrl()}/jobs/${jobId}/applicants/csv`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeader(),
-    },
-    body: JSON.stringify(payload),
-  });
-
-  return handleApiResponse<IngestSummary>(response, "Failed to import applicants from CSV.");
+  return postJsonWithProgress<IngestSummary>(
+    `${getApiBaseUrl()}/jobs/${jobId}/applicants/csv`,
+    payload,
+    "Failed to import applicants from CSV.",
+    onProgress
+  );
 }
 
-export async function ingestApplicantsFromFiles(jobId: string, files: IngestFileItem[]) {
-  const response = await fetch(`${getApiBaseUrl()}/jobs/${jobId}/applicants/files`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeader(),
-    },
-    body: JSON.stringify({ files }),
-  });
-
-  return handleApiResponse<IngestSummary>(response, "Failed to queue resume files.");
+export async function ingestApplicantsFromFiles(
+  jobId: string,
+  files: IngestFileItem[],
+  onProgress?: (progress: IngestUploadProgress) => void
+) {
+  return postJsonWithProgress<IngestSummary>(
+    `${getApiBaseUrl()}/jobs/${jobId}/applicants/files`,
+    { files },
+    "Failed to queue resume files.",
+    onProgress
+  );
 }
 
-export async function ingestApplicantsFromLinks(jobId: string, links: string[]) {
-  const response = await fetch(`${getApiBaseUrl()}/jobs/${jobId}/applicants/links`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeader(),
-    },
-    body: JSON.stringify({ links }),
-  });
-
-  return handleApiResponse<IngestSummary>(response, "Failed to queue candidate links.");
+export async function ingestApplicantsFromLinks(
+  jobId: string,
+  links: string[],
+  onProgress?: (progress: IngestUploadProgress) => void
+) {
+  return postJsonWithProgress<IngestSummary>(
+    `${getApiBaseUrl()}/jobs/${jobId}/applicants/links`,
+    { links },
+    "Failed to queue candidate links.",
+    onProgress
+  );
 }
 
 export async function deleteApplicant(jobId: string, applicantId: string) {

@@ -26,6 +26,7 @@ import {
   ingestApplicantsFromFiles,
   ingestApplicantsFromLinks,
   ingestApplicantsFromPlatform,
+  type IngestUploadProgress,
   listAllApplicants,
   type ApplicantProfileInput,
   type ApplicantRecord,
@@ -40,6 +41,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "@/components/ui/Modal";
 import { IngestPageSkeleton } from "@/components/page-skeletons";
+import { Progress } from "@/components/ui/Progress";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 interface UploadedFile {
@@ -47,6 +49,16 @@ interface UploadedFile {
   name: string;
   size: number;
   file: File;
+}
+
+type ImportStage = "preparing" | "uploading" | "refreshing";
+
+interface ImportProgressState {
+  stage: ImportStage;
+  mode: TabId;
+  percent: number;
+  title: string;
+  detail: string;
 }
 
 const tabs = [
@@ -57,6 +69,11 @@ const tabs = [
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
+const importStages = [
+  { id: "preparing", label: "Prepare Payload", icon: FileText },
+  { id: "uploading", label: "Upload To Backend", icon: CloudUpload },
+  { id: "refreshing", label: "Refresh Live Preview", icon: RefreshCw },
+] as const;
 
 const PAGE_SIZE = 5;
 const EXAMPLE_JSON_SCHEMA = `{
@@ -145,6 +162,45 @@ function formatBytes(value: number) {
   return value < 1024 * 1024
     ? `${(value / 1024).toFixed(1)} KB`
     : `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function mapPercentToRange(value: number, start: number, end: number) {
+  const normalized = Math.max(0, Math.min(100, value));
+  return clampPercent(start + ((end - start) * normalized) / 100);
+}
+
+function getImportModeLabel(tab: TabId) {
+  switch (tab) {
+    case "json":
+      return "JSON applicants";
+    case "csv":
+      return "CSV applicants";
+    case "pdf":
+      return "resume files";
+    case "links":
+      return "candidate links";
+    default:
+      return "applicants";
+  }
+}
+
+function getImportStageTitle(tab: TabId, stage: ImportStage) {
+  const modeLabel = getImportModeLabel(tab);
+
+  switch (stage) {
+    case "preparing":
+      return `Preparing ${modeLabel}`;
+    case "uploading":
+      return `Uploading ${modeLabel}`;
+    case "refreshing":
+      return "Refreshing live preview";
+    default:
+      return "Importing applicants";
+  }
 }
 
 function humanizeApplicantSource(source: ApplicantSource) {
@@ -951,6 +1007,7 @@ export default function IngestPage() {
   const [isLoadingJobs, setIsLoadingJobs] = useState(true);
   const [isLoadingApplicants, setIsLoadingApplicants] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<ImportProgressState | null>(null);
   const [error, setError] = useState("");
   const [lastImportSummary, setLastImportSummary] = useState<IngestSummary | null>(null);
   const [lastImportTab, setLastImportTab] = useState<TabId>("pdf");
@@ -1062,6 +1119,21 @@ export default function IngestPage() {
     setCsvFiles((previous) => previous.filter((file) => file.id !== id));
   }
 
+  function updateImportProgress(
+    mode: TabId,
+    stage: ImportStage,
+    percent: number,
+    detail: string
+  ) {
+    setImportProgress({
+      stage,
+      mode,
+      percent: clampPercent(percent),
+      title: getImportStageTitle(mode, stage),
+      detail,
+    });
+  }
+
   async function handleImport() {
     setError("");
 
@@ -1070,70 +1142,138 @@ export default function IngestPage() {
       return;
     }
 
+    const targetJobId = selectedJob;
+    const importTab = activeTab;
     setIsImporting(true);
+    updateImportProgress(importTab, "preparing", 6, "Validating import request…");
 
     try {
       let summary: IngestSummary;
 
-      if (activeTab === "json") {
+      if (importTab === "json") {
         if (jsonFiles.length === 0) {
           throw new Error("Add at least one JSON file before importing.");
         }
 
-        const applicantGroups = await Promise.all(
-          jsonFiles.map(async ({ file }) => {
-            const text = await readFileAsText(file);
-            const payload = JSON.parse(text);
-            const records: unknown[] | null = Array.isArray(payload)
-              ? payload
-              : Array.isArray(payload?.applicants)
-                ? payload.applicants
-                : null;
+        const applicantGroups: ApplicantProfileInput[][] = [];
 
-            if (!records) {
-              throw new Error(`${file.name} must contain an array of applicants.`);
-            }
+        for (let index = 0; index < jsonFiles.length; index += 1) {
+          const { file } = jsonFiles[index];
+          updateImportProgress(
+            importTab,
+            "preparing",
+            mapPercentToRange((index / jsonFiles.length) * 100, 8, 38),
+            `Reading ${file.name} (${index + 1}/${jsonFiles.length})…`
+          );
 
-            return records.map((entry) => normalizeApplicantInput(entry));
-          })
+          const text = await readFileAsText(file);
+          const payload = JSON.parse(text);
+          const records: unknown[] | null = Array.isArray(payload)
+            ? payload
+            : Array.isArray(payload?.applicants)
+              ? payload.applicants
+              : null;
+
+          if (!records) {
+            throw new Error(`${file.name} must contain an array of applicants.`);
+          }
+
+          applicantGroups.push(records.map((entry) => normalizeApplicantInput(entry)));
+        }
+
+        updateImportProgress(
+          importTab,
+          "uploading",
+          44,
+          `Uploading ${applicantGroups.flat().length} applicant records to the backend…`
         );
-
-        summary = await ingestApplicantsFromPlatform(selectedJob, applicantGroups.flat());
+        summary = await ingestApplicantsFromPlatform(targetJobId, applicantGroups.flat(), (progress: IngestUploadProgress) => {
+          updateImportProgress(
+            importTab,
+            "uploading",
+            mapPercentToRange(progress.percent, 44, 88),
+            `Uploading ${applicantGroups.flat().length} applicant records… ${progress.percent}%`
+          );
+        });
         setJsonFiles([]);
-      } else if (activeTab === "csv") {
+      } else if (importTab === "csv") {
         if (csvFiles.length === 0) {
           throw new Error("Add at least one CSV file before importing.");
         }
 
-        const applicantGroups = await Promise.all(
-          csvFiles.map(async ({ file }) => {
-            const text = await readFileAsText(file);
-            const rows = parseCsvText(text);
+        const applicantGroups: ApplicantProfileInput[][] = [];
 
-            if (rows.length === 0) {
-              throw new Error(`${file.name} does not contain any applicant rows.`);
-            }
+        for (let index = 0; index < csvFiles.length; index += 1) {
+          const { file } = csvFiles[index];
+          updateImportProgress(
+            importTab,
+            "preparing",
+            mapPercentToRange((index / csvFiles.length) * 100, 8, 38),
+            `Parsing ${file.name} (${index + 1}/${csvFiles.length})…`
+          );
 
-            return rows.map((row) => normalizeApplicantInput(row));
-          })
+          const text = await readFileAsText(file);
+          const rows = parseCsvText(text);
+
+          if (rows.length === 0) {
+            throw new Error(`${file.name} does not contain any applicant rows.`);
+          }
+
+          applicantGroups.push(rows.map((row) => normalizeApplicantInput(row)));
+        }
+
+        updateImportProgress(
+          importTab,
+          "uploading",
+          44,
+          `Uploading ${applicantGroups.flat().length} CSV applicant records…`
         );
-
-        summary = await ingestApplicantsFromCsv(selectedJob, { applicants: applicantGroups.flat() });
+        summary = await ingestApplicantsFromCsv(targetJobId, { applicants: applicantGroups.flat() }, (progress: IngestUploadProgress) => {
+          updateImportProgress(
+            importTab,
+            "uploading",
+            mapPercentToRange(progress.percent, 44, 88),
+            `Uploading parsed CSV applicants… ${progress.percent}%`
+          );
+        });
         setCsvFiles([]);
-      } else if (activeTab === "pdf") {
+      } else if (importTab === "pdf") {
         if (files.length === 0) {
           throw new Error("Add at least one resume file before importing.");
         }
 
-        const payload = await Promise.all(
-          files.map(async ({ file }) => ({
+        const payload = [];
+
+        for (let index = 0; index < files.length; index += 1) {
+          const { file } = files[index];
+          updateImportProgress(
+            importTab,
+            "preparing",
+            mapPercentToRange((index / files.length) * 100, 8, 42),
+            `Encoding ${file.name} (${index + 1}/${files.length})…`
+          );
+
+          payload.push({
             filename: file.name,
             mimeType: file.type || undefined,
             dataBase64: await readFileAsBase64(file),
-          }))
-        );
+          });
+        }
 
-        summary = await ingestApplicantsFromFiles(selectedJob, payload);
+        updateImportProgress(
+          importTab,
+          "uploading",
+          46,
+          `Uploading ${payload.length} resume file${payload.length === 1 ? "" : "s"} to the backend…`
+        );
+        summary = await ingestApplicantsFromFiles(targetJobId, payload, (progress: IngestUploadProgress) => {
+          updateImportProgress(
+            importTab,
+            "uploading",
+            mapPercentToRange(progress.percent, 46, 88),
+            `Uploading encoded resume files… ${progress.percent}%`
+          );
+        });
         setFiles([]);
       } else {
         const parsedLinks = links
@@ -1145,19 +1285,43 @@ export default function IngestPage() {
           throw new Error("Paste at least one URL before importing.");
         }
 
-        summary = await ingestApplicantsFromLinks(selectedJob, parsedLinks);
+        updateImportProgress(
+          importTab,
+          "preparing",
+          20,
+          `Preparing ${parsedLinks.length} link${parsedLinks.length === 1 ? "" : "s"} for backend parsing…`
+        );
+        updateImportProgress(
+          importTab,
+          "uploading",
+          46,
+          `Uploading ${parsedLinks.length} candidate link${parsedLinks.length === 1 ? "" : "s"}…`
+        );
+        summary = await ingestApplicantsFromLinks(targetJobId, parsedLinks, (progress: IngestUploadProgress) => {
+          updateImportProgress(
+            importTab,
+            "uploading",
+            mapPercentToRange(progress.percent, 46, 88),
+            `Uploading candidate links… ${progress.percent}%`
+          );
+        });
         setLinks("");
       }
 
+      updateImportProgress(importTab, "refreshing", 92, "Refreshing jobs and applicant preview…");
       setLastImportSummary(summary);
-      setLastImportTab(activeTab);
-      setShowSuccessModal(true);
+      setLastImportTab(importTab);
       setPage(1);
-      await Promise.all([loadJobs(), loadApplicants(selectedJob)]);
+      await loadJobs();
+      updateImportProgress(importTab, "refreshing", 96, "Reloading live applicant records…");
+      await loadApplicants(targetJobId);
+      updateImportProgress(importTab, "refreshing", 100, "Import complete. Preparing summary…");
+      setShowSuccessModal(true);
     } catch (importError) {
       setError(importError instanceof Error ? importError.message : "Failed to import applicants.");
     } finally {
       setIsImporting(false);
+      setImportProgress(null);
     }
   }
 
@@ -1167,6 +1331,9 @@ export default function IngestPage() {
     lastImportTab === "pdf" || lastImportTab === "links"
       ? `${lastImportSummary?.created ?? 0} applicant records were queued for backend parsing.`
       : `${lastImportSummary?.created ?? 0} applicant records were saved to the selected job.`;
+  const currentImportStageIndex = importProgress
+    ? importStages.findIndex((stage) => stage.id === importProgress.stage)
+    : -1;
 
   if (isLoadingJobs && jobs.length === 0) {
     return <IngestPageSkeleton />;
@@ -1513,6 +1680,99 @@ export default function IngestPage() {
             Close
           </Button>
         </ModalFooter>
+      </Modal>
+
+      <Modal
+        open={Boolean(importProgress)}
+        onClose={() => {
+          if (!isImporting) {
+            setImportProgress(null);
+          }
+        }}
+        size="md"
+      >
+        <ModalBody className="flex flex-col gap-6 py-8">
+          <div className="flex flex-col items-center text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-brand/10">
+              {isImporting ? (
+                <LoaderCircle className="h-8 w-8 animate-spin text-brand" />
+              ) : (
+                <CheckCircle2 className="h-8 w-8 text-success" />
+              )}
+            </div>
+            <h2 className="mt-4 font-display text-2xl font-bold text-ink">
+              {importProgress?.title || "Importing applicants"}
+            </h2>
+            <p className="mt-2 max-w-md text-sm text-ink-muted">
+              {importProgress?.detail || "Preparing your applicant import."}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-line bg-surface-soft/30 p-5">
+            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-ink-muted">
+              <span>Import Progress</span>
+              <span className="text-ink">{importProgress?.percent ?? 0}%</span>
+            </div>
+            <Progress value={importProgress?.percent ?? 0} className="mt-3 h-2" />
+            <div className="mt-3 flex items-center gap-2 text-xs text-ink-muted">
+              <Sparkles className="h-3.5 w-3.5 text-brand" />
+              <span>
+                Targeting {currentJob?.title || "selected job"} with {getImportModeLabel(importProgress?.mode || activeTab)}.
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {importStages.map((stage, index) => {
+              const Icon = stage.icon;
+              const isComplete = currentImportStageIndex > index || (!isImporting && currentImportStageIndex >= index);
+              const isCurrent = currentImportStageIndex === index && isImporting;
+
+              return (
+                <div
+                  key={stage.id}
+                  className={`flex items-center gap-3 rounded-lg border p-4 transition-colors ${
+                    isComplete
+                      ? "border-success/30 bg-success/5"
+                      : isCurrent
+                        ? "border-brand/30 bg-brand-soft/30"
+                        : "border-line bg-white"
+                  }`}
+                >
+                  <span
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                      isComplete
+                        ? "bg-success/10"
+                        : isCurrent
+                          ? "bg-brand/10"
+                          : "bg-surface-soft"
+                    }`}
+                  >
+                    {isComplete ? (
+                      <CheckCircle2 className="h-5 w-5 text-success" />
+                    ) : isCurrent ? (
+                      <LoaderCircle className="h-5 w-5 animate-spin text-brand" />
+                    ) : (
+                      <Icon className="h-5 w-5 text-ink-muted" />
+                    )}
+                  </span>
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-ink">{stage.label}</p>
+                    <p className="text-xs text-ink-muted">
+                      {isCurrent
+                        ? importProgress?.detail
+                        : isComplete
+                          ? "Completed"
+                          : "Waiting to start"}
+                    </p>
+                  </div>
+                  {isComplete && <Badge tone="success" pill>Done</Badge>}
+                  {isCurrent && <Badge tone="brand" pill>Active</Badge>}
+                </div>
+              );
+            })}
+          </div>
+        </ModalBody>
       </Modal>
 
       <Modal open={showSuccessModal} onClose={() => setShowSuccessModal(false)} size="sm">

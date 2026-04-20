@@ -174,7 +174,7 @@ function recommendationFromScore(matchScore: number): GeminiBatchRecommendation 
     return "Shortlist";
   }
 
-  if (matchScore >= 55) {
+  if (matchScore >= 54) {
     return "Consider";
   }
 
@@ -805,7 +805,7 @@ export class GeminiScreeningService {
     });
 
     const shortlistedEntries = screeningResults
-      .filter((entry) => isBatchEntryShortlistEligible(entry, request.job))
+      .filter((entry) => isBatchEntryShortlistEligible(entry))
       .slice(0, shortlistCount);
 
     const explanationModel = await this.enrichRankedResults(

@@ -61,8 +61,8 @@ export interface GeminiRecommendationBand {
 export const GEMINI_RECOMMENDATION_BANDS: readonly GeminiRecommendationBand[] = [
   { label: "Strong Shortlist", min: 85, max: 100, tone: "success" },
   { label: "Shortlist", min: 70, max: 84, tone: "brand" },
-  { label: "Consider", min: 55, max: 69, tone: "warning" },
-  { label: "Reject", min: 35, max: 54, tone: "danger" },
+  { label: "Consider", min: 54, max: 69, tone: "warning" },
+  { label: "Reject", min: 35, max: 53, tone: "danger" },
   { label: "Strong Reject", min: 0, max: 34, tone: "danger" },
 ];
 
