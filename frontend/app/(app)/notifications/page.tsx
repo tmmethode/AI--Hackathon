@@ -1,47 +1,22 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Bell, Check, X, Search, Zap, Briefcase, FileDown, AlertCircle, Info } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { listNotifications, toRelativeTime, type Notification, type NotificationType } from "@/lib/notifications";
 
-type NotifType = "screening" | "job" | "export" | "system";
-
-interface Notification {
-  id: number;
-  type: NotifType;
-  title: string;
-  body: string;
-  time: string;
-  read: boolean;
-}
-
-const allNotifications: Notification[] = [
-  { id: 1, type: "screening", title: "Screening completed", body: "AI screening for QA Automation Lead finished with 91% avg match. 20 candidates shortlisted.", time: "2 minutes ago", read: false },
-  { id: 2, type: "job", title: "New applicants detected", body: "14 new candidates matched Senior Full Stack Engineer via Umurava Platform.", time: "1 hour ago", read: false },
-  { id: 3, type: "export", title: "Export ready", body: "Your shortlist CSV export for Product Designer was generated successfully.", time: "3 hours ago", read: false },
-  { id: 4, type: "screening", title: "Screening started", body: "AI screening for Senior Frontend Engineer has been triggered with 142 candidates.", time: "5 hours ago", read: true },
-  { id: 5, type: "job", title: "Job status updated", body: "DevOps Architect (JOB-005) has been marked as Closed by Marcus Chen.", time: "Yesterday", read: true },
-  { id: 6, type: "system", title: "Weekly usage alert", body: "You have used 75 of 100 screening credits this week. Consider upgrading your plan.", time: "Yesterday", read: true },
-  { id: 7, type: "screening", title: "Screening completed", body: "Full Stack Engineer (L5) screening done. Top candidate: Michael Chen at 94% match.", time: "2 days ago", read: true },
-  { id: 8, type: "export", title: "Export ready", body: "JSON export for Senior DevOps Engineer shortlist is available for download.", time: "2 days ago", read: true },
-  { id: 9, type: "job", title: "New applicants detected", body: "8 new candidates matched UX Researcher - Mobile role.", time: "3 days ago", read: true },
-  { id: 10, type: "system", title: "System maintenance", body: "Scheduled maintenance on Oct 28 from 02:00–04:00 UTC. Screenings may be delayed.", time: "4 days ago", read: true },
-  { id: 11, type: "screening", title: "Screening failed", body: "Marketing Lead screening encountered an error. Please re-trigger the run.", time: "5 days ago", read: true },
-  { id: 12, type: "job", title: "Job created", body: "New job requisition 'Data Scientist' (JOB-006) was created by Priya Nair.", time: "6 days ago", read: true },
-];
-
-const typeIcon: Record<NotifType, React.ReactNode> = {
+const typeIcon: Record<NotificationType, React.ReactNode> = {
   screening: <Zap className="h-4 w-4 text-brand" />,
   job: <Briefcase className="h-4 w-4 text-success" />,
   export: <FileDown className="h-4 w-4 text-info-deep" />,
   system: <AlertCircle className="h-4 w-4 text-warning" />,
 };
 
-const typeTone: Record<NotifType, React.ComponentProps<typeof Badge>["tone"]> = {
+const typeTone: Record<NotificationType, React.ComponentProps<typeof Badge>["tone"]> = {
   screening: "brand", job: "success", export: "info", system: "warning",
 };
 
@@ -49,12 +24,31 @@ type Tab = "all" | "unread";
 const PAGE_SIZE = 6;
 
 export default function NotificationsPage() {
-  const [notifs, setNotifs] = useState<Notification[]>(allNotifications);
+  const [notifs, setNotifs] = useState<Notification[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
   const unreadCount = notifs.filter((n) => !n.read).length;
+
+  useEffect(() => {
+    async function loadNotifications() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const response = await listNotifications(120);
+        setNotifs(response.data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load notifications.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    void loadNotifications();
+  }, []);
 
   const filtered = useMemo(() => {
     return notifs.filter((n) => {
@@ -68,7 +62,7 @@ export default function NotificationsPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  function markRead(id: number) {
+  function markRead(id: string) {
     setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
   }
 
@@ -76,7 +70,7 @@ export default function NotificationsPage() {
     setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
   }
 
-  function dismiss(id: number) {
+  function dismiss(id: string) {
     setNotifs((prev) => prev.filter((n) => n.id !== id));
   }
 
@@ -131,7 +125,17 @@ export default function NotificationsPage() {
 
           {/* List */}
           <Card className="overflow-hidden">
-            {paginated.length === 0 ? (
+            {isLoading ? (
+              <div className="flex flex-col items-center py-16 text-ink-muted">
+                <Bell className="mb-3 h-8 w-8 animate-pulse opacity-30" />
+                <p className="text-sm">Loading notifications...</p>
+              </div>
+            ) : error ? (
+              <div className="flex flex-col items-center py-16 text-danger">
+                <AlertCircle className="mb-3 h-8 w-8" />
+                <p className="text-sm">{error}</p>
+              </div>
+            ) : paginated.length === 0 ? (
               <div className="flex flex-col items-center py-16 text-ink-muted">
                 <Bell className="mb-3 h-8 w-8 opacity-30" />
                 <p className="text-sm">No notifications found.</p>
@@ -144,12 +148,12 @@ export default function NotificationsPage() {
                     <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-soft">
                       {typeIcon[n.type]}
                     </div>
-                    <Link href={`/notifications/${n.id}`} onClick={() => markRead(n.id)} className="flex-1 min-w-0 cursor-pointer text-inherit no-underline">
+                    <Link href={`/notifications/${encodeURIComponent(n.id)}`} onClick={() => markRead(n.id)} className="flex-1 min-w-0 cursor-pointer text-inherit no-underline">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className={`text-sm ${!n.read ? "font-semibold text-ink" : "font-medium text-ink"}`}>{n.title}</p>
                         <Badge tone={typeTone[n.type]} pill className="capitalize">{n.type}</Badge>
                         {!n.read && <span className="h-2 w-2 rounded-full bg-brand" />}
-                        <span className="ml-auto text-xs text-ink-muted">{n.time}</span>
+                        <span className="ml-auto text-xs text-ink-muted">{toRelativeTime(n.createdAt)}</span>
                       </div>
                       <p className="mt-1 text-xs leading-5 text-ink-muted">{n.body}</p>
                     </Link>
@@ -211,7 +215,7 @@ export default function NotificationsPage() {
 
           <Card className="p-5">
             <h3 className="mb-3 text-sm font-semibold text-ink">By Type</h3>
-            {(["screening", "job", "export", "system"] as NotifType[]).map((t) => {
+            {(["screening", "job", "export", "system"] as NotificationType[]).map((t) => {
               const count = notifs.filter((n) => n.type === t).length;
               return (
                 <div key={t} className="flex items-center justify-between py-1.5 text-sm">

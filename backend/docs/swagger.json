@@ -429,6 +429,91 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"NotificationType": {
+				"type": "string",
+				"enum": [
+					"screening",
+					"job",
+					"export",
+					"system"
+				]
+			},
+			"NotificationDTO": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"type": {
+						"$ref": "#/components/schemas/NotificationType"
+					},
+					"title": {
+						"type": "string"
+					},
+					"body": {
+						"type": "string"
+					},
+					"detail": {
+						"type": "string"
+					},
+					"read": {
+						"type": "boolean"
+					},
+					"createdAt": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"id",
+					"type",
+					"title",
+					"body",
+					"detail",
+					"read",
+					"createdAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"NotificationListResponse": {
+				"properties": {
+					"data": {
+						"items": {
+							"$ref": "#/components/schemas/NotificationDTO"
+						},
+						"type": "array"
+					},
+					"total": {
+						"type": "number",
+						"format": "double"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"data",
+					"total",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"NotificationResponse": {
+				"properties": {
+					"data": {
+						"$ref": "#/components/schemas/NotificationDTO"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"data",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"HiringManagerSummary": {
 				"properties": {
 					"_id": {
@@ -3532,6 +3617,78 @@
 							"recruiter",
 							"admin"
 						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/notifications": {
+			"get": {
+				"operationId": "ListNotifications",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotificationListResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Notifications"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"default": 100,
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
+			}
+		},
+		"/notifications/{id}": {
+			"get": {
+				"operationId": "GetNotification",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotificationResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Notifications"
+				],
+				"security": [
+					{
+						"jwt": []
 					}
 				],
 				"parameters": [
