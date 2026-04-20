@@ -2,12 +2,10 @@ import { Request, Response, NextFunction } from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import User, { type IUser, type UserRole } from '../models/User';
 
-// Create a custom request interface to avoid conflicts with Passport
 export interface AuthenticatedRequest extends Request {
   user: IUser;
 }
 
-// Helper function to check if user has required role
 const hasRole = (user: IUser, roles: UserRole | UserRole[]): boolean => {
   const allowedRoles = Array.isArray(roles) ? roles : [roles];
   return allowedRoles.includes(user.role);
@@ -16,7 +14,7 @@ const hasRole = (user: IUser, roles: UserRole | UserRole[]): boolean => {
 export const authenticateToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
       res.status(401).json({
@@ -30,7 +28,6 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as JwtPayload;
       
-      // Find user in database
       const user = await User.findById(decoded.userId);
       if (!user) {
         res.status(401).json({
@@ -41,7 +38,6 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
         return;
       }
 
-      // Attach user to request object
       (req as any).user = user;
       next();
     } catch (error) {
@@ -60,8 +56,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
   }
 };
 
-// TSOA authentication function
-// Matches TSOA's expected signature: (request, securityName, scopes?) => Promise<any>
+// TSOA passes role requirements through `scopes`; we interpret them as allowed user roles.
 export async function expressAuthentication(
   request: Request,
   securityName: string,
@@ -93,7 +88,6 @@ export async function expressAuthentication(
       return Promise.reject(new Error('User not found'));
     }
 
-    // scopes are treated as allowed roles
     if (scopes && scopes.length > 0) {
       if (!scopes.includes(user.role)) {
         return Promise.reject(

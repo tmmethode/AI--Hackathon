@@ -128,7 +128,6 @@ app.use(cors({
   exposedHeaders: ['set-cookie']
 }));
 
-// Session configuration
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-session-secret',
   resave: false,
@@ -136,11 +135,10 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 24 * 60 * 60 * 1000
   }
 }));
 
-// Passport initialization
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -161,12 +159,8 @@ app.get('/', (req: Request, res: Response) => {
   res.redirect('/docs');
 });
 
-// Apply authentication middleware to protected auth endpoints
 app.use('/auth/me', authenticateToken);
 app.use('/auth/refresh', authenticateToken);
-
-// Authentication routes are handled by TSOA generated routes
-// Note: Authentication is handled per-endpoint in controllers
 
 app.get("/auth/google", (req, res, next) => {
   if (!hasGoogleOAuthConfig) {
@@ -210,7 +204,6 @@ app.get("/auth/google/callback", (req, res, next) => {
   })(req, res, next);
 });
 
-// TSOA generated routes
 RegisterRoutes(app);
 
 import swaggerDocument from "./docs/swagger.json";

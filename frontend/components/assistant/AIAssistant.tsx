@@ -365,7 +365,6 @@ export function AIAssistant() {
           aria-label="AI recruiter assistant"
         >
           <div className="flex h-[min(640px,92vh)] w-full flex-col overflow-hidden rounded-t-2xl border border-line bg-surface shadow-soft sm:h-[640px] sm:w-[420px] sm:rounded-2xl">
-            {/* Header */}
             <div className="flex items-start justify-between gap-3 border-b border-line bg-surface-soft px-4 py-3">
               <div className="flex items-start gap-2">
                 <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-brand-soft text-brand">
@@ -406,7 +405,6 @@ export function AIAssistant() {
               </div>
             </div>
 
-            {/* Scope selectors */}
             <ScopeSelector
               jobs={jobs}
               shortlists={filteredShortlists}
@@ -428,7 +426,6 @@ export function AIAssistant() {
               onRefresh={() => void loadScopeOptions(true)}
             />
 
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto px-4 py-4">
               {messages.length === 0 ? (
                 <EmptyState
@@ -449,7 +446,6 @@ export function AIAssistant() {
               )}
             </div>
 
-            {/* Error banner */}
             {error && (
               <div className="border-t border-danger/20 bg-danger/5 px-4 py-2 text-xs text-danger">
                 {error}
@@ -473,7 +469,6 @@ export function AIAssistant() {
               </div>
             )}
 
-            {/* Composer */}
             <form onSubmit={handleSubmit} className="border-t border-line bg-surface px-3 py-3">
               <div className="flex items-end gap-2">
                 <textarea

@@ -485,11 +485,9 @@ function ShortlistsPageInner() {
           </div>
         </Card>
       )}
-      {/* Job context header */}
       <Card className="mb-5 p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="flex-1">
-            {/* Job selector trigger */}
             <div className="relative">
               <button
                 onClick={() => setShowJobPicker((v) => !v)}
@@ -512,7 +510,6 @@ function ShortlistsPageInner() {
                 <ChevronDown className={`h-4 w-4 shrink-0 text-ink-muted transition-transform ${showJobPicker ? "rotate-180" : ""}`} />
               </button>
 
-              {/* Job picker dropdown */}
               {showJobPicker && (
                 <div className="absolute left-0 top-[calc(100%+4px)] z-20 w-full rounded-lg border border-line bg-surface shadow-xl">
                   <p className="px-4 pt-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Switch Screening Job</p>
@@ -556,7 +553,6 @@ function ShortlistsPageInner() {
               )}
             </div>
 
-            {/* Status stats row */}
             <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-ink-muted">
               <span>Screened: <strong className="text-ink">{activeJob.screened} Applicants</strong></span>
               <span className="text-line">|</span>
@@ -579,12 +575,10 @@ function ShortlistsPageInner() {
         </div>
       </Card>
 
-      {/* Close job picker on outside click */}
       {showJobPicker && (
         <div className="fixed inset-0 z-[15]" onClick={() => setShowJobPicker(false)} />
       )}
 
-      {/* Metrics row */}
       <section className="mb-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <Card className="p-4">
           <div className="flex items-start justify-between">
@@ -636,7 +630,6 @@ function ShortlistsPageInner() {
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_380px]">
         <Card>
-          {/* Toolbar */}
           <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-4">
             <h2 className="flex items-center gap-2 font-display text-base font-semibold text-ink">
               Ranked Candidates <Badge tone="neutral">{filtered.length} Total</Badge>
@@ -695,7 +688,6 @@ function ShortlistsPageInner() {
             </div>
           </div>
 
-          {/* Candidate list */}
           {paginated.length === 0 ? (
             <div className="px-5 py-12 text-center text-sm text-ink-muted">No candidates match your filters.</div>
           ) : (
@@ -736,7 +728,6 @@ function ShortlistsPageInner() {
                       <blockquote className="mt-3 rounded-md bg-surface-soft/50 px-3 py-2 text-xs italic text-ink-muted">
                         &ldquo;{c.summary}&rdquo;
                       </blockquote>
-                      {/* Mini match bars */}
                       <div className="mt-3 grid grid-cols-4 gap-2">
                         {c.matching.map((m) => (
                           <div key={m.label} className="text-center">
@@ -755,7 +746,6 @@ function ShortlistsPageInner() {
                         Reject
                       </Button>
 
-                      {/* Advance dropdown */}
                       <div className="relative">
                         <Button size="sm" leftIcon={<Check className="h-3.5 w-3.5" />}
                           onClick={() => setAdvanceDropdownId(advanceDropdownId === c.id ? null : c.id)}
@@ -792,7 +782,6 @@ function ShortlistsPageInner() {
             </ul>
           )}
 
-          {/* Pagination */}
           <div className="flex items-center justify-between border-t border-line px-5 py-4 text-sm text-ink-muted">
             <p>Showing {Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}</p>
             <nav className="flex gap-1">
@@ -806,7 +795,6 @@ function ShortlistsPageInner() {
           </div>
         </Card>
 
-        {/* Deep dive panel */}
         <aside className="flex flex-col gap-5">
           {selected && (
             <>
@@ -912,7 +900,6 @@ function ShortlistsPageInner() {
         <div className="fixed inset-0 z-[5]" onClick={() => { setShowSort(false); setShowFilter(false); setAdvanceDropdownId(null); }} />
       )}
 
-      {/* Job Details Modal */}
       <Modal open={showJobModal} onClose={() => setShowJobModal(false)} size="lg">
         <ModalHeader title={activeJob.title} subtitle={`${activeJob.dept} · ${activeJob.id}`} onClose={() => setShowJobModal(false)}>
           <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink-muted">Job Details</p>
@@ -962,7 +949,6 @@ function ShortlistsPageInner() {
         </ModalFooter>
       </Modal>
 
-      {/* Export Modal */}
       <Modal open={showExportModal} onClose={() => setShowExportModal(false)} size="sm">
         <ModalHeader title="Export Shortlist" onClose={() => setShowExportModal(false)} />
         <ModalBody className="flex flex-col gap-4">
@@ -996,7 +982,6 @@ function ShortlistsPageInner() {
         </ModalFooter>
       </Modal>
 
-      {/* Add Note Modal */}
       <Modal open={showNoteModal && !!selected} onClose={() => setShowNoteModal(false)} size="sm">
         <ModalHeader title="Add Recruiter Note" subtitle={`For ${selected?.name ?? "—"}`} onClose={() => setShowNoteModal(false)} />
         <ModalBody className="flex flex-col gap-4">
@@ -1025,7 +1010,6 @@ function ShortlistsPageInner() {
         </ModalFooter>
       </Modal>
 
-      {/* Compare Candidates Modal */}
       <Modal open={showCompare} onClose={() => setShowCompare(false)} size="xl">
         <ModalHeader title="Compare Candidates" subtitle="Side-by-side evaluation" onClose={() => setShowCompare(false)} />
         <ModalBody>
@@ -1117,7 +1101,6 @@ function ShortlistsPageInner() {
         </ModalFooter>
       </Modal>
 
-      {/* Next Step Modal — guides user to Candidates */}
       <Modal open={showNextStepModal} onClose={() => setShowNextStepModal(false)} size="sm">
         <ModalBody className="flex flex-col items-center gap-5 py-8 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
@@ -1142,7 +1125,6 @@ function ShortlistsPageInner() {
             </div>
           </div>
 
-          {/* Workflow stepper */}
           <div className="flex w-full items-center justify-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
             <span className="rounded-full bg-success/10 px-2.5 py-1 text-success">✓ Create Job</span>
             <ArrowRight className="h-3 w-3" />

@@ -292,9 +292,7 @@ function ProfilePageInner() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_1fr]">
-        {/* Sidebar nav */}
         <aside className="flex flex-col gap-2">
-          {/* Avatar card */}
           <Card className="flex flex-col items-center p-5 text-center">
             <div className="relative">
               {isLoadingProfile ? (
@@ -323,7 +321,6 @@ function ProfilePageInner() {
             <p className="mt-3 text-[11px] text-ink-muted">{syncLabel}</p>
           </Card>
 
-          {/* Tab nav */}
           <Card className="overflow-hidden p-1">
             {tabs.map(({ id, label, icon: Icon }) => (
               <button key={id} onClick={() => handleTabChange(id)}
@@ -336,7 +333,6 @@ function ProfilePageInner() {
           </Card>
         </aside>
 
-        {/* Main content */}
         <div className="flex flex-col gap-5">
           {profileError && (
             <div className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
@@ -350,7 +346,6 @@ function ProfilePageInner() {
             </div>
           )}
 
-          {/* ── Profile Tab ── */}
           {activeTab === "profile" && (
             <>
               <Card className="p-6">
@@ -440,7 +435,6 @@ function ProfilePageInner() {
             </>
           )}
 
-          {/* ── Security Tab ── */}
           {activeTab === "security" && (
             <>
               <Card className="p-6">
@@ -528,7 +522,6 @@ function ProfilePageInner() {
             </>
           )}
 
-          {/* ── Preferences Tab ── */}
           {activeTab === "preferences" && (
             <>
               <Card className="p-6">

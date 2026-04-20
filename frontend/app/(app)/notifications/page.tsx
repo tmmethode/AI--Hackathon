@@ -100,7 +100,6 @@ export default function NotificationsPage() {
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_260px]">
         <div className="flex flex-col gap-4">
-          {/* Search + Tabs */}
           <div className="flex items-center gap-0 rounded-md border border-line bg-white shadow-sm">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
@@ -123,7 +122,6 @@ export default function NotificationsPage() {
             </div>
           </div>
 
-          {/* List */}
           <Card className="overflow-hidden">
             {isLoading ? (
               <div className="flex flex-col items-center py-16 text-ink-muted">
@@ -174,7 +172,6 @@ export default function NotificationsPage() {
               </ul>
             )}
 
-            {/* Pagination */}
             {filtered.length > 0 && (
               <div className="flex items-center justify-between border-t border-line px-5 py-3 text-sm text-ink-muted">
                 <p>Showing {Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}</p>
@@ -193,7 +190,6 @@ export default function NotificationsPage() {
           </Card>
         </div>
 
-        {/* Summary sidebar */}
         <aside className="flex flex-col gap-4">
           <Card className="p-5">
             <h3 className="text-sm font-semibold text-ink">Summary</h3>

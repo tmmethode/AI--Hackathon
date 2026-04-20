@@ -21,7 +21,6 @@ import { CandidatesPageSkeleton } from "@/components/page-skeletons";
 
 type Candidate = CandidateRecord;
 
-/* ── Advance options (same as Shortlists) ── */
 const advanceOptions = [
   { key: "interview" as const, label: "Interview", icon: Calendar, desc: "Schedule a screening or panel interview" },
   { key: "exam" as const, label: "Technical Exam", icon: ClipboardCheck, desc: "Assign a written or online technical test" },
@@ -57,7 +56,6 @@ type FilterStatus = "all" | "shortlisted" | "advanced" | "interview" | "exam" | 
 const ADVANCED_STATUSES: CandidateStatus[] = ["interview", "exam", "assessment", "practical"];
 const PAGE_SIZE = 10;
 
-/* ── Context-aware helpers ── */
 function getEmailSubject(c: Candidate): string {
   switch (c.status) {
     case "interview": return `Interview Invitation — ${c.job} Position at Umurava`;
@@ -113,7 +111,6 @@ function getScheduleDefaults(c: Candidate): { round: string; notes: string; dura
   }
 }
 
-/* ── Main Page ── */
 export default function CandidatesPage() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -271,7 +268,6 @@ export default function CandidatesPage() {
         </div>
       )}
 
-      {/* Job selector */}
       <div className="relative mt-6">
         <button
           onClick={() => setShowJobPicker((v) => !v)}
@@ -341,7 +337,6 @@ export default function CandidatesPage() {
       </div>
       {showJobPicker && <div className="fixed inset-0 z-[15]" onClick={() => setShowJobPicker(false)} />}
 
-      {/* Stats row */}
       <section className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-5">
         {([
           { label: "Total", value: counts.all, tone: "brand" },
@@ -359,7 +354,6 @@ export default function CandidatesPage() {
         ))}
       </section>
 
-      {/* Toolbar + table */}
       <Card className="mt-6">
         <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-4">
           <h2 className="flex items-center gap-2 font-display text-base font-semibold text-ink">
@@ -377,7 +371,6 @@ export default function CandidatesPage() {
               />
             </div>
 
-            {/* Filter */}
             <div className="relative">
               <Button variant="secondary" size="sm" leftIcon={<Filter className="h-3.5 w-3.5" />}
                 onClick={() => { setShowFilter((v) => !v); setShowSort(false); }}>
@@ -397,7 +390,6 @@ export default function CandidatesPage() {
               )}
             </div>
 
-            {/* Sort */}
             <div className="relative">
               <Button variant="secondary" size="sm" leftIcon={<ArrowDownUp className="h-3.5 w-3.5" />}
                 onClick={() => { setShowSort((v) => !v); setShowFilter(false); }}>
@@ -419,7 +411,6 @@ export default function CandidatesPage() {
           </div>
         </div>
 
-        {/* Candidates grid */}
         {paginated.length === 0 ? (
           <div className="px-5 py-16 text-center text-sm text-ink-muted">
             No candidates match your filters.
@@ -438,13 +429,10 @@ export default function CandidatesPage() {
                   key={c.id}
                   className={`group relative flex flex-col rounded-xl border border-line bg-surface shadow-sm transition-all duration-200 hover:shadow-md hover:border-brand/30 hover:-translate-y-0.5 ${c.status === "rejected" ? "opacity-50 grayscale-[30%]" : ""}`}
                 >
-                  {/* Top accent bar */}
                   <div className="h-1 rounded-t-xl" style={{ background: `linear-gradient(90deg, ${ringColor}, ${ringColor}60)` }} />
 
                   <div className="flex flex-col gap-3.5 p-5">
-                    {/* Header row */}
                     <div className="flex items-start gap-3.5">
-                      {/* Match score circle */}
                       <div className="relative flex-shrink-0">
                         <svg width="52" height="52" viewBox="0 0 52 52" className="rotate-[-90deg]">
                           <circle cx="26" cy="26" r="22" fill="none" stroke={ringBg} strokeWidth="4" />
@@ -459,7 +447,6 @@ export default function CandidatesPage() {
                         </span>
                       </div>
 
-                      {/* Name & details */}
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <h3 className="text-sm font-bold text-ink leading-tight">{c.name}</h3>
@@ -473,7 +460,6 @@ export default function CandidatesPage() {
                       </div>
                     </div>
 
-                    {/* Skills */}
                     <div className="flex flex-wrap gap-1.5">
                       {c.skills.map((s) => (
                         <span key={s} className="rounded-md bg-surface-soft px-2 py-0.5 text-[11px] font-medium text-ink/70">
@@ -482,7 +468,6 @@ export default function CandidatesPage() {
                       ))}
                     </div>
 
-                    {/* Match bar */}
                     <div>
                       <div className="flex items-center justify-between text-[10px] text-ink-muted mb-1">
                         <span>AI Match Score</span>
@@ -496,7 +481,6 @@ export default function CandidatesPage() {
                       </div>
                     </div>
 
-                    {/* Job & source info */}
                     <div className="flex items-center justify-between rounded-md bg-surface-soft/50 px-3 py-2 text-[11px] text-ink-muted">
                       <span className="flex items-center gap-1.5">
                         <Briefcase className="h-3 w-3" />
@@ -506,7 +490,6 @@ export default function CandidatesPage() {
                     </div>
                   </div>
 
-                  {/* Action footer */}
                   <div className="flex items-center gap-1.5 border-t border-line px-4 py-3">
                     <Link href={`/candidates/${c.id}`} className="flex-1">
                       <Button variant="secondary" size="sm" fullWidth leftIcon={<Eye className="h-3.5 w-3.5" />}>
@@ -514,7 +497,6 @@ export default function CandidatesPage() {
                       </Button>
                     </Link>
 
-                    {/* Advance dropdown */}
                     <div className="relative">
                       <Button size="sm" leftIcon={<ChevronRight className="h-3.5 w-3.5" />}
                         onClick={() => setAdvanceDropdownId(advanceDropdownId === c.id ? null : c.id)}
@@ -574,7 +556,6 @@ export default function CandidatesPage() {
           </div>
         )}
 
-        {/* Pagination */}
         <div className="flex items-center justify-between border-t border-line px-5 py-4 text-sm text-ink-muted">
           <p>Showing {Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}</p>
           <nav className="flex gap-1">
@@ -588,12 +569,10 @@ export default function CandidatesPage() {
         </div>
       </Card>
 
-      {/* Close dropdowns */}
       {(showSort || showFilter || advanceDropdownId !== null) && (
         <div className="fixed inset-0 z-[5]" onClick={() => { setShowSort(false); setShowFilter(false); setAdvanceDropdownId(null); }} />
       )}
 
-      {/* Context-aware Email Modal */}
       <Modal open={!!emailTarget} onClose={() => setEmailTarget(null)} size="md">
         <ModalHeader
           title={emailTarget ? `Email — ${statusLabels[emailTarget.status]}` : "Email Candidate"}
@@ -632,7 +611,6 @@ export default function CandidatesPage() {
         </ModalFooter>
       </Modal>
 
-      {/* Context-aware Schedule Modal */}
       <Modal open={!!scheduleTarget} onClose={() => setScheduleTarget(null)} size="md">
         <ModalHeader
           title={scheduleTarget ? getScheduleTitle(scheduleTarget) : "Schedule"}
@@ -657,7 +635,6 @@ export default function CandidatesPage() {
                   <Badge tone={scheduleTarget.matchScore >= 90 ? "success" : "brand"} pill className="ml-auto">{scheduleTarget.matchScore}% Match</Badge>
                 </div>
 
-                {/* Session type visual indicator */}
                 <div className="flex items-center gap-3 rounded-md border border-brand/20 bg-brand-soft/20 p-3">
                   {(() => {
                     const opt = advanceOptions.find((o) => o.key === scheduleTarget.status);
