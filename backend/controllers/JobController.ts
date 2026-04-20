@@ -53,8 +53,9 @@ export class JobController {
 
   /**
    * Resolve and validate the hiring manager for a job.
-   * - Admins MUST specify a `hiringManager` user id that belongs to a user with role `recruiter`.
+   * - Admins may omit `hiringManager` and will default to themselves.
    * - Recruiters may omit it (defaults to themselves). If provided, it must equal their own id unless admin.
+   * - Explicit hiring managers must belong to a user with role `recruiter` or `admin`.
    */
   private async resolveHiringManager(
     actingUser: IUser,
@@ -62,12 +63,12 @@ export class JobController {
   ): Promise<mongoose.Types.ObjectId> {
     const actingRole = actingUser.role;
 
-    // Recruiter default: themselves
+    // Recruiter/admin default: themselves
     if (!requestedId) {
-      if (actingRole === 'recruiter') {
+      if (actingRole === 'recruiter' || actingRole === 'admin') {
         return actingUser._id;
       }
-      throw new Error('hiringManager is required (must be a user id with role \'recruiter\')');
+      throw new Error('hiringManager is required');
     }
 
     if (!mongoose.Types.ObjectId.isValid(requestedId)) {
@@ -83,8 +84,8 @@ export class JobController {
     if (!hm) {
       throw new Error('Hiring manager user not found');
     }
-    if (hm.role !== 'recruiter') {
-      throw new Error('Hiring manager must be a user with role \'recruiter\'');
+    if (hm.role !== 'recruiter' && hm.role !== 'admin') {
+      throw new Error('Hiring manager must be a user with role \'recruiter\' or \'admin\'');
     }
 
     return hm._id;
@@ -145,7 +146,7 @@ export class JobController {
 
         // Also search by hiring manager's name/email
         const matchingManagers = await User.find({
-          role: 'recruiter',
+          role: { $in: ['recruiter', 'admin'] },
           $or: [
             { firstName: regex },
             { lastName: regex },

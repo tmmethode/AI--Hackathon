@@ -80,15 +80,13 @@ const initialState: JobFormState = {
 
 function buildPayload(state: JobFormState, status: CreateJobPayload["status"]): CreateJobPayload {
   const authUser = getStoredAuthUser();
-
-  if (authUser?.role === "admin") {
-    throw new Error("Admin job creation needs a recruiter hiring manager, and this screen does not support selecting one yet.");
-  }
+  const hiringManagerId =
+    authUser?.role === "recruiter" || authUser?.role === "admin" ? authUser._id : undefined;
 
   return {
     title: state.form.title.trim(),
     department: state.form.department.trim(),
-    hiringManager: authUser?.role === "recruiter" ? authUser._id : undefined,
+    hiringManager: hiringManagerId,
     location: state.form.location.trim(),
     locationPolicy: state.form.locationPolicy as LocationPolicy,
     employmentType: state.form.employmentType as EmploymentType,
