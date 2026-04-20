@@ -18,10 +18,11 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const [account, setAccount] = useState(() => getStoredAuth()?.user ?? null);
 
   const unread = notifs.filter((n) => !n.read).length;
-  const displayName =
-    account ? [account.firstName, account.lastName].filter(Boolean).join(" ") : "Recruiter Pro";
-  const accountEmail = account?.email ?? "recruiter@umurava.com";
-  const accountRole = account ? `${account.role.charAt(0).toUpperCase()}${account.role.slice(1)} Access` : "Admin Access";
+  const displayName = account
+    ? [account.firstName, account.lastName].filter(Boolean).join(" ").trim() || account.email
+    : "Signed-in user";
+  const accountEmail = account?.email ?? "Email unavailable";
+  const accountRole = account ? `${account.role.charAt(0).toUpperCase()}${account.role.slice(1)} Access` : "Role unavailable";
 
   useEffect(() => {
     function syncAccount() {
