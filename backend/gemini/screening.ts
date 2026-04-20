@@ -45,6 +45,10 @@ const BATCH_NARRATIVE_CHUNK_SIZE = Math.max(
   Math.floor(Number(process.env.GEMINI_BATCH_NARRATIVE_CHUNK_SIZE) || 10)
 );
 const SHORTLIST_EXPLANATION_BUFFER = 10;
+const MAX_BATCH_EXPLANATION_ITEMS = 3;
+const MAX_BATCH_EXPLANATION_ITEM_WORDS = 40;
+const MIN_BATCH_SUMMARY_WORDS = 60;
+const MAX_BATCH_SUMMARY_WORDS = 100;
 
 function estimateBatchTokenBudget(applicantCount: number): number {
   return Math.max(1500, Math.min(BATCH_MAX_OUTPUT_TOKENS, 600 + applicantCount * 450));
@@ -256,9 +260,9 @@ function truncateWords(value: string, maxWords: number): string {
 
 function normalizeBatchExplanationItems(value: unknown): string[] {
   return toStringArray(value)
-    .map((item) => truncateWords(item, 20))
+    .map((item) => truncateWords(item, MAX_BATCH_EXPLANATION_ITEM_WORDS))
     .filter(Boolean)
-    .slice(0, 3);
+    .slice(0, MAX_BATCH_EXPLANATION_ITEMS);
 }
 
 function buildFallbackBatchSummary(entry: {
@@ -275,7 +279,7 @@ function buildFallbackBatchSummary(entry: {
 
   return truncateWords(
     `This candidate received a ${entry.finalRecommendation} recommendation with a ${entry.matchScore}% match score based on the available application evidence. Key strengths include ${strengths}. Main gaps or risks include ${risks}. Confidence in this assessment is ${entry.confidenceScore}% because the evaluation only uses the information provided for screening.`,
-    60
+    MAX_BATCH_SUMMARY_WORDS
   );
 }
 
@@ -287,9 +291,9 @@ function normalizeBatchSummaryExplanation(entry: {
   gapsOrRisks: string[];
   summaryExplanation: string;
 }): string {
-  const trimmedSummary = truncateWords(entry.summaryExplanation, 60);
+  const trimmedSummary = truncateWords(entry.summaryExplanation, MAX_BATCH_SUMMARY_WORDS);
 
-  if (countWords(trimmedSummary) >= 40) {
+  if (countWords(trimmedSummary) >= MIN_BATCH_SUMMARY_WORDS) {
     return trimmedSummary;
   }
 

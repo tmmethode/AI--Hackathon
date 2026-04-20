@@ -727,7 +727,9 @@ Rules:
 - narratives.length MUST equal ${targets.length}.
 - Return one narrative per candidate listed below, matching applicantEmail exactly.
 - Do not change the supplied rank, score, or recommendation. Explain them only.
-- Token-lean output per candidate: strengths/gapsOrRisks max 3 items of ≤8 words each; summaryExplanation one sentence ≤25 words.
+- For each candidate, write summaryExplanation as a recruiter-friendly AI recommendation of 60 to 100 words.
+- Each strengths item and each gapsOrRisks item must be a short explanatory phrase of no more than 40 words.
+- Keep strengths and gapsOrRisks to a maximum of 3 items each. No markdown, no newlines or nested quotes inside strings.
 - Use only the provided job context, score context, and candidate profile.
 - If evidence is weak or incomplete, say so briefly in gapsOrRisks.
 
