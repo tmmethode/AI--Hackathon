@@ -204,6 +204,17 @@ export default function ScreeningPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [runError, setRunError] = useState("");
 
+  function sanitizeShortlistSizeInput(rawValue: string): number {
+    const digitsOnly = rawValue.replace(/\D+/g, "");
+
+    if (!digitsOnly) {
+      return 0;
+    }
+
+    const normalized = digitsOnly.replace(/^0+(?=\d)/, "");
+    return Number(normalized) || 0;
+  }
+
   useEffect(() => {
     let isCancelled = false;
 
@@ -596,11 +607,23 @@ export default function ScreeningPage() {
                   className="flex-1 min-w-[200px] mb-0"
                 >
                   <Input
-                    type="number"
-                    min={effectiveShortlistMin}
-                    max={effectiveShortlistMax}
-                    value={shortlistSize}
-                    onChange={(event) => setShortlistSize(Number(event.target.value) || 0)}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={shortlistSize === 0 ? "" : String(shortlistSize)}
+                    onChange={(event) =>
+                      setShortlistSize(sanitizeShortlistSizeInput(event.target.value))
+                    }
+                    onBlur={() => {
+                      if (shortlistSize === 0) {
+                        setShortlistSize(effectiveDefaultShortlist);
+                        return;
+                      }
+
+                      setShortlistSize((current) =>
+                        Math.max(effectiveShortlistMin, Math.min(current, effectiveShortlistMax))
+                      );
+                    }}
                     className="max-w-[120px]"
                     disabled={applicantsLoading || parsedApplicants.length === 0}
                   />
