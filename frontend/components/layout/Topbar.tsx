@@ -6,19 +6,13 @@ import { useRouter } from "next/navigation";
 import { Activity, Bell, CircleHelp, Search, Check, Settings, LogOut, User, Shield, X, Menu } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { clearStoredAuth, getStoredAuth } from "@/lib/auth";
-
-const notifications = [
-  { id: 1, title: "New applicants detected", body: "14 new candidates matched Senior Full Stack Engineer.", time: "2m ago", read: false },
-  { id: 2, title: "Screening completed", body: "AI screening for QA Automation Lead finished with 91% avg match.", time: "1h ago", read: false },
-  { id: 3, title: "Shortlist ready", body: "20 candidates shortlisted for Product Designer role.", time: "3h ago", read: true },
-  { id: 4, title: "Export downloaded", body: "Your shortlist CSV export was generated successfully.", time: "Yesterday", read: true },
-];
+import { listNotifications, toRelativeTime, type Notification } from "@/lib/notifications";
 
 export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const router = useRouter();
   const [showNotif, setShowNotif] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [notifs, setNotifs] = useState(notifications);
+  const [notifs, setNotifs] = useState<Notification[]>([]);
   const [notifTab, setNotifTab] = useState<"all" | "unread">("all");
   const [viewAll, setViewAll] = useState(false);
   const [account, setAccount] = useState(() => getStoredAuth()?.user ?? null);
@@ -43,15 +37,37 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
     };
   }, []);
 
+  useEffect(() => {
+    async function loadNotifications() {
+      try {
+        const response = await listNotifications(30);
+        setNotifs(response.data);
+      } catch {
+        setNotifs([]);
+      }
+    }
+
+    void loadNotifications();
+
+    function syncNotifications() {
+      void loadNotifications();
+    }
+
+    window.addEventListener("umurava-auth-changed", syncNotifications);
+    return () => {
+      window.removeEventListener("umurava-auth-changed", syncNotifications);
+    };
+  }, []);
+
   function markAllRead() {
     setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
   }
 
-  function markRead(id: number) {
+  function markRead(id: string) {
     setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
   }
 
-  function dismiss(id: number) {
+  function dismiss(id: string) {
     setNotifs((prev) => prev.filter((n) => n.id !== id));
   }
 
@@ -148,13 +164,13 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
                     return list.map((n) => (
                       <li key={n.id}
                         className={`flex items-start gap-3 px-4 py-3 transition-colors hover:bg-surface-soft/50 ${!n.read ? "bg-brand-soft/20" : ""}`}>
-                        <Link href={`/notifications/${n.id}`} onClick={() => { markRead(n.id); closeAll(); }} className="mt-0.5 flex-1 min-w-0">
+                        <Link href={`/notifications/${encodeURIComponent(n.id)}`} onClick={() => { markRead(n.id); closeAll(); }} className="mt-0.5 flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             {!n.read && <span className="h-2 w-2 shrink-0 rounded-full bg-brand" />}
                             <p className={`text-sm ${!n.read ? "font-semibold text-ink" : "font-medium text-ink"}`}>{n.title}</p>
                           </div>
                           <p className="mt-0.5 text-xs text-ink-muted">{n.body}</p>
-                          <p className="mt-1 text-[10px] text-ink-muted">{n.time}</p>
+                          <p className="mt-1 text-[10px] text-ink-muted">{toRelativeTime(n.createdAt)}</p>
                         </Link>
                         <button onClick={() => dismiss(n.id)} className="mt-0.5 rounded p-0.5 text-ink-muted hover:bg-surface-soft hover:text-ink">
                           <X className="h-3.5 w-3.5" />
