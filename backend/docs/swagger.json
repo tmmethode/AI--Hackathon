@@ -165,6 +165,9 @@
 						"type": "number",
 						"format": "double"
 					},
+					"criticalRequirementGap": {
+						"type": "boolean"
+					},
 					"strengths": {
 						"items": {
 							"type": "string"
@@ -194,6 +197,7 @@
 					"experienceScore",
 					"educationScore",
 					"relevanceScore",
+					"criticalRequirementGap",
 					"strengths",
 					"gapsOrRisks",
 					"finalRecommendation",
@@ -1579,6 +1583,9 @@
 						"type": "number",
 						"format": "double"
 					},
+					"criticalRequirementGap": {
+						"type": "boolean"
+					},
 					"strengths": {
 						"items": {
 							"type": "string"
@@ -1608,6 +1615,7 @@
 					"experienceScore",
 					"educationScore",
 					"relevanceScore",
+					"criticalRequirementGap",
 					"strengths",
 					"gapsOrRisks",
 					"finalRecommendation",

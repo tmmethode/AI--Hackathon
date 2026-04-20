@@ -182,6 +182,10 @@ export default function CandidateDetailPage({ params }: PageProps) {
   const certifications = candidate.applicant?.certifications ?? [];
   const strengths = candidate.strengths.length > 0 ? candidate.strengths : candidate.skills;
   const risks = candidate.gapsOrRisks;
+  const hasAiExplanation =
+    Boolean(candidate.summary?.trim()) ||
+    candidate.strengths.length > 0 ||
+    candidate.gapsOrRisks.length > 0;
   const recruiterNote = candidate.shortlistRecord?.instructions?.trim();
   const topCandidate = candidate.matchScore >= 85;
 
@@ -246,7 +250,9 @@ export default function CandidateDetailPage({ params }: PageProps) {
               </h2>
             </div>
             <p className="mt-2 text-sm leading-6 text-info-deep/80">
-              {candidate.summary || candidate.bio || "No AI summary is available for this candidate yet."}
+              {candidate.summary ||
+                candidate.bio ||
+                "This candidate was outside the cached AI explanation window for the latest screening run."}
             </p>
           </Card>
 
@@ -268,7 +274,9 @@ export default function CandidateDetailPage({ params }: PageProps) {
                 ))
               ) : (
                 <li className="rounded-md border border-dashed border-line p-4 text-xs text-ink-muted">
-                  No strengths were extracted from the latest screening run.
+                  {hasAiExplanation
+                    ? "No strengths were extracted from the latest screening run."
+                    : "AI strengths were not generated for this lower-ranked candidate in the latest run."}
                 </li>
               )}
             </ul>
@@ -292,7 +300,9 @@ export default function CandidateDetailPage({ params }: PageProps) {
                 ))
               ) : (
                 <li className="rounded-md border border-dashed border-line p-4 text-xs text-ink-muted">
-                  No gaps or risks were reported by the latest screening run.
+                  {hasAiExplanation
+                    ? "No gaps or risks were reported by the latest screening run."
+                    : "AI gaps and risks were not generated for this lower-ranked candidate in the latest run."}
                 </li>
               )}
             </ul>

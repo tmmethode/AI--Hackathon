@@ -107,7 +107,7 @@ function buildCandidateFromResult(
     extras: Math.max(0, strengths.length - 3),
     summary:
       entry.summaryExplanation ||
-      "Gemini did not return a summary for this candidate.",
+      "AI explanation was generated only for the top-ranked candidates in this run.",
     years: 0,
     strength: primaryStrength,
     cultureFit: cultureFitFromScore(entry.relevanceScore),

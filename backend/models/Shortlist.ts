@@ -17,6 +17,7 @@ export interface IShortlistResultEntry {
   experienceScore: number;
   educationScore: number;
   relevanceScore: number;
+  criticalRequirementGap: boolean;
   strengths: string[];
   gapsOrRisks: string[];
   finalRecommendation: ShortlistRecommendation;
@@ -73,6 +74,7 @@ const ShortlistResultEntrySchema: Schema = new Schema(
     experienceScore: { type: Number, default: 0, min: 0, max: 100 },
     educationScore: { type: Number, default: 0, min: 0, max: 100 },
     relevanceScore: { type: Number, default: 0, min: 0, max: 100 },
+    criticalRequirementGap: { type: Boolean, default: false },
     strengths: { type: [String], default: [] },
     gapsOrRisks: { type: [String], default: [] },
     finalRecommendation: {

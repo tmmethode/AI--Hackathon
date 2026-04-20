@@ -321,8 +321,14 @@ export default function ScreeningProgressPage() {
             <Card className="p-6">
               <h3 className="font-display text-base font-semibold text-ink">Top Matches</h3>
               <p className="mt-1 text-xs text-ink-muted">
-                {run.response.shortlist.length} shortlisted from {run.response.totalApplicants} evaluated applicants.
+                {run.response.shortlist.length} qualified candidate{run.response.shortlist.length === 1 ? "" : "s"} shortlisted from {run.response.totalApplicants} evaluated applicants.
               </p>
+
+              {run.response.shortlist.length < run.request.shortlistSize && (
+                <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
+                  The requested shortlist cap was {run.request.shortlistSize}, but only {run.response.shortlist.length} candidate{run.response.shortlist.length === 1 ? "" : "s"} met the shortlist criteria.
+                </div>
+              )}
 
               {run.response.shortlist.length > 0 ? (
                 <ul className="mt-5 space-y-3">
@@ -347,7 +353,7 @@ export default function ScreeningProgressPage() {
                 </ul>
               ) : (
                 <div className="mt-5 rounded-md border border-line bg-surface-soft/30 p-4 text-sm text-ink-muted">
-                  Gemini completed the run, but no shortlist entries were returned.
+                  Gemini completed the run, but no candidates met the shortlist criteria.
                 </div>
               )}
             </Card>
@@ -369,7 +375,7 @@ export default function ScreeningProgressPage() {
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3">
               <div className="rounded-md border border-line p-3">
-                <p className="text-xs text-ink-muted">Shortlist Size</p>
+                <p className="text-xs text-ink-muted">Requested Cap</p>
                 <p className="mt-1 font-display text-xl font-bold text-ink">{run.request.shortlistSize}</p>
               </div>
               <div className="rounded-md border border-line p-3">

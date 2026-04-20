@@ -218,6 +218,7 @@ export interface GeminiBatchScreeningResultEntry {
   experienceScore: number;
   educationScore: number;
   relevanceScore: number;
+  criticalRequirementGap: boolean;
   strengths: string[];
   gapsOrRisks: string[];
   finalRecommendation: "Strong Reject" | "Reject" | "Consider" | "Shortlist" | "Strong Shortlist";

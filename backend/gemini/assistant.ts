@@ -231,6 +231,7 @@ function toShortlistContextFromModel(shortlist: IShortlist): GeminiRecruiterAssi
       experienceScore: entry.experienceScore,
       educationScore: entry.educationScore,
       relevanceScore: entry.relevanceScore,
+      criticalRequirementGap: entry.criticalRequirementGap ?? false,
       strengths: entry.strengths || [],
       gapsOrRisks: entry.gapsOrRisks || [],
       finalRecommendation: entry.finalRecommendation,

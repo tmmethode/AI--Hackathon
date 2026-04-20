@@ -32,6 +32,7 @@ export interface ShortlistResultEntryDTO {
   experienceScore: number;
   educationScore: number;
   relevanceScore: number;
+  criticalRequirementGap: boolean;
   strengths: string[];
   gapsOrRisks: string[];
   finalRecommendation: ShortlistRecommendation;
@@ -160,6 +161,7 @@ export class ShortlistController {
       experienceScore: entry.experienceScore,
       educationScore: entry.educationScore,
       relevanceScore: entry.relevanceScore,
+      criticalRequirementGap: entry.criticalRequirementGap ?? false,
       strengths: entry.strengths || [],
       gapsOrRisks: entry.gapsOrRisks || [],
       finalRecommendation: entry.finalRecommendation,
@@ -356,6 +358,9 @@ export class ShortlistController {
         );
       }
 
+      const screeningResults = Array.isArray(body.screeningResults) ? body.screeningResults : [];
+      const shortlistEntries = Array.isArray(body.shortlist) ? body.shortlist : [];
+
       const shortlist = new Shortlist({
         job: job._id,
         jobTitle: body.jobTitle || job.title,
@@ -363,9 +368,9 @@ export class ShortlistController {
         runName: body.runName || `${job.title} Screening Run`,
         geminiModel: body.model || '',
         totalApplicants: body.totalApplicants,
-        shortlistCount: body.shortlistCount,
-        screeningResults: body.screeningResults || [],
-        shortlist: body.shortlist || [],
+        shortlistCount: shortlistEntries.length,
+        screeningResults,
+        shortlist: shortlistEntries,
         instructions: body.instructions || '',
         screeningStartedAt,
         screeningCompletedAt,

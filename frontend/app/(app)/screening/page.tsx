@@ -591,8 +591,8 @@ export default function ScreeningPage() {
 
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <Field
-                  label="Shortlist Size"
-                  hint={`Up to ${effectiveShortlistMax}`}
+                  label="Shortlist Cap"
+                  hint={`Up to ${effectiveShortlistMax} qualified candidates`}
                   className="flex-1 min-w-[200px] mb-0"
                 >
                   <Input
@@ -703,7 +703,8 @@ export default function ScreeningPage() {
                     />
                     <span>
                       I understand this run will evaluate the currently parsed applicants only and generate an AI-ranked
-                      shortlist using the saved job criteria.
+                      shortlist using the saved job criteria. The shortlist cap is a maximum and the final shortlist may
+                      be smaller if fewer candidates meet the required threshold.
                     </span>
                   </label>
                 </div>
@@ -721,7 +722,11 @@ export default function ScreeningPage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                      <span>The shortlist size is validated against backend defaults before the run is submitted.</span>
+                      <span>The shortlist cap is validated against backend defaults before the run is submitted.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                      <span>Only candidates that meet the backend shortlist criteria will appear as shortlisted, even if the cap is higher.</span>
                     </li>
                   </ul>
                 </div>

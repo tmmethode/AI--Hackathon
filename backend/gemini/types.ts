@@ -273,6 +273,27 @@ export interface GeminiBatchScreeningRequest {
   temperature?: number;
 }
 
+export interface GeminiBatchNarrativeTarget {
+  candidateRank: number;
+  applicantEmail: string;
+  fullName: string;
+  matchScore: number;
+  confidenceScore: number;
+  skillsScore: number;
+  experienceScore: number;
+  educationScore: number;
+  relevanceScore: number;
+  finalRecommendation: GeminiBatchRecommendation;
+  applicant: GeminiBatchApplicant;
+}
+
+export interface GeminiBatchNarrativeEntry {
+  applicantEmail: string;
+  strengths: string[];
+  gapsOrRisks: string[];
+  summaryExplanation: string;
+}
+
 export interface GeminiBatchScreeningResultEntry {
   candidateRank: number;
   applicantEmail: string;
@@ -283,6 +304,7 @@ export interface GeminiBatchScreeningResultEntry {
   experienceScore: number;
   educationScore: number;
   relevanceScore: number;
+  criticalRequirementGap: boolean;
   strengths: string[];
   gapsOrRisks: string[];
   finalRecommendation: GeminiBatchRecommendation;

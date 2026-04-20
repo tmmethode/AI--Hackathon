@@ -2,6 +2,7 @@ import { deriveRankingCriteria } from "./rubric";
 import {
   GeminiBatchApplicant,
   GeminiBatchJob,
+  GeminiBatchNarrativeTarget,
   GeminiBatchScreeningRequest,
   GeminiBatchScreeningResultEntry,
   GeminiBatchShortlistEntry,
@@ -43,7 +44,23 @@ Rules:
 - Never invent qualifications; certifications support but do not replace experience unless the job allows it.
 - All sub-scores are 0–100 integers. Rank by matchScore desc, tie-break: skills → experience → relevance → confidence.
 - finalRecommendation uses: 85–100 "Strong Shortlist", 70–84 "Shortlist", 55–69 "Consider", 35–54 "Reject", 0–34 "Strong Reject". Adjust down when critical requirements missing, evidence weak, or data incomplete.
+- Set criticalRequirementGap=true when a must-have or other critical requirement is clearly missing or unsupported by the evidence.
+- Use "Shortlist" or "Strong Shortlist" only when the candidate clearly meets the core must-have requirements with evidence. If a critical must-have is missing or unsupported, use "Consider" or a reject label instead.
 - Output strict JSON only, no markdown, no commentary, no newlines or nested quotes inside strings.
+`.trim();
+
+export const GEMINI_BATCH_EXPLANATION_SYSTEM_INSTRUCTION = `
+${GEMINI_HIRING_SYSTEM_INSTRUCTION}
+
+You are writing recruiter-facing explanations for candidates who have already been scored and ranked.
+
+Rules:
+- The provided rank, scores, and recommendation are authoritative. Do not change them.
+- Explain the existing screening outcome; do not rescore or rerank.
+- Use only evidence from the candidate data and the supplied scoring context.
+- Keep strengths/gaps concise and recruiter-friendly.
+- If evidence is weak or incomplete, say so briefly in gapsOrRisks.
+- Output strict JSON only, no markdown or commentary outside the JSON.
 `.trim();
 
 function formatList(title: string, items?: string[]): string {
@@ -113,6 +130,7 @@ Scoring rules:
 - mustHaveMatchScore and dataCompletenessScore must be integers from 0 to 100.
 - Each criterion score must be an integer from 0 to 100.
 - Focus first on must-have qualifications and hard skills.
+- Return recommendation "yes" or "strong_yes" only when the candidate meets the core must-have requirements with clear evidence. If critical requirements are missing or unsupported, use "maybe" or "no".
 - Be conservative when evidence is weak or missing.
 - Use evidence drawn from the imported candidate data, candidate summary, or resume text.
 - Score every ranking criterion listed below.
@@ -356,6 +374,15 @@ function formatBatchApplicant(applicant: GeminiBatchApplicant, index: number): s
   }
 
   return blocks.join("\n");
+}
+
+function formatBatchNarrativeTarget(target: GeminiBatchNarrativeTarget, index: number): string {
+  return [
+    `#${index + 1} rank=${target.candidateRank} ${target.fullName} <${target.applicantEmail}>`,
+    `Scores: match=${target.matchScore} skills=${target.skillsScore} exp=${target.experienceScore} edu=${target.educationScore} rel=${target.relevanceScore} conf=${target.confidenceScore}`,
+    `Recommendation: ${target.finalRecommendation}`,
+    formatBatchApplicant(target.applicant, index),
+  ].join("\n");
 }
 
 export const GEMINI_RECRUITER_ASSISTANT_SYSTEM_INSTRUCTION = `
@@ -663,16 +690,14 @@ export function buildBatchScreeningPrompt(request: GeminiBatchScreeningRequest):
     .join("\n\n");
 
   return `
-Return strict JSON ONLY, shape: {"jobTitle":string,"department":string,"shortlistCount":number,"totalApplicants":number,"screeningResults":[{"candidateRank":number,"applicantEmail":string,"fullName":string,"matchScore":number,"confidenceScore":number,"skillsScore":number,"experienceScore":number,"educationScore":number,"relevanceScore":number,"strengths":string[],"gapsOrRisks":string[],"finalRecommendation":"Strong Reject|Reject|Consider|Shortlist|Strong Shortlist","summaryExplanation":string}],"shortlist":[]}
+Return strict JSON ONLY, shape: {"jobTitle":string,"department":string,"shortlistCount":number,"totalApplicants":number,"screeningResults":[{"candidateRank":number,"applicantEmail":string,"fullName":string,"matchScore":number,"confidenceScore":number,"skillsScore":number,"experienceScore":number,"educationScore":number,"relevanceScore":number,"criticalRequirementGap":boolean,"finalRecommendation":"Strong Reject|Reject|Consider|Shortlist|Strong Shortlist"}],"shortlist":[]}
 
 Rules:
 - screeningResults.length MUST equal totalApplicants (${applicants.length}).
 - Return shortlist as []; the caller re-ranks and slices the final shortlist.
-- For each applicant, write summaryExplanation as a recruiter-friendly AI recommendation of 40 to 60 words.
-- Each strengths item and each gapsOrRisks item must be a short explanatory phrase of no more than 20 words.
-- Keep strengths and gapsOrRisks to a maximum of 3 items each. No markdown, no newlines or nested quotes inside strings.
+- Do not include recruiter-facing strengths, gaps, or summaries in this pass. This pass is scoring-only so output stays lean.
 - Score 0–100 integers. Apply the weighted model and rules from the system instruction.
-- Never invent qualifications; call out missing evidence briefly in gapsOrRisks and lower confidenceScore.
+- Never invent qualifications. Set criticalRequirementGap=true when a critical requirement is missing or unsupported, and lower confidenceScore when evidence is weak.
 
 shortlistCount (context only): ${shortlistCount}
 totalApplicants: ${applicants.length}
@@ -682,6 +707,35 @@ ${formatBatchJob(job)}
 
 APPLICANTS:
 ${applicantBlocks}
+${instructions ? `\nRecruiter instructions: ${instructions}` : ""}
+`.trim();
+}
+
+export function buildBatchNarrativePrompt(
+  job: GeminiBatchJob,
+  targets: GeminiBatchNarrativeTarget[],
+  instructions?: string
+): string {
+  const targetBlocks = targets
+    .map((target, index) => formatBatchNarrativeTarget(target, index))
+    .join("\n\n");
+
+  return `
+Return strict JSON ONLY, shape: {"narratives":[{"applicantEmail":string,"strengths":string[],"gapsOrRisks":string[],"summaryExplanation":string}]}
+
+Rules:
+- narratives.length MUST equal ${targets.length}.
+- Return one narrative per candidate listed below, matching applicantEmail exactly.
+- Do not change the supplied rank, score, or recommendation. Explain them only.
+- Token-lean output per candidate: strengths/gapsOrRisks max 3 items of ≤8 words each; summaryExplanation one sentence ≤25 words.
+- Use only the provided job context, score context, and candidate profile.
+- If evidence is weak or incomplete, say so briefly in gapsOrRisks.
+
+JOB:
+${formatBatchJob(job)}
+
+CANDIDATES:
+${targetBlocks}
 ${instructions ? `\nRecruiter instructions: ${instructions}` : ""}
 `.trim();
 }

@@ -1,6 +1,7 @@
 import { getGeminiConfig } from "./config";
 import { GeminiClient } from "./client";
 import { GeminiScreeningService } from "./screening";
+import { isFrontendResultShortlistEligible } from "./shortlist-criteria";
 import {
   GeminiFrontendConfigResponse,
   GeminiFrontendScreeningResult,
@@ -133,7 +134,8 @@ export class GeminiFrontendService {
 
     results.forEach((result, index) => {
       result.rank = index + 1;
-      result.shortlisted = index < normalizedShortlistSize && result.score > 0;
+      result.shortlisted =
+        index < normalizedShortlistSize && isFrontendResultShortlistEligible(result);
     });
 
     const shortlisted = results.filter((result) => result.shortlisted);
