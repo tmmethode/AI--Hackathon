@@ -25,7 +25,7 @@ const navItems = [
   { label: "Candidates", href: "/candidates", icon: Users },
   { label: "Exports", href: "/exports", icon: FileOutput },
   { label: "User Management", href: "/users/new", icon: UserPlus },
-  { label: "History & Settings", href: "/history", icon: Settings },
+  { label: "Screening History", href: "/history", icon: Settings },
 ] as const;
 
 export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => void }) {
