@@ -373,7 +373,38 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    void loadDashboard();
+    let isCancelled = false;
+    let attempts = 0;
+    let retryTimer: number | null = null;
+
+    const attemptLoad = () => {
+      if (isCancelled) {
+        return;
+      }
+
+      if (getStoredAuth()?.token) {
+        void loadDashboard();
+        return;
+      }
+
+      if (attempts >= 10) {
+        setIsLoading(false);
+        setError("Your session is still being restored. Please try again.");
+        return;
+      }
+
+      attempts += 1;
+      retryTimer = window.setTimeout(attemptLoad, 150);
+    };
+
+    attemptLoad();
+
+    return () => {
+      isCancelled = true;
+      if (retryTimer) {
+        window.clearTimeout(retryTimer);
+      }
+    };
   }, []);
 
   if (isLoading) {
