@@ -127,6 +127,8 @@ export function AIAssistant() {
   const [shortlists, setShortlists] = useState<ShortlistSummary[]>([]);
   const [scope, setScope] = useState<ScopeState>(DEFAULT_SCOPE);
   const [scopeLoading, setScopeLoading] = useState(false);
+  const scopeLoadInFlightRef = useRef(false);
+  const healthLoadInFlightRef = useRef(false);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -140,8 +142,9 @@ export function AIAssistant() {
   }, []);
 
   const loadScope = useCallback(async () => {
-    if (scopeLoading) return;
+    if (scopeLoadInFlightRef.current) return;
 
+    scopeLoadInFlightRef.current = true;
     setScopeLoading(true);
     try {
       const [jobRows, shortlistRows] = await Promise.all([
@@ -169,12 +172,14 @@ export function AIAssistant() {
         };
       });
     } finally {
+      scopeLoadInFlightRef.current = false;
       setScopeLoading(false);
     }
-  }, [scopeLoading]);
+  }, []);
 
   const loadHealth = useCallback(async () => {
-    if (healthLoading) return;
+    if (healthLoadInFlightRef.current) return;
+    healthLoadInFlightRef.current = true;
     setHealthLoading(true);
     setHealthError(null);
 
@@ -185,9 +190,10 @@ export function AIAssistant() {
       setHealth(null);
       setHealthError(error instanceof Error ? error.message : "Unable to reach assistant health endpoint.");
     } finally {
+      healthLoadInFlightRef.current = false;
       setHealthLoading(false);
     }
-  }, [healthLoading]);
+  }, []);
 
   useEffect(() => {
     if (!panelOpen) return;
@@ -421,7 +427,7 @@ export function AIAssistant() {
                     className="w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs text-ink"
                     value={scope.jobId}
                     onChange={(event) => setScope((prev) => ({ ...prev, jobId: event.target.value }))}
-                    disabled={scopeLoading}
+                    aria-busy={scopeLoading}
                   >
                     <option value="">Any job</option>
                     {jobs.map((job) => (
@@ -435,7 +441,7 @@ export function AIAssistant() {
                     className="w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs text-ink"
                     value={scope.shortlistId}
                     onChange={(event) => setScope((prev) => ({ ...prev, shortlistId: event.target.value }))}
-                    disabled={scopeLoading}
+                    aria-busy={scopeLoading}
                   >
                     <option value="">No shortlist run</option>
                     {filteredShortlists.map((run) => (
