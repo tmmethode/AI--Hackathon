@@ -21,10 +21,6 @@ function AuthGateFallback() {
         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-white">
           <Activity className="h-4 w-4" />
         </span>
-        <div>
-          <p className="text-sm font-semibold text-ink">Checking your session</p>
-          <p className="text-xs text-ink-muted">Taking you to the right place now.</p>
-        </div>
       </div>
     </div>
   );
