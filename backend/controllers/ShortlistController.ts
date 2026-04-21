@@ -127,6 +127,47 @@ export interface DeleteShortlistResponse {
 @Tags('Shortlists')
 @Route('shortlists')
 export class ShortlistController {
+  private stripRunMetadata(runName: string): string {
+    return runName
+      .replace(/\s+\[code:[^\]]+\]\s+v\d+\s*$/i, '')
+      .replace(/\s+v\d+\s*$/i, '')
+      .trim();
+  }
+
+  private async buildUniqueRunName(
+    jobId: mongoose.Types.ObjectId,
+    jobTitle: string,
+    requestedRunName?: string
+  ): Promise<string> {
+    const existingRuns = await Shortlist.find({ job: jobId }).select('runName').lean<{ runName: string }[]>();
+    const existingCodes = new Set<string>();
+    let maxVersion = 0;
+
+    for (const run of existingRuns) {
+      const trimmed = (run.runName || '').trim();
+      const match = trimmed.match(/\[code:([^\]]+)\]\s+v(\d+)\s*$/i);
+      if (match) {
+        existingCodes.add(match[1].toUpperCase());
+        maxVersion = Math.max(maxVersion, Number(match[2]) || 0);
+      }
+    }
+
+    const nextVersion = maxVersion + 1;
+    const dateCode = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const baseCode = `SC-${jobId.toString().slice(-4).toUpperCase()}-${dateCode}-${String(nextVersion).padStart(3, '0')}`;
+    let uniqueCode = baseCode;
+    let suffix = 1;
+    while (existingCodes.has(uniqueCode.toUpperCase())) {
+      suffix += 1;
+      uniqueCode = `${baseCode}-${suffix}`;
+    }
+
+    const requestedBase = this.stripRunMetadata(requestedRunName?.trim() || '');
+    const baseName = requestedBase || `${jobTitle} Screening Run`;
+
+    return `${baseName} [CODE:${uniqueCode}] v${nextVersion}`;
+  }
+
   private toHttpError(error: unknown): HttpError {
     if (error instanceof HttpError) {
       return error;
@@ -360,12 +401,17 @@ export class ShortlistController {
 
       const screeningResults = Array.isArray(body.screeningResults) ? body.screeningResults : [];
       const shortlistEntries = Array.isArray(body.shortlist) ? body.shortlist : [];
+      const runName = await this.buildUniqueRunName(
+        job._id as mongoose.Types.ObjectId,
+        body.jobTitle || job.title,
+        body.runName
+      );
 
       const shortlist = new Shortlist({
         job: job._id,
         jobTitle: body.jobTitle || job.title,
         department: body.department ?? job.department ?? '',
-        runName: body.runName || `${job.title} Screening Run`,
+        runName,
         geminiModel: body.model || '',
         totalApplicants: body.totalApplicants,
         shortlistCount: shortlistEntries.length,
