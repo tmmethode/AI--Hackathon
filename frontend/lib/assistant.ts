@@ -65,14 +65,29 @@ async function parseJson<T>(response: Response): Promise<T | null> {
 }
 
 export async function askAssistant(request: AssistantAskRequest): Promise<AssistantAskResponse> {
-  const response = await fetch(`${getApiBaseUrl()}/gemini/assistant`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeader(),
-    },
-    body: JSON.stringify(request),
-  });
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 45000);
+
+  let response: Response;
+
+  try {
+    response = await fetch(`${getApiBaseUrl()}/gemini/assistant`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeader(),
+      },
+      body: JSON.stringify(request),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("The assistant request timed out. Please retry.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
 
   const payload = await parseJson<
     (AssistantAskResponse & { message?: string; error?: string }) | null

@@ -1,20 +1,13 @@
 "use client";
 
-import {
-  FormEvent,
-  KeyboardEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bot,
-  ChevronDown,
   Loader2,
+  Maximize2,
   MessageCircle,
-  RotateCcw,
+  Minimize2,
+  RefreshCw,
   Send,
   Sparkles,
   X,
@@ -22,8 +15,8 @@ import {
 import { cn } from "@/lib/cn";
 import {
   AssistantAskResponse,
-  AssistantHealthResponse,
   AssistantContextSummary,
+  AssistantHealthResponse,
   AssistantMessage,
   askAssistant,
   getAssistantHealth,
@@ -32,689 +25,545 @@ import { getStoredAuth } from "@/lib/auth";
 import { listAllJobs, type JobRecord } from "@/lib/jobs";
 import { listAllShortlists, type ShortlistSummary } from "@/lib/shortlists";
 
+type PanelState = "closed" | "open" | "minimized";
+type DeliveryState = "sent" | "loading" | "error";
+
 interface ChatMessage extends AssistantMessage {
   id: string;
-  at: number;
+  createdAt: number;
+  deliveryState: DeliveryState;
   contextUsed?: AssistantContextSummary;
-  model?: string;
 }
 
-const STARTER_PROMPTS = [
-  "Summarise the top 3 candidates.",
-  "Why was the #1 candidate ranked first?",
-  "Which candidates meet all mandatory requirements?",
-  "Compare the top 2 shortlisted candidates.",
-  "Generate interview notes for the top candidate.",
-];
-
-function makeId() {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+interface ScopeState {
+  jobId: string;
+  shortlistId: string;
+  includeApplicants: boolean;
 }
 
-function contextSummaryLabel(summary: AssistantContextSummary): string {
-  const parts: string[] = [];
-  if (summary.jobTitle) parts.push(summary.jobTitle);
-  if (summary.shortlistCount > 0) parts.push(`${summary.shortlistCount} shortlisted`);
-  if (summary.screeningResultCount > 0) parts.push(`${summary.screeningResultCount} scored`);
-  if (summary.applicantCount > 0) parts.push(`${summary.applicantCount} applicants`);
-  if (summary.truncatedApplicants) parts.push("truncated");
-  if (parts.length === 0) {
-    if (summary.source === "database") return "Workspace overview";
-    if (summary.source === "mixed") return "Mixed live context";
-    if (summary.source === "inline") return "Provided inline context";
-    return "No live data grounding";
-  }
-  return parts.join(" • ");
+const DEFAULT_SCOPE: ScopeState = {
+  jobId: "",
+  shortlistId: "",
+  includeApplicants: true,
+};
+
+function newId() {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-function buildStarterPrompts(selectedJob?: JobRecord, selectedShortlist?: ShortlistSummary): string[] {
+function buildPrompts(selectedJob?: JobRecord, selectedShortlist?: ShortlistSummary) {
   if (selectedShortlist) {
-    const candidateLabel = selectedShortlist.topCandidateName || "the top shortlisted candidate";
     return [
-      `Summarise the shortlist for ${selectedShortlist.jobTitle}.`,
-      `Why was ${candidateLabel} ranked first in ${selectedShortlist.runName}?`,
-      `Compare the top 2 shortlisted candidates for ${selectedShortlist.jobTitle}.`,
-      `Which shortlisted candidates have the biggest risks for ${selectedShortlist.jobTitle}?`,
-      `Generate interview notes for ${candidateLabel}.`,
+      `Summarise this shortlist for ${selectedShortlist.jobTitle}.`,
+      `Why was ${selectedShortlist.topCandidateName || "the top candidate"} ranked #1?`,
+      `What interview focus areas should I use for the top 3 candidates?`,
+      `Which shortlisted profiles have the biggest risks and why?`,
     ];
   }
 
   if (selectedJob) {
     return [
-      `Summarise the current applicant pool for ${selectedJob.title}.`,
-      `Which candidates best meet the must-have requirements for ${selectedJob.title}?`,
-      `What are the biggest skill gaps in the ${selectedJob.title} pipeline?`,
-      `Which applicants look strongest for ${selectedJob.title}?`,
-      `Draft recruiter interview focus areas for the strongest ${selectedJob.title} candidates.`,
+      `Summarise the hiring pipeline for ${selectedJob.title}.`,
+      `Which applicants best match the must-have requirements?`,
+      `What skills gaps should we watch for in this pipeline?`,
+      `Give me a short recruiter briefing for the next interview round.`,
     ];
   }
 
-  return STARTER_PROMPTS;
+  return [
+    "What should I do next in this hiring workflow?",
+    "Summarise our latest shortlist results.",
+    "What are the strongest and weakest candidate patterns?",
+    "Draft interview guidance for top candidates.",
+  ];
+}
+
+function contextLabel(summary?: AssistantContextSummary) {
+  if (!summary) return "No context metadata";
+
+  const parts: string[] = [];
+  if (summary.jobTitle) parts.push(summary.jobTitle);
+  if (summary.shortlistCount > 0) parts.push(`${summary.shortlistCount} shortlisted`);
+  if (summary.applicantCount > 0) parts.push(`${summary.applicantCount} applicants`);
+  if (summary.screeningResultCount > 0) parts.push(`${summary.screeningResultCount} scored`);
+  if (summary.truncatedApplicants) parts.push("trimmed");
+
+  if (parts.length > 0) return parts.join(" • ");
+  return summary.source === "database" ? "Workspace overview" : "Live context";
+}
+
+function ErrorBanner({ message, onRetry }: { message: string; onRetry?: () => void }) {
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-md border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
+      <span className="line-clamp-2">{message}</span>
+      {onRetry ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-danger/30 px-2 py-1 text-[11px] font-medium hover:bg-danger/10"
+        >
+          <RefreshCw className="h-3 w-3" /> Retry
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 export function AIAssistant() {
-  const [authReady, setAuthReady] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+  const [panelState, setPanelState] = useState<PanelState>("closed");
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
+  const [draft, setDraft] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [assistantHealth, setAssistantHealth] = useState<AssistantHealthResponse | null>(null);
-  const [assistantHealthLoading, setAssistantHealthLoading] = useState(false);
-  const [assistantHealthError, setAssistantHealthError] = useState<string | null>(null);
+  const [lastFailedPrompt, setLastFailedPrompt] = useState<string | null>(null);
+  const [requestError, setRequestError] = useState<string | null>(null);
+
+  const [health, setHealth] = useState<AssistantHealthResponse | null>(null);
+  const [healthLoading, setHealthLoading] = useState(false);
+  const [healthError, setHealthError] = useState<string | null>(null);
 
   const [jobs, setJobs] = useState<JobRecord[]>([]);
   const [shortlists, setShortlists] = useState<ShortlistSummary[]>([]);
-  const [scopeLoaded, setScopeLoaded] = useState(false);
+  const [scope, setScope] = useState<ScopeState>(DEFAULT_SCOPE);
   const [scopeLoading, setScopeLoading] = useState(false);
-  const [scopeError, setScopeError] = useState<string | null>(null);
-  const [scopeInitialized, setScopeInitialized] = useState(false);
-  const [jobId, setJobId] = useState<string>("");
-  const [shortlistId, setShortlistId] = useState<string>("");
-  const [includeApplicants, setIncludeApplicants] = useState(true);
 
-  const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Only expose to recruiters and admins
+  const panelOpen = panelState === "open";
+
   useEffect(() => {
-    const session = getStoredAuth();
-    const role = session?.user?.role;
-    setVisible(Boolean(session?.token) && (role === "recruiter" || role === "admin"));
-    setAuthReady(true);
+    const auth = getStoredAuth();
+    const role = auth?.user?.role;
+    setIsVisible(Boolean(auth?.token) && (role === "admin" || role === "recruiter"));
   }, []);
 
-  useEffect(() => {
-    if (!open) return;
-    const id = window.setTimeout(() => {
-      textareaRef.current?.focus();
-    }, 50);
-    return () => window.clearTimeout(id);
-  }, [open]);
+  const loadScope = useCallback(async () => {
+    if (scopeLoading) return;
 
-  useEffect(() => {
-    if (!open) return;
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, open, isSending]);
-
-  const loadScopeOptions = useCallback(async (force = false) => {
-    if ((scopeLoaded && !force) || scopeLoading) return;
     setScopeLoading(true);
-    setScopeError(null);
     try {
-      const [jobList, shortlistList] = await Promise.all([
+      const [jobRows, shortlistRows] = await Promise.all([
         listAllJobs({ pageSize: 100 }).catch(() => [] as JobRecord[]),
         listAllShortlists({ pageSize: 100 }).catch(() => [] as ShortlistSummary[]),
       ]);
-      setJobs(jobList);
-      setShortlists(shortlistList);
-      setScopeLoaded(true);
-      if (force) {
-        setScopeInitialized(false);
-      }
-    } catch (err) {
-      setScopeError(err instanceof Error ? err.message : "Failed to load scope options.");
+      setJobs(jobRows);
+      setShortlists(shortlistRows);
+
+      setScope((prev) => {
+        if (prev.jobId || prev.shortlistId) return prev;
+
+        const latestShortlist = shortlistRows[0];
+        if (latestShortlist) {
+          return {
+            ...prev,
+            jobId: latestShortlist.job,
+            shortlistId: latestShortlist._id,
+          };
+        }
+
+        return {
+          ...prev,
+          jobId: jobRows[0]?._id || "",
+        };
+      });
     } finally {
       setScopeLoading(false);
     }
-  }, [scopeLoaded, scopeLoading]);
+  }, [scopeLoading]);
+
+  const loadHealth = useCallback(async () => {
+    if (healthLoading) return;
+    setHealthLoading(true);
+    setHealthError(null);
+
+    try {
+      const value = await getAssistantHealth();
+      setHealth(value);
+    } catch (error) {
+      setHealth(null);
+      setHealthError(error instanceof Error ? error.message : "Unable to reach assistant health endpoint.");
+    } finally {
+      setHealthLoading(false);
+    }
+  }, [healthLoading]);
 
   useEffect(() => {
-    if (open && visible) {
-      void loadScopeOptions();
+    if (!panelOpen) return;
+    void loadScope();
+    if (!health) {
+      void loadHealth();
     }
-  }, [open, visible, loadScopeOptions]);
+    const timer = window.setTimeout(() => textareaRef.current?.focus(), 20);
+    return () => window.clearTimeout(timer);
+  }, [health, loadHealth, loadScope, panelOpen]);
 
   useEffect(() => {
-    if (!open || !visible || assistantHealth || assistantHealthLoading) {
-      return;
-    }
+    if (!panelOpen) return;
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, panelOpen, isSending]);
 
-    let isMounted = true;
-    setAssistantHealthLoading(true);
-    setAssistantHealthError(null);
-
-    void getAssistantHealth()
-      .then((result) => {
-        if (isMounted) {
-          setAssistantHealth(result);
-        }
-      })
-      .catch((err) => {
-        if (isMounted) {
-          setAssistantHealth(null);
-          setAssistantHealthError(
-            err instanceof Error ? err.message : "Unable to confirm the Gemini connection."
-          );
-        }
-      })
-      .finally(() => {
-        if (isMounted) {
-          setAssistantHealthLoading(false);
-        }
-      });
-
-    return () => {
-      isMounted = false;
+  useEffect(() => {
+    if (!panelOpen) return;
+    const onKeyDown = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setPanelState("minimized");
+      }
     };
-  }, [assistantHealth, assistantHealthLoading, open, visible]);
-
-  useEffect(() => {
-    if (!scopeLoaded || scopeInitialized || jobId || shortlistId) {
-      return;
-    }
-
-    const latestShortlist = shortlists[0];
-    if (latestShortlist) {
-      setShortlistId(latestShortlist._id);
-      setJobId(latestShortlist.job);
-      setScopeInitialized(true);
-      return;
-    }
-
-    const defaultJob = jobs.find((job) => job.status === "Active") ?? jobs[0];
-    if (defaultJob) {
-      setJobId(defaultJob._id);
-    }
-    setScopeInitialized(true);
-  }, [jobs, jobId, scopeInitialized, scopeLoaded, shortlistId, shortlists]);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [panelOpen]);
 
   const filteredShortlists = useMemo(() => {
-    if (!jobId) return shortlists;
-    return shortlists.filter((entry) => entry.job === jobId);
-  }, [jobId, shortlists]);
+    if (!scope.jobId) return shortlists;
+    return shortlists.filter((item) => item.job === scope.jobId);
+  }, [scope.jobId, shortlists]);
 
-  // Keep shortlist selection consistent with job filter
   useEffect(() => {
-    if (!shortlistId) return;
-    const stillValid = filteredShortlists.some((entry) => entry._id === shortlistId);
-    if (!stillValid) {
-      setShortlistId("");
-    }
-  }, [filteredShortlists, shortlistId]);
-
-  const effectiveJobId = useMemo(() => {
-    if (jobId) return jobId;
-    const fromShortlist = shortlists.find((entry) => entry._id === shortlistId)?.job;
-    return fromShortlist || "";
-  }, [jobId, shortlistId, shortlists]);
+    if (!scope.shortlistId) return;
+    if (filteredShortlists.some((entry) => entry._id === scope.shortlistId)) return;
+    setScope((prev) => ({ ...prev, shortlistId: "" }));
+  }, [filteredShortlists, scope.shortlistId]);
 
   const selectedShortlist = useMemo(
-    () => shortlists.find((entry) => entry._id === shortlistId),
-    [shortlistId, shortlists]
+    () => shortlists.find((entry) => entry._id === scope.shortlistId),
+    [scope.shortlistId, shortlists]
   );
 
-  const selectedJob = useMemo(
-    () => jobs.find((entry) => entry._id === effectiveJobId),
-    [effectiveJobId, jobs]
-  );
+  const selectedJob = useMemo(() => {
+    const fromShortlist = shortlists.find((item) => item._id === scope.shortlistId)?.job;
+    const effectiveJobId = scope.jobId || fromShortlist;
+    return jobs.find((job) => job._id === effectiveJobId);
+  }, [jobs, scope.jobId, scope.shortlistId, shortlists]);
 
-  const starterPrompts = useMemo(
-    () => buildStarterPrompts(selectedJob, selectedShortlist),
+  const prompts = useMemo(
+    () => buildPrompts(selectedJob, selectedShortlist),
     [selectedJob, selectedShortlist]
   );
-  const assistantExplicitlyUnavailable = assistantHealth?.configured === false;
-  const assistantReady = assistantHealth?.configured === true;
 
-  const refreshAssistantHealth = useCallback(() => {
-    setAssistantHealth(null);
-    setAssistantHealthError(null);
-  }, []);
-
-  const resetConversation = useCallback(() => {
-    setMessages([]);
-    setError(null);
-    setInput("");
-  }, []);
+  const assistantUnavailable = health?.configured === false;
 
   const sendMessage = useCallback(
-    async (messageText: string) => {
-      const trimmed = messageText.trim();
-      if (!trimmed || isSending) return;
+    async (text: string) => {
+      const messageText = text.trim();
+      if (!messageText || isSending || assistantUnavailable) return;
 
-      const history: AssistantMessage[] = messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
+      setRequestError(null);
+      setLastFailedPrompt(null);
+      const history: AssistantMessage[] = messages
+        .filter((entry) => entry.deliveryState !== "loading")
+        .map((entry) => ({ role: entry.role, content: entry.content }));
 
-      const userTurn: ChatMessage = {
-        id: makeId(),
+      const userMessage: ChatMessage = {
+        id: newId(),
         role: "user",
-        content: trimmed,
-        at: Date.now(),
+        content: messageText,
+        createdAt: Date.now(),
+        deliveryState: "sent",
       };
-      setMessages((prev) => [...prev, userTurn]);
-      setInput("");
-      setError(null);
+
+      const loadingAssistantMessage: ChatMessage = {
+        id: newId(),
+        role: "assistant",
+        content: "",
+        createdAt: Date.now(),
+        deliveryState: "loading",
+      };
+
+      setMessages((prev) => [...prev, userMessage, loadingAssistantMessage]);
+      setDraft("");
       setIsSending(true);
 
       try {
         const response: AssistantAskResponse = await askAssistant({
-          message: trimmed,
+          message: messageText,
           history,
-          jobId: effectiveJobId || undefined,
-          shortlistId: shortlistId || undefined,
-          includeApplicants,
+          jobId: selectedJob?._id,
+          shortlistId: selectedShortlist?._id,
+          includeApplicants: scope.includeApplicants,
           temperature: 0.1,
         });
 
-        const assistantTurn: ChatMessage = {
-          id: makeId(),
-          role: "assistant",
-          content: response.reply,
-          at: Date.now(),
-          contextUsed: response.contextUsed,
-          model: response.model,
-        };
-        setMessages((prev) => [...prev, assistantTurn]);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Something went wrong.";
-        setError(message);
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: makeId(),
-            role: "assistant",
-            content: `I couldn't answer that: ${message}`,
-            at: Date.now(),
-          },
-        ]);
+        setMessages((prev) => {
+          const withoutLoader = prev.filter((entry) => entry.id !== loadingAssistantMessage.id);
+          return [
+            ...withoutLoader,
+            {
+              id: newId(),
+              role: "assistant",
+              content: response.reply,
+              createdAt: Date.now(),
+              deliveryState: "sent",
+              contextUsed: response.contextUsed,
+            },
+          ];
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Something went wrong while asking Gemini.";
+        setLastFailedPrompt(messageText);
+        setRequestError(message);
+        setMessages((prev) => {
+          const withoutLoader = prev.filter((entry) => entry.id !== loadingAssistantMessage.id);
+          return [
+            ...withoutLoader,
+            {
+              id: newId(),
+              role: "assistant",
+              content: `I couldn't complete that request. ${message}`,
+              createdAt: Date.now(),
+              deliveryState: "error",
+            },
+          ];
+        });
       } finally {
         setIsSending(false);
       }
     },
-    [effectiveJobId, includeApplicants, isSending, messages, shortlistId]
+    [assistantUnavailable, isSending, messages, scope.includeApplicants, selectedJob, selectedShortlist]
   );
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    void sendMessage(input);
+    void sendMessage(draft);
   };
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleInputKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
-      void sendMessage(input);
+      void sendMessage(draft);
     }
   };
 
-  if (!authReady || !visible) {
-    return null;
-  }
+  if (!isVisible) return null;
 
   return (
     <>
-      {!open && (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label="Open AI recruiter assistant"
-          className="fixed bottom-6 right-6 z-[60] flex items-center gap-2 rounded-full bg-brand px-4 py-3 text-sm font-medium text-white shadow-soft transition-all hover:bg-brand-hover hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-        >
-          <MessageCircle className="h-5 w-5" />
-          <span className="hidden sm:inline">Ask AI</span>
-        </button>
-      )}
-
-      {open && (
-        <div
-          className="fixed inset-x-0 bottom-0 z-[60] flex justify-end px-0 pb-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:px-0"
-          role="dialog"
-          aria-modal="false"
-          aria-label="AI recruiter assistant"
-        >
-          <div className="flex h-[min(640px,92vh)] w-full flex-col overflow-hidden rounded-t-2xl border border-line bg-surface shadow-soft sm:h-[640px] sm:w-[420px] sm:rounded-2xl">
-            <div className="flex items-start justify-between gap-3 border-b border-line bg-surface-soft px-4 py-3">
-              <div className="flex items-start gap-2">
-                <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-brand-soft text-brand">
-                  <Bot className="h-4 w-4" />
-                </div>
-                  <div>
-                    <div className="text-sm font-semibold text-ink leading-5">Recruiter Assistant</div>
-                    <div className="text-[11px] text-ink-muted leading-4">
-                      {assistantHealthLoading
-                        ? "Checking Gemini connection..."
-                        : assistantReady
-                          ? `Gemini connected • ${assistantHealth?.model}`
-                          : assistantHealthError
-                            ? "Gemini connection unavailable"
-                            : "Gemini is not configured"}
-                    </div>
-                  </div>
-                </div>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={resetConversation}
-                  className="rounded-md p-1.5 text-ink-muted hover:bg-surface hover:text-ink"
-                  title="Clear conversation"
-                  aria-label="Clear conversation"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="rounded-md p-1.5 text-ink-muted hover:bg-surface hover:text-ink"
-                  title="Close"
-                  aria-label="Close assistant"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            <ScopeSelector
-              jobs={jobs}
-              shortlists={filteredShortlists}
-              jobId={jobId}
-              shortlistId={shortlistId}
-              includeApplicants={includeApplicants}
-              scopeLabel={
-                selectedShortlist
-                  ? `${selectedShortlist.runName} • ${selectedShortlist.jobTitle}`
-                  : selectedJob
-                    ? selectedJob.title
-                    : "No scope selected"
-              }
-              loading={scopeLoading}
-              error={scopeError}
-              onJobChange={setJobId}
-              onShortlistChange={setShortlistId}
-              onIncludeApplicantsChange={setIncludeApplicants}
-              onRefresh={() => void loadScopeOptions(true)}
-            />
-
-            <div className="flex-1 overflow-y-auto px-4 py-4">
-              {messages.length === 0 ? (
-                <EmptyState
-                  selectedJob={selectedJob}
-                  selectedShortlist={selectedShortlist}
-                  prompts={starterPrompts}
-                  onSelectPrompt={(prompt) => void sendMessage(prompt)}
-                  disabled={isSending || assistantHealthLoading || assistantExplicitlyUnavailable}
-                />
-              ) : (
-                <div className="flex flex-col gap-3">
-                  {messages.map((message) => (
-                    <MessageBubble key={message.id} message={message} />
-                  ))}
-                  {isSending && <TypingIndicator />}
-                  <div ref={messagesEndRef} />
-                </div>
-              )}
-            </div>
-
-            {error && (
-              <div className="border-t border-danger/20 bg-danger/5 px-4 py-2 text-xs text-danger">
-                {error}
-              </div>
-            )}
-            {assistantHealthError && (
-              <div className="flex items-center justify-between gap-3 border-t border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
-                <span>{assistantHealthError}</span>
-                <button
-                  type="button"
-                  onClick={refreshAssistantHealth}
-                  className="rounded px-2 py-1 font-medium text-amber-900 hover:bg-amber-100"
-                >
-                  Retry check
-                </button>
-              </div>
-            )}
-            {assistantHealth && !assistantHealth.configured && (
-              <div className="border-t border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">
-                Gemini is not configured on the backend. Add `GEMINI_API_KEY` to enable assistant replies.
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="border-t border-line bg-surface px-3 py-3">
-              <div className="flex items-end gap-2">
-                <textarea
-                  ref={textareaRef}
-                  value={input}
-                  onChange={(event) => setInput(event.target.value)}
-                  onKeyDown={handleKeyDown}
-                  rows={2}
-                  placeholder="Ask about candidates, scores, or shortlists…"
-                  className="min-h-[44px] max-h-36 flex-1 resize-none rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-                  disabled={isSending || assistantHealthLoading || assistantExplicitlyUnavailable}
-                />
-                <button
-                  type="submit"
-                  disabled={isSending || input.trim().length === 0 || assistantHealthLoading || assistantExplicitlyUnavailable}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-brand text-white transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
-                  aria-label="Send"
-                >
-                  {isSending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-              <p className="mt-1.5 text-[10.5px] leading-4 text-ink-subtle">
-                Enter to send • Shift+Enter for a new line.{" "}
-                {assistantExplicitlyUnavailable
-                  ? "Replies are disabled until Gemini is configured on the backend."
-                  : assistantHealthLoading
-                    ? "Checking Gemini connection before the first prompt."
-                    : assistantHealthError
-                      ? "Gemini health could not be confirmed automatically, but you can still try sending a prompt."
-                  : selectedShortlist
-                    ? `Grounded in live data from ${selectedShortlist.runName} for ${selectedShortlist.jobTitle}.`
-                    : selectedJob
-                      ? `Grounded in live job and applicant data for ${selectedJob.title}.`
-                      : "Grounded in the live workspace overview until you choose a job or shortlist."}
-              </p>
-            </form>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-interface ScopeSelectorProps {
-  jobs: JobRecord[];
-  shortlists: ShortlistSummary[];
-  jobId: string;
-  shortlistId: string;
-  includeApplicants: boolean;
-  scopeLabel: string;
-  loading: boolean;
-  error: string | null;
-  onJobChange: (value: string) => void;
-  onShortlistChange: (value: string) => void;
-  onIncludeApplicantsChange: (value: boolean) => void;
-  onRefresh: () => void;
-}
-
-function ScopeSelector({
-  jobs,
-  shortlists,
-  jobId,
-  shortlistId,
-  includeApplicants,
-  scopeLabel,
-  loading,
-  error,
-  onJobChange,
-  onShortlistChange,
-  onIncludeApplicantsChange,
-  onRefresh,
-}: ScopeSelectorProps) {
-  const [expanded, setExpanded] = useState(false);
-
-  return (
-    <div className="border-b border-line bg-surface-soft px-4 py-2">
       <button
         type="button"
-        onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center justify-between text-left text-[11px] font-medium uppercase tracking-wide text-ink-muted hover:text-ink"
+        onClick={() => setPanelState("open")}
+        aria-label="Open AI recruiter assistant"
+        className={cn(
+          "fixed bottom-6 right-6 z-[60] inline-flex items-center gap-2 rounded-full bg-brand px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40",
+          panelOpen && "opacity-0 pointer-events-none"
+        )}
       >
-        <span className="flex items-center gap-1.5">
-          <Sparkles className="h-3.5 w-3.5" />
-          Context scope: <span className="font-semibold text-ink normal-case tracking-normal">{scopeLabel}</span>
-        </span>
-        <ChevronDown
-          className={cn("h-3.5 w-3.5 transition-transform", expanded && "rotate-180")}
-        />
+        <MessageCircle className="h-5 w-5" />
+        <span className="hidden sm:inline">Ask AI</span>
       </button>
 
-      {expanded && (
-        <div className="mt-2 space-y-2">
-          <div className="flex items-center justify-between gap-2 rounded-md border border-line bg-surface px-2.5 py-2 text-[11px] text-ink-muted">
-            <span>{scopeLabel}</span>
+      {panelState !== "closed" && (
+        <section
+          role="dialog"
+          aria-label="AI recruiter assistant"
+          aria-modal="false"
+          className={cn(
+            "fixed bottom-0 right-0 z-[60] flex w-full flex-col overflow-hidden border border-line bg-surface shadow-soft",
+            "sm:bottom-6 sm:right-6 sm:w-[430px] sm:rounded-2xl",
+            panelState === "open" ? "h-[min(90vh,680px)] sm:h-[660px]" : "h-[70px] sm:h-[72px]"
+          )}
+        >
+          <header className="flex items-center justify-between gap-3 border-b border-line bg-surface-soft px-4 py-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+                <Bot className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-ink">Recruiter Assistant</p>
+                <p className="truncate text-[11px] text-ink-muted">
+                  {healthLoading
+                    ? "Checking Gemini connection..."
+                    : assistantUnavailable
+                      ? "Gemini not configured"
+                      : healthError
+                        ? "Gemini health check unavailable"
+                        : `Gemini connected${health?.model ? ` • ${health.model}` : ""}`}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              {panelState === "open" ? (
+                <button
+                  type="button"
+                  onClick={() => setPanelState("minimized")}
+                  className="rounded-md p-1.5 text-ink-muted hover:bg-surface"
+                  aria-label="Minimize assistant"
+                >
+                  <Minimize2 className="h-4 w-4" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setPanelState("open")}
+                  className="rounded-md p-1.5 text-ink-muted hover:bg-surface"
+                  aria-label="Maximize assistant"
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setPanelState("closed")}
+                className="rounded-md p-1.5 text-ink-muted hover:bg-surface"
+                aria-label="Close assistant"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </header>
+
+          {panelState === "open" ? (
+            <>
+              <div className="border-b border-line bg-surface-soft/50 px-4 py-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <select
+                    aria-label="Assistant job scope"
+                    className="w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs text-ink"
+                    value={scope.jobId}
+                    onChange={(event) => setScope((prev) => ({ ...prev, jobId: event.target.value }))}
+                    disabled={scopeLoading}
+                  >
+                    <option value="">Any job</option>
+                    {jobs.map((job) => (
+                      <option key={job._id} value={job._id}>
+                        {job.title}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    aria-label="Assistant shortlist scope"
+                    className="w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs text-ink"
+                    value={scope.shortlistId}
+                    onChange={(event) => setScope((prev) => ({ ...prev, shortlistId: event.target.value }))}
+                    disabled={scopeLoading}
+                  >
+                    <option value="">No shortlist run</option>
+                    {filteredShortlists.map((run) => (
+                      <option key={run._id} value={run._id}>
+                        {run.runName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <label className="mt-2 flex items-center gap-2 text-[11px] text-ink-muted">
+                  <input
+                    type="checkbox"
+                    checked={scope.includeApplicants}
+                    onChange={(event) =>
+                      setScope((prev) => ({ ...prev, includeApplicants: event.target.checked }))
+                    }
+                    className="h-3.5 w-3.5 rounded border-line text-brand"
+                  />
+                  Include applicant profiles in grounding context
+                </label>
+              </div>
+
+              <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
+                {healthError && <ErrorBanner message={healthError} onRetry={() => void loadHealth()} />}
+                {requestError && (
+                  <ErrorBanner
+                    message={requestError}
+                    onRetry={lastFailedPrompt ? () => void sendMessage(lastFailedPrompt) : undefined}
+                  />
+                )}
+
+                {messages.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-line bg-surface-soft p-4">
+                    <p className="text-sm font-semibold text-ink">Get quick recruiting help</p>
+                    <p className="mt-1 text-xs text-ink-muted">
+                      Ask for shortlist reasoning, interview prep, candidate comparisons, and hiring summaries grounded in your existing jobs and shortlist data.
+                    </p>
+                    <div className="mt-3 space-y-1.5">
+                      {prompts.map((prompt) => (
+                        <button
+                          key={prompt}
+                          type="button"
+                          disabled={assistantUnavailable || isSending}
+                          className="flex w-full items-start gap-2 rounded-md border border-line bg-surface px-3 py-2 text-left text-xs text-ink hover:border-brand hover:bg-brand-softer disabled:opacity-60"
+                          onClick={() => void sendMessage(prompt)}
+                        >
+                          <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" />
+                          <span>{prompt}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  messages.map((message) => {
+                    const isUser = message.role === "user";
+                    return (
+                      <article
+                        key={message.id}
+                        className={cn("flex", isUser ? "justify-end" : "justify-start")}
+                        aria-live={isUser ? "off" : "polite"}
+                      >
+                        <div
+                          className={cn(
+                            "max-w-[88%] rounded-2xl px-3.5 py-2.5 text-sm",
+                            isUser
+                              ? "rounded-br-sm bg-brand text-white"
+                              : message.deliveryState === "error"
+                                ? "rounded-bl-sm border border-danger/30 bg-danger/5 text-danger"
+                                : "rounded-bl-sm bg-surface-soft text-ink"
+                          )}
+                        >
+                          {message.deliveryState === "loading" ? (
+                            <div className="flex items-center gap-2 text-ink-muted">
+                              <Loader2 className="h-4 w-4 animate-spin" /> Thinking…
+                            </div>
+                          ) : (
+                            <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                          )}
+                          {!isUser && message.contextUsed && message.deliveryState !== "loading" && (
+                            <p className="mt-1.5 border-t border-line/60 pt-1.5 text-[10px] uppercase tracking-wide text-ink-muted">
+                              {contextLabel(message.contextUsed)}
+                            </p>
+                          )}
+                        </div>
+                      </article>
+                    );
+                  })
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              <form className="border-t border-line bg-surface px-3 py-3" onSubmit={handleSubmit}>
+                <div className="flex items-end gap-2">
+                  <textarea
+                    ref={textareaRef}
+                    value={draft}
+                    onChange={(event) => setDraft(event.target.value)}
+                    onKeyDown={handleInputKeyDown}
+                    placeholder="Ask about shortlists, candidate fit, or interview prep…"
+                    rows={2}
+                    disabled={assistantUnavailable || isSending || healthLoading}
+                    className="min-h-[44px] max-h-40 flex-1 resize-none rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+                  />
+                  <button
+                    type="submit"
+                    disabled={assistantUnavailable || isSending || draft.trim().length === 0 || healthLoading}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-brand text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
+                    aria-label="Send assistant message"
+                  >
+                    {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  </button>
+                </div>
+                <p className="mt-1.5 text-[10.5px] text-ink-subtle">
+                  Enter to send • Shift+Enter for newline • Esc to minimize.
+                </p>
+              </form>
+            </>
+          ) : (
             <button
               type="button"
-              onClick={onRefresh}
-              disabled={loading}
-              className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-ink hover:bg-surface-soft disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-full w-full items-center justify-center px-4 text-xs text-ink-muted hover:bg-surface-soft"
+              onClick={() => setPanelState("open")}
             >
-              <RotateCcw className="h-3 w-3" />
-              Refresh
+              Assistant minimized. Tap to reopen.
             </button>
-          </div>
-          <div>
-            <label className="mb-1 block text-[11px] font-medium text-ink-muted">Job</label>
-            <select
-              value={jobId}
-              onChange={(event) => onJobChange(event.target.value)}
-              disabled={loading}
-              className="w-full appearance-none rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs text-ink focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-            >
-              <option value="">Any job (no job scope)</option>
-              {jobs.map((job) => (
-                <option key={job._id} value={job._id}>
-                  {job.title}
-                  {job.department ? ` — ${job.department}` : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-[11px] font-medium text-ink-muted">
-              Shortlist run
-            </label>
-            <select
-              value={shortlistId}
-              onChange={(event) => onShortlistChange(event.target.value)}
-              disabled={loading}
-              className="w-full appearance-none rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs text-ink focus-visible:border-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-            >
-              <option value="">No shortlist run</option>
-              {shortlists.map((entry) => (
-                <option key={entry._id} value={entry._id}>
-                  {entry.runName} — {entry.jobTitle}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <label className="flex cursor-pointer items-center gap-2 text-[11px] text-ink">
-            <input
-              type="checkbox"
-              checked={includeApplicants}
-              onChange={(event) => onIncludeApplicantsChange(event.target.checked)}
-              className="h-3.5 w-3.5 rounded border-line text-brand focus:ring-brand/40"
-            />
-            Include applicant profiles for the selected job
-          </label>
-
-          {loading && <p className="text-[11px] text-ink-muted">Loading scope options…</p>}
-          {error && <p className="text-[11px] text-danger">{error}</p>}
-        </div>
+          )}
+        </section>
       )}
-    </div>
-  );
-}
-
-function EmptyState({
-  selectedJob,
-  selectedShortlist,
-  prompts,
-  onSelectPrompt,
-  disabled,
-}: {
-  selectedJob?: JobRecord;
-  selectedShortlist?: ShortlistSummary;
-  prompts: string[];
-  onSelectPrompt: (prompt: string) => void;
-  disabled: boolean;
-}) {
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-4 px-2 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-soft text-brand">
-        <Sparkles className="h-6 w-6" />
-      </div>
-      <div>
-        <p className="text-sm font-semibold text-ink">How can I help with your candidates?</p>
-        <p className="mt-1 text-xs text-ink-muted">
-          I explain rankings, compare candidates, draft interview notes, and answer questions
-          grounded only in your data.
-        </p>
-        <p className="mt-2 text-[11px] text-ink-subtle">
-          {selectedShortlist
-            ? `Current live scope: ${selectedShortlist.runName} for ${selectedShortlist.jobTitle}.`
-            : selectedJob
-              ? `Current live scope: ${selectedJob.title}.`
-              : "No specific job selected yet, so I will use the live workspace overview."}
-        </p>
-      </div>
-      <div className="flex w-full flex-col gap-1.5">
-        {prompts.map((prompt) => (
-          <button
-            key={prompt}
-            type="button"
-            onClick={() => onSelectPrompt(prompt)}
-            disabled={disabled}
-            className="rounded-md border border-line bg-surface px-3 py-2 text-left text-xs text-ink transition-colors hover:border-brand hover:bg-brand-softer disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {prompt}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function MessageBubble({ message }: { message: ChatMessage }) {
-  const isUser = message.role === "user";
-  return (
-    <div className={cn("flex", isUser ? "justify-end" : "justify-start")}>
-      <div
-        className={cn(
-          "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-card",
-          isUser
-            ? "rounded-br-sm bg-brand text-white"
-            : "rounded-bl-sm bg-surface-soft text-ink"
-        )}
-      >
-        <div className="whitespace-pre-wrap break-words">{message.content}</div>
-        {!isUser && message.contextUsed && (
-          <div className="mt-2 flex flex-wrap items-center gap-1 border-t border-line/50 pt-1.5 text-[10px] text-ink-muted">
-            <span className="rounded bg-surface px-1.5 py-0.5 font-medium uppercase tracking-wide">
-              {message.contextUsed.source}
-            </span>
-            <span>{contextSummaryLabel(message.contextUsed)}</span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function TypingIndicator() {
-  return (
-    <div className="flex justify-start">
-      <div className="flex items-center gap-1 rounded-2xl rounded-bl-sm bg-surface-soft px-3.5 py-2.5 text-sm text-ink-muted shadow-card">
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-muted [animation-delay:-0.3s]" />
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-muted [animation-delay:-0.15s]" />
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-ink-muted" />
-      </div>
-    </div>
+    </>
   );
 }
