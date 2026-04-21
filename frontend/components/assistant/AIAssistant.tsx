@@ -427,7 +427,7 @@ export function AIAssistant() {
                     className="w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs text-ink"
                     value={scope.jobId}
                     onChange={(event) => setScope((prev) => ({ ...prev, jobId: event.target.value }))}
-                    disabled={scopeLoading}
+                    aria-busy={scopeLoading}
                   >
                     <option value="">Any job</option>
                     {jobs.map((job) => (
@@ -441,7 +441,7 @@ export function AIAssistant() {
                     className="w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs text-ink"
                     value={scope.shortlistId}
                     onChange={(event) => setScope((prev) => ({ ...prev, shortlistId: event.target.value }))}
-                    disabled={scopeLoading}
+                    aria-busy={scopeLoading}
                   >
                     <option value="">No shortlist run</option>
                     {filteredShortlists.map((run) => (
