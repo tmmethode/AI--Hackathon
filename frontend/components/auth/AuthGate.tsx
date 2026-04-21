@@ -1,13 +1,17 @@
 "use client";
 
-import { ReactNode, Suspense, useEffect, useState } from "react";
-import { usePathname, useRouter, useSearchParams, type ReadonlyURLSearchParams } from "next/navigation";
+import { ReactNode, useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Activity } from "lucide-react";
 import { getStoredAuth } from "@/lib/auth";
 
-function buildNextPath(pathname: string, searchParams: ReadonlyURLSearchParams) {
-  const query = searchParams.toString();
-  return query ? `${pathname}?${query}` : pathname;
+function getCurrentPath(pathname: string | null) {
+  if (typeof window === "undefined") {
+    return pathname || "/dashboard";
+  }
+
+  const search = window.location.search;
+  return `${pathname || window.location.pathname || "/dashboard"}${search}`;
 }
 
 function AuthGateFallback() {
@@ -28,7 +32,6 @@ function AuthGateFallback() {
 
 function AuthGateInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const router = useRouter();
   const [ready, setReady] = useState(false);
 
@@ -36,13 +39,13 @@ function AuthGateInner({ children }: { children: ReactNode }) {
     const session = getStoredAuth();
 
     if (!session?.token) {
-      const nextPath = buildNextPath(pathname || "/dashboard", searchParams);
+      const nextPath = getCurrentPath(pathname);
       router.replace(`/login?next=${encodeURIComponent(nextPath)}`);
       return;
     }
 
     setReady(true);
-  }, [pathname, router, searchParams]);
+  }, [pathname, router]);
 
   if (!ready) {
     return <AuthGateFallback />;
@@ -52,9 +55,5 @@ function AuthGateInner({ children }: { children: ReactNode }) {
 }
 
 export function AuthGate({ children }: { children: ReactNode }) {
-  return (
-    <Suspense fallback={<AuthGateFallback />}>
-      <AuthGateInner>{children}</AuthGateInner>
-    </Suspense>
-  );
+  return <AuthGateInner>{children}</AuthGateInner>;
 }
