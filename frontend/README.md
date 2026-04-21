@@ -33,6 +33,25 @@ Open [http://localhost:3000](http://localhost:3000). The root URL redirects to `
 | `npm run lint` | Lint the project |
 | `npm run typecheck` | Type-check without emitting |
 
+## Build troubleshooting
+
+If `npm run build` fails intermittently on `/jobs/new` with errors similar to:
+
+- `TypeError: Cannot read properties of null (reading 'useMemo')`
+- `Error occurred prerendering page "/jobs/new"`
+
+use the following checklist:
+
+1. Ensure `NODE_ENV` is set to a standard value (`production`, `development`, or `test`). A custom value can cause inconsistent Next.js behavior.
+2. Remove stale build artifacts and rebuild:
+
+   ```bash
+   rm -rf frontend/.next
+   npm --prefix frontend run build
+   ```
+
+3. If warnings mention multiple lockfiles, run builds from the repository root (`AI--Hackathon/`) to avoid incorrect workspace-root inference.
+
 ## Routes
 
 - `/dashboard` — Recruiter dashboard
