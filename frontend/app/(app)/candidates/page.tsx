@@ -250,7 +250,7 @@ export default function CandidatesPage() {
   }
 
   return (
-    <div className="w-full px-6 py-5">
+    <div className="w-full px-4 py-4 sm:px-6 sm:py-5">
       <PageHeader
         title="Candidate Pool"
         description="Browse, search, and manage all candidates across your hiring pipeline."
@@ -337,7 +337,7 @@ export default function CandidatesPage() {
       </div>
       {showJobPicker && <div className="fixed inset-0 z-[15]" onClick={() => setShowJobPicker(false)} />}
 
-      <section className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-5">
+      <section className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
         {([
           { label: "Total", value: counts.all, tone: "brand" },
           { label: "Shortlisted", value: counts.shortlisted, tone: "brand" },
@@ -355,19 +355,19 @@ export default function CandidatesPage() {
       </section>
 
       <Card className="mt-6">
-        <div className="flex flex-wrap items-center gap-3 border-b border-line px-5 py-4">
+        <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-4 sm:px-5">
           <h2 className="flex items-center gap-2 font-display text-base font-semibold text-ink">
             All Candidates <Badge tone="neutral">{filtered.length}</Badge>
           </h2>
 
-          <div className="relative ml-auto flex items-center gap-2">
+          <div className="relative ml-0 flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-muted" />
               <input
                 placeholder="Search name, title, or skill…"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="h-8 w-52 rounded-md border border-line bg-surface pl-8 pr-3 text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand/40"
+                className="h-8 w-full min-w-0 rounded-md border border-line bg-surface pl-8 pr-3 text-xs text-ink placeholder:text-ink-muted focus:outline-none focus:ring-2 focus:ring-brand/40 sm:w-52"
               />
             </div>
 
@@ -416,7 +416,7 @@ export default function CandidatesPage() {
             No candidates match your filters.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 p-4 sm:p-5 md:grid-cols-2">
             {paginated.map((c) => {
               const matchColor = c.matchScore >= 90 ? "text-success" : c.matchScore >= 80 ? "text-brand" : "text-ink-muted";
               const ringColor = c.matchScore >= 90 ? "#22c55e" : c.matchScore >= 80 ? "var(--color-brand)" : "#94a3b8";
@@ -490,7 +490,7 @@ export default function CandidatesPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1.5 border-t border-line px-4 py-3">
+                  <div className="flex flex-wrap items-center gap-1.5 border-t border-line px-4 py-3">
                     <Link href={`/candidates/${c.id}`} className="flex-1">
                       <Button variant="secondary" size="sm" fullWidth leftIcon={<Eye className="h-3.5 w-3.5" />}>
                         Profile
@@ -504,7 +504,7 @@ export default function CandidatesPage() {
                         Advance ▾
                       </Button>
                       {advanceDropdownId === c.id && (
-                        <div className="absolute right-0 bottom-10 z-20 w-60 rounded-lg border border-line bg-surface shadow-xl">
+                        <div className="absolute right-0 bottom-10 z-20 w-60 max-w-[calc(100vw-2rem)] rounded-lg border border-line bg-surface shadow-xl">
                           <p className="px-3 pt-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Advance to</p>
                           {advanceOptions.map((opt) => (
                             <button key={opt.key}
@@ -556,7 +556,7 @@ export default function CandidatesPage() {
           </div>
         )}
 
-        <div className="flex items-center justify-between border-t border-line px-5 py-4 text-sm text-ink-muted">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-4 text-sm text-ink-muted sm:px-5">
           <p>Showing {Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}</p>
           <nav className="flex gap-1">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (

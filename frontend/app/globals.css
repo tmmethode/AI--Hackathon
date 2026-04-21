@@ -39,10 +39,12 @@
 
   html {
     -webkit-font-smoothing: antialiased;
+    text-size-adjust: 100%;
   }
   body {
     @apply bg-surface-muted text-ink font-sans;
     font-variation-settings: "wdth" 100;
+    overflow-x: hidden;
   }
   h1, h2, h3, h4, h5 {
     @apply font-display;

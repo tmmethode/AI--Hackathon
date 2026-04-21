@@ -97,7 +97,7 @@ function secondsToHours(seconds: number) {
 
 function DashboardSkeleton() {
   return (
-    <div className="w-full px-6 py-5">
+    <div className="w-full px-4 py-4 sm:px-6 sm:py-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="space-y-3">
           <Skeleton className="h-9 w-64" />
@@ -381,7 +381,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="w-full px-6 py-5">
+    <div className="w-full px-4 py-4 sm:px-6 sm:py-5">
       <PageHeader
         title="Recruiter Dashboard"
         description={`${greeting} Here's what's happening with your hiring pipeline.`}

@@ -170,7 +170,7 @@ function ShortlistCandidateRowSkeleton({ index }: { index: number }) {
 
 export function IngestPageSkeleton() {
   return (
-    <div className="w-full px-6 py-5">
+    <div className="w-full px-4 py-4 sm:px-6 sm:py-5">
       <HeaderSkeleton actionWidths={[92, 148]} />
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
@@ -265,7 +265,7 @@ export function IngestPageSkeleton() {
 
 export function ScreeningPageSkeleton() {
   return (
-    <div className="w-full px-6 py-5">
+    <div className="w-full px-4 py-4 sm:px-6 sm:py-5">
       <HeaderSkeleton actionWidths={[92, 132]} />
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
@@ -345,7 +345,7 @@ export function ScreeningPageSkeleton() {
 
 export function ShortlistsPageSkeleton() {
   return (
-    <div className="w-full px-6 py-5">
+    <div className="w-full px-4 py-4 sm:px-6 sm:py-5">
       <Card className="mb-5 p-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div className="flex-1">
@@ -418,7 +418,7 @@ export function ShortlistsPageSkeleton() {
 
 export function CandidatesPageSkeleton() {
   return (
-    <div className="w-full px-6 py-5">
+    <div className="w-full px-4 py-4 sm:px-6 sm:py-5">
       <HeaderSkeleton actionWidths={[104, 160]} />
 
       <div className="relative mt-6">
@@ -446,7 +446,7 @@ export function CandidatesPageSkeleton() {
 
 export function RegisterUserPageSkeleton() {
   return (
-    <div className="w-full px-6 py-5">
+    <div className="w-full px-4 py-4 sm:px-6 sm:py-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="space-y-3">
           <Skeleton className="h-9 w-56" />
