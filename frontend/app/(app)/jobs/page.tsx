@@ -229,7 +229,7 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="w-full px-6 py-5">
+    <div className="w-full px-4 py-4 sm:px-6 sm:py-5">
       <PageHeader
         title="Jobs Management"
         description="Manage and ingest applicants for your job requisitions."
@@ -252,7 +252,7 @@ export default function JobsPage() {
       )}
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
-        <div className="flex items-center rounded-md border border-line bg-surface shadow-sm">
+        <div className="flex flex-col rounded-md border border-line bg-surface shadow-sm sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
             <input
@@ -262,7 +262,7 @@ export default function JobsPage() {
               className="h-10 w-full bg-transparent pl-9 pr-3 text-sm text-ink placeholder:text-ink-muted focus:outline-none"
             />
           </div>
-          <div className="flex items-center gap-1 border-l border-line px-2">
+          <div className="flex flex-wrap items-center gap-1 border-t border-line px-2 py-2 sm:border-l sm:border-t-0 sm:py-0">
             {ALL_STATUSES.map((status) => (
               <button
                 key={status}
@@ -310,7 +310,7 @@ export default function JobsPage() {
                     <li
                       key={job._id}
                       onClick={() => dispatch(setSelectedId(job._id))}
-                      className={`grid cursor-pointer grid-cols-2 gap-3 px-5 py-4 text-sm transition-colors md:grid-cols-[2fr_1.1fr_1.1fr_0.9fr_100px_40px] md:items-center md:gap-4 ${
+                      className={`grid cursor-pointer grid-cols-1 gap-3 px-4 py-4 text-sm transition-colors sm:px-5 md:grid-cols-[2fr_1.1fr_1.1fr_0.9fr_100px_40px] md:items-center md:gap-4 ${
                         selectedId === job._id ? "bg-brand-soft/40" : "hover:bg-surface-soft/50"
                       }`}
                     >
@@ -387,7 +387,7 @@ export default function JobsPage() {
             )}
           </div>
 
-          <div className="flex items-center justify-between gap-4 border-t border-line bg-surface px-5 py-4 text-sm text-ink-muted">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line bg-surface px-4 py-4 text-sm text-ink-muted sm:px-5">
             <p>Showing {rangeStart}-{rangeEnd} of {total} jobs</p>
             <nav aria-label="Pagination" className="flex items-center gap-1">
               {Array.from({ length: totalPages }, (_, index) => index + 1).map((value) => (

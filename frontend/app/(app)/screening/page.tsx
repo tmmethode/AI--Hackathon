@@ -452,7 +452,7 @@ export default function ScreeningPage() {
   }
 
   return (
-    <div className="w-full px-6 py-5">
+    <div className="w-full px-4 py-4 sm:px-6 sm:py-5">
       <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Screening Confirmation</h1>
@@ -545,7 +545,7 @@ export default function ScreeningPage() {
                 </Badge>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-2 md:grid-cols-4">
+              <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">
                 {GEMINI_SCORING_PILLARS.map((pillar) => (
                   <div
                     key={pillar.id}
@@ -697,7 +697,7 @@ export default function ScreeningPage() {
                 <div className="flex flex-col gap-4">
                   <div className="rounded-xl border border-line bg-brand-soft/30 p-4">
                     <p className="text-xs font-semibold uppercase tracking-wider text-info-deep">Run Summary</p>
-                    <div className="mt-3 grid grid-cols-3 gap-3">
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
                       <div>
                         <p className="text-[11px] font-semibold uppercase tracking-wider text-info-deep/70">Job</p>
                         <p className="mt-1 text-sm font-semibold text-info-deep">
@@ -755,7 +755,7 @@ export default function ScreeningPage() {
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-end gap-2">
+              <div className="mt-6 flex flex-wrap justify-end gap-2">
                 <Button variant="secondary" onClick={() => router.push("/jobs")}>
                   Back
                 </Button>
