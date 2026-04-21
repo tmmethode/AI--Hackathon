@@ -86,7 +86,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
 
   return (
     <>
-      <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b border-line bg-surface px-4 md:px-8">
+      <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-line bg-surface px-3 sm:gap-4 sm:px-4 md:px-8">
         <button type="button" aria-label="Open menu" onClick={onMenuClick}
           className="flex h-10 w-10 items-center justify-center rounded-md text-ink-muted hover:bg-surface-soft md:hidden">
           <Menu className="h-5 w-5" />
@@ -184,7 +184,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
             )}
           </div>
 
-          <div className="mx-2 h-8 w-px bg-line" aria-hidden />
+        <div className="mx-1 hidden h-8 w-px bg-line sm:mx-2 sm:block" aria-hidden />
 
           <div className="relative flex items-center gap-2">
             <div className="hidden text-right sm:block">
@@ -197,7 +197,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
             </button>
 
             {showProfile && (
-              <div className="absolute right-0 top-12 z-30 w-56 rounded-xl border border-line bg-surface shadow-xl">
+              <div className="absolute right-0 top-12 z-30 w-56 max-w-[calc(100vw-1rem)] rounded-xl border border-line bg-surface shadow-xl">
                 <div className="border-b border-line px-4 py-3">
                   <p className="text-sm font-semibold text-ink">{displayName}</p>
                   <p className="text-xs text-ink-muted">{accountEmail}</p>
