@@ -38,6 +38,7 @@ import {
 } from "@/lib/screening";
 import { startScreeningRun } from "@/lib/screening-progress";
 import { getHiringManagerName, listJobs, splitLinesToList, type JobRecord } from "@/lib/jobs";
+import { listAllShortlists, type ShortlistSummary } from "@/lib/shortlists";
 
 interface ScreeningAsset {
   name: string;
@@ -166,6 +167,12 @@ function buildScreeningApplicant(applicant: ApplicantRecord): GeminiBatchApplica
   };
 }
 
+function buildRunName(job: JobRecord, nextVersion: number): string {
+  const dateCode = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+  const baseCode = `SC-${job._id.slice(-4).toUpperCase()}-${dateCode}-${String(nextVersion).padStart(3, "0")}`;
+  return `${job.title} Screening Run [CODE:${baseCode}] v${nextVersion}`;
+}
+
 async function listAllJobs() {
   const firstPage = await listJobs({ page: 1, pageSize: 100 });
 
@@ -190,6 +197,7 @@ export default function ScreeningPage() {
   const [jobs, setJobs] = useState<JobRecord[]>([]);
   const [jobsLoading, setJobsLoading] = useState(true);
   const [jobsError, setJobsError] = useState("");
+  const [shortlists, setShortlists] = useState<ShortlistSummary[]>([]);
   const [selectedJobId, setSelectedJobId] = useState("");
 
   const [applicants, setApplicants] = useState<ApplicantRecord[]>([]);
@@ -245,6 +253,33 @@ export default function ScreeningPage() {
     }
 
     void loadJobs();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadShortlists() {
+      try {
+        const loadedShortlists = await listAllShortlists({ pageSize: 100 });
+
+        if (isCancelled) {
+          return;
+        }
+
+        setShortlists(loadedShortlists);
+      } catch {
+        if (isCancelled) {
+          return;
+        }
+        setShortlists([]);
+      }
+    }
+
+    void loadShortlists();
 
     return () => {
       isCancelled = true;
@@ -389,7 +424,13 @@ export default function ScreeningPage() {
     });
   }, [effectiveDefaultShortlist, effectiveShortlistMax, effectiveShortlistMin, selectedJobId]);
 
-  const runName = selectedJob ? `${selectedJob.title} Screening Run` : "Screening Run";
+  const runVersion = useMemo(() => {
+    if (!selectedJob) {
+      return 1;
+    }
+    return shortlists.filter((entry) => entry.job === selectedJob._id).length + 1;
+  }, [selectedJob, shortlists]);
+  const runName = selectedJob ? buildRunName(selectedJob, runVersion) : "Screening Run";
   const estimatedMinSeconds = Math.max(30, Math.round(parsedApplicants.length * 0.4));
   const estimatedMaxSeconds = Math.max(45, Math.round(parsedApplicants.length * 0.5));
   const geminiConfigured = screeningConfig?.configured !== false;
