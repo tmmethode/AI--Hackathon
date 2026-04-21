@@ -77,110 +77,106 @@ export function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#d7ebfe_0%,#eef5fb_38%,#f9fafb_100%)]">
-      <div className="mx-auto flex min-h-screen max-w-7xl items-center justify-center px-6 py-8 lg:px-10 lg:py-10">
-        <section className="flex w-full items-center justify-center">
-          <Card className="w-full max-w-xl rounded-[32px] border border-line/80 bg-surface/90 p-8 shadow-soft backdrop-blur md:p-10">
-            <div className="flex items-center gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand text-white shadow-card">
-                <ShieldCheck className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-brand">Secure access</p>
-                <h2 className="mt-1 font-display text-3xl font-bold tracking-tight text-ink">Welcome back</h2>
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#d7ebfe_0%,#eef5fb_36%,#f9fafb_100%)]">
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl items-center justify-center px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+        <Card className="w-full max-w-md rounded-3xl border border-line/80 bg-surface/95 p-5 shadow-soft backdrop-blur sm:p-6">
+          <header className="flex items-center gap-2.5 sm:gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand text-white shadow-card sm:h-11 sm:w-11">
+              <ShieldCheck className="h-[18px] w-[18px] sm:h-5 sm:w-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-brand sm:text-xs">Secure access</p>
+              <h1 className="mt-0.5 truncate font-display text-2xl font-bold tracking-tight text-ink sm:text-[28px]">Welcome back</h1>
+            </div>
+          </header>
+
+          <p className="mt-3.5 text-sm leading-5 text-ink-muted">
+            Sign in with your recruiter account to access dashboards, screening history, and shortlist workflows.
+          </p>
+
+          <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
+            <Field label="Work email">
+              <Input
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="recruiter@company.com"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+              />
+            </Field>
+
+            <Field label="Password" hint="Your password is verified against the backend auth service.">
+              <Input
+                type="password"
+                autoComplete="current-password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+            </Field>
+
+            {error && (
+              <div className="rounded-xl border border-danger/20 bg-danger/5 px-3.5 py-2.5 text-sm text-danger" role="alert" aria-live="polite">
+                {error}
               </div>
+            )}
+
+            <Button
+              type="submit"
+              size="lg"
+              fullWidth
+              className="mt-1"
+              disabled={isSubmitting || isGoogleRedirecting}
+              rightIcon={
+                isSubmitting ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ArrowRight className="h-4 w-4" />
+                )
+              }
+            >
+              {isSubmitting ? "Signing you in" : "Sign in"}
+            </Button>
+          </form>
+
+          <div className="mt-5">
+            <div className="flex items-center gap-2.5 text-[11px] uppercase tracking-[0.16em] text-ink-muted/80 sm:text-xs sm:tracking-[0.18em]">
+              <span className="h-px flex-1 bg-line" />
+              <span>Or continue with</span>
+              <span className="h-px flex-1 bg-line" />
             </div>
 
-            <p className="mt-4 text-sm leading-6 text-ink-muted">
-              Use your recruiter credentials to access dashboards, screening history, and shortlist workflows.
+            <Button
+              type="button"
+              size="lg"
+              variant="secondary"
+              fullWidth
+              className="mt-3"
+              disabled={isSubmitting || isGoogleRedirecting}
+              leftIcon={
+                isGoogleRedirecting ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <GoogleIcon />
+                )
+              }
+              onClick={handleGoogleSignIn}
+            >
+              {isGoogleRedirecting ? "Redirecting to Google" : "Continue with Google"}
+            </Button>
+          </div>
+
+          <aside className="mt-5 rounded-2xl border border-brand/10 bg-brand-soft/40 px-4 py-3">
+            <p className="text-sm font-semibold text-ink">Need access to the workspace?</p>
+            <p className="mt-1 text-sm leading-5 text-ink-muted">
+              Ask an admin to create your account first, then return here to sign in with the same email.
             </p>
-
-            <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
-              <Field label="Work email">
-                <Input
-                  type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  placeholder="recruiter@company.com"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  required
-                />
-              </Field>
-
-              <Field
-                label="Password"
-                hint="Your password is verified against the backend auth service."
-              >
-                <Input
-                  type="password"
-                  autoComplete="current-password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  required
-                />
-              </Field>
-
-              {error && (
-                <div className="rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
-                  {error}
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                size="lg"
-                fullWidth
-                disabled={isSubmitting || isGoogleRedirecting}
-                rightIcon={
-                  isSubmitting ? (
-                    <LoaderCircle className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <ArrowRight className="h-4 w-4" />
-                  )
-                }
-              >
-                {isSubmitting ? "Signing you in" : "Sign in"}
-              </Button>
-            </form>
-
-            <div className="mt-6">
-              <div className="flex items-center gap-3 text-xs uppercase tracking-[0.18em] text-ink-muted/80">
-                <span className="h-px flex-1 bg-line" />
-                <span>Or continue with</span>
-                <span className="h-px flex-1 bg-line" />
-              </div>
-
-              <Button
-                type="button"
-                size="lg"
-                variant="secondary"
-                fullWidth
-                className="mt-4"
-                disabled={isSubmitting || isGoogleRedirecting}
-                leftIcon={
-                  isGoogleRedirecting ? (
-                    <LoaderCircle className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <GoogleIcon />
-                  )
-                }
-                onClick={handleGoogleSignIn}
-              >
-                {isGoogleRedirecting ? "Redirecting to Google" : "Continue with Google"}
-              </Button>
-            </div>
-
-            <div className="mt-6 rounded-3xl border border-brand/10 bg-brand-soft/40 p-4">
-              <p className="text-sm font-semibold text-ink">Need access to the workspace?</p>
-              <p className="mt-1 text-sm leading-6 text-ink-muted">
-                Ask an admin to create your account first, then return here to sign in with the same email.
-              </p>
-            </div>
-          </Card>
-        </section>
+          </aside>
+        </Card>
       </div>
-    </div>
+    </main>
   );
 }
