@@ -818,6 +818,59 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ImportedJobDraft": {
+        "dataType": "refObject",
+        "properties": {
+            "title": {"dataType":"string"},
+            "department": {"dataType":"string"},
+            "hiringManager": {"dataType":"string"},
+            "location": {"dataType":"string"},
+            "locationPolicy": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["remote"]},{"dataType":"enum","enums":["hybrid"]},{"dataType":"enum","enums":["onsite"]}]},
+            "employmentType": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["full-time"]},{"dataType":"enum","enums":["part-time"]},{"dataType":"enum","enums":["contract"]},{"dataType":"enum","enums":["internship"]},{"dataType":"enum","enums":["temporary"]}]},
+            "salaryBand": {"dataType":"string"},
+            "summary": {"dataType":"string"},
+            "responsibilities": {"dataType":"string"},
+            "mustHaveQualifications": {"dataType":"string"},
+            "niceToHaveQualifications": {"dataType":"string"},
+            "coreHardSkills": {"dataType":"array","array":{"dataType":"string"}},
+            "preferredSkills": {"dataType":"array","array":{"dataType":"string"}},
+            "coreSoftSkills": {"dataType":"array","array":{"dataType":"string"}},
+            "experienceYears": {"dataType":"double"},
+            "seniorityLevel": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["junior"]},{"dataType":"enum","enums":["mid"]},{"dataType":"enum","enums":["senior"]},{"dataType":"enum","enums":["lead"]},{"dataType":"enum","enums":["manager"]},{"dataType":"enum","enums":["principal"]}]},
+            "educationLevel": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["none"]},{"dataType":"enum","enums":["hs"]},{"dataType":"enum","enums":["associate"]},{"dataType":"enum","enums":["bs"]},{"dataType":"enum","enums":["ms"]},{"dataType":"enum","enums":["mba"]},{"dataType":"enum","enums":["phd"]},{"dataType":"enum","enums":["professional"]}]},
+            "weightCriteria": {"dataType":"array","array":{"dataType":"nestedObjectLiteral","nestedProperties":{"value":{"dataType":"double","required":true},"label":{"dataType":"string","required":true},"id":{"dataType":"string","required":true}}}},
+            "status": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["Active"]},{"dataType":"enum","enums":["Draft"]},{"dataType":"enum","enums":["Closed"]}]},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "JobImportResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "data": {"ref":"ImportedJobDraft","required":true},
+            "warnings": {"dataType":"array","array":{"dataType":"string"},"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ParseJobLinkRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "url": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ParseJobFileRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "fileName": {"dataType":"string","required":true},
+            "mimeType": {"dataType":"string"},
+            "base64Data": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "DashboardRecentRunDTO": {
         "dataType": "refObject",
         "properties": {
@@ -2112,6 +2165,68 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'assistant',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsGeminiController_parseJobLink: Record<string, TsoaRoute.ParameterSchema> = {
+                requestBody: {"in":"body","name":"requestBody","required":true,"ref":"ParseJobLinkRequest"},
+        };
+        app.post('/gemini/parse-job-link',
+            authenticateMiddleware([{"jwt":["recruiter","admin"]}]),
+            ...(fetchMiddlewares<RequestHandler>(GeminiController)),
+            ...(fetchMiddlewares<RequestHandler>(GeminiController.prototype.parseJobLink)),
+
+            async function GeminiController_parseJobLink(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsGeminiController_parseJobLink, request, response });
+
+                const controller = new GeminiController();
+
+              await templateService.apiHandler({
+                methodName: 'parseJobLink',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsGeminiController_parseJobFile: Record<string, TsoaRoute.ParameterSchema> = {
+                requestBody: {"in":"body","name":"requestBody","required":true,"ref":"ParseJobFileRequest"},
+        };
+        app.post('/gemini/parse-job-file',
+            authenticateMiddleware([{"jwt":["recruiter","admin"]}]),
+            ...(fetchMiddlewares<RequestHandler>(GeminiController)),
+            ...(fetchMiddlewares<RequestHandler>(GeminiController.prototype.parseJobFile)),
+
+            async function GeminiController_parseJobFile(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsGeminiController_parseJobFile, request, response });
+
+                const controller = new GeminiController();
+
+              await templateService.apiHandler({
+                methodName: 'parseJobFile',
                 controller,
                 response,
                 next,

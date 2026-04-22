@@ -3,6 +3,12 @@ import { GeminiRecruiterAssistantService } from "../gemini/assistant";
 import { GeminiClient } from "../gemini/client";
 import { GeminiFrontendService } from "../gemini/frontend";
 import { GeminiBatchScreeningRunnerService } from "../gemini/batch-screening-runner";
+import {
+  GeminiJobImportService,
+  JobImportResponse,
+  ParseJobFileRequest,
+  ParseJobLinkRequest,
+} from "../gemini/job-import";
 import { GeminiScreeningService } from "../gemini/screening";
 import { HttpError } from "../utils/HttpError";
 import {
@@ -27,6 +33,7 @@ export class GeminiController {
   private readonly frontendService = new GeminiFrontendService(this.client, this.screeningService);
   private readonly batchScreeningRunner = new GeminiBatchScreeningRunnerService(this.screeningService);
   private readonly assistantService = new GeminiRecruiterAssistantService(this.client);
+  private readonly jobImportService = new GeminiJobImportService(this.client);
 
   private toHttpError(error: unknown): HttpError {
     if (error instanceof HttpError) {
@@ -119,6 +126,26 @@ export class GeminiController {
   ): Promise<GeminiRecruiterAssistantResponse> {
     try {
       return await this.assistantService.ask(requestBody);
+    } catch (error) {
+      throw this.toHttpError(error);
+    }
+  }
+
+  @Post("parse-job-link")
+  @Security('jwt', ['recruiter', 'admin'])
+  public async parseJobLink(@Body() requestBody: ParseJobLinkRequest): Promise<JobImportResponse> {
+    try {
+      return await this.jobImportService.parseFromLink(requestBody);
+    } catch (error) {
+      throw this.toHttpError(error);
+    }
+  }
+
+  @Post("parse-job-file")
+  @Security('jwt', ['recruiter', 'admin'])
+  public async parseJobFile(@Body() requestBody: ParseJobFileRequest): Promise<JobImportResponse> {
+    try {
+      return await this.jobImportService.parseFromFile(requestBody);
     } catch (error) {
       throw this.toHttpError(error);
     }

@@ -36,6 +36,28 @@ interface JobFormFields {
   educationLevel: EducationLevel | "";
 }
 
+export interface ParsedJobImportData {
+  title?: string;
+  department?: string;
+  hiringManager?: string;
+  location?: string;
+  locationPolicy?: LocationPolicy;
+  employmentType?: EmploymentType;
+  salaryBand?: string;
+  summary?: string;
+  responsibilities?: string;
+  mustHaveQualifications?: string;
+  niceToHaveQualifications?: string;
+  coreHardSkills?: string[];
+  preferredSkills?: string[];
+  coreSoftSkills?: string[];
+  experienceYears?: number;
+  seniorityLevel?: SeniorityLevel;
+  educationLevel?: EducationLevel;
+  weightCriteria?: WeightCriterion[];
+  status?: "Active" | "Draft" | "Closed";
+}
+
 interface JobFormState {
   form: JobFormFields;
   weightCriteria: WeightCriterion[];
@@ -184,6 +206,45 @@ const jobFormSlice = createSlice({
     setShowSuccessModal(state, action: PayloadAction<boolean>) {
       state.showSuccessModal = action.payload;
     },
+    mergeParsedJobData(state, action: PayloadAction<ParsedJobImportData>) {
+      const parsed = action.payload;
+      const nextForm = { ...state.form };
+
+      if (parsed.title) nextForm.title = parsed.title;
+      if (parsed.department) nextForm.department = parsed.department;
+      if (parsed.location) nextForm.location = parsed.location;
+      if (parsed.locationPolicy) nextForm.locationPolicy = parsed.locationPolicy;
+      if (parsed.employmentType) nextForm.employmentType = parsed.employmentType;
+      if (parsed.salaryBand) nextForm.salaryBand = parsed.salaryBand;
+      if (parsed.summary) nextForm.summary = parsed.summary;
+      if (parsed.responsibilities) nextForm.responsibilities = parsed.responsibilities;
+      if (parsed.mustHaveQualifications) nextForm.mustHaveQualifications = parsed.mustHaveQualifications;
+      if (parsed.niceToHaveQualifications) nextForm.niceToHaveQualifications = parsed.niceToHaveQualifications;
+      if (Array.isArray(parsed.coreHardSkills) && parsed.coreHardSkills.length > 0) {
+        nextForm.coreHardSkills = parsed.coreHardSkills.join("\n");
+      }
+      if (Array.isArray(parsed.preferredSkills) && parsed.preferredSkills.length > 0) {
+        nextForm.preferredSkills = parsed.preferredSkills.join("\n");
+      }
+      if (Array.isArray(parsed.coreSoftSkills) && parsed.coreSoftSkills.length > 0) {
+        nextForm.coreSoftSkills = parsed.coreSoftSkills.join("\n");
+      }
+      if (typeof parsed.experienceYears === "number" && Number.isFinite(parsed.experienceYears)) {
+        nextForm.experienceYears = String(Math.max(0, Math.round(parsed.experienceYears)));
+      }
+      if (parsed.seniorityLevel) nextForm.seniorityLevel = parsed.seniorityLevel;
+      if (parsed.educationLevel) nextForm.educationLevel = parsed.educationLevel;
+
+      state.form = nextForm;
+
+      if (Array.isArray(parsed.weightCriteria) && parsed.weightCriteria.length > 0) {
+        state.weightCriteria = parsed.weightCriteria.map((criterion) => ({
+          id: criterion.id,
+          label: criterion.label,
+          value: criterion.value,
+        }));
+      }
+    },
     clearJobFormError(state) {
       state.error = "";
     },
@@ -209,6 +270,7 @@ const jobFormSlice = createSlice({
 export const {
   addWeightCriterion,
   clearJobFormError,
+  mergeParsedJobData,
   removeWeightCriterion,
   setShowSuccessModal,
   updateFormField,
