@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import {
   MapPin,
   Mail,
@@ -30,7 +30,7 @@ import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Moda
 import { loadCandidateRecords, type CandidateRecord } from "@/lib/candidates";
 
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 function formatMatchTone(score: number) {
@@ -79,6 +79,8 @@ Umurava Hiring Team`;
 }
 
 export default function CandidateDetailPage({ params }: PageProps) {
+  const resolvedParams = use(params);
+  const candidateParamId = resolvedParams.id;
   const [showSchedule, setShowSchedule] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
   const [showReject, setShowReject] = useState(false);
@@ -97,7 +99,7 @@ export default function CandidateDetailPage({ params }: PageProps) {
 
       try {
         const allCandidates = await loadCandidateRecords();
-        const candidateId = decodeURIComponent(params.id);
+        const candidateId = decodeURIComponent(candidateParamId);
         const match = allCandidates.find((entry) => entry.id === candidateId) ?? null;
 
         if (cancelled) {
@@ -124,7 +126,7 @@ export default function CandidateDetailPage({ params }: PageProps) {
     return () => {
       cancelled = true;
     };
-  }, [params.id]);
+  }, [candidateParamId]);
 
   function handleSchedule() {
     setScheduleSent(true);
@@ -170,7 +172,7 @@ export default function CandidateDetailPage({ params }: PageProps) {
         <Card className="p-6">
           <h1 className="font-display text-xl font-semibold text-ink">Candidate not found</h1>
           <p className="mt-2 text-sm text-ink-muted">
-            We could not find a live candidate record for <span className="font-mono text-xs">{decodeURIComponent(params.id)}</span>.
+            We could not find a live candidate record for <span className="font-mono text-xs">{decodeURIComponent(candidateParamId)}</span>.
           </p>
         </Card>
       </div>
