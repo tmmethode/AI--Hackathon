@@ -7,7 +7,6 @@ import {
   Download, Mail, Calendar,
   Briefcase, ChevronDown, Send, Video, Phone, X,
   ClipboardCheck, GraduationCap, Wrench, ChevronRight,
-  LoaderCircle,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -16,10 +15,18 @@ import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Field, Input, Textarea, Select } from "@/components/ui/Input";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
-import { loadCandidateRecords, type CandidateRecord, type CandidateStatus } from "@/lib/candidates";
+import { type CandidateStatus } from "@/lib/candidates";
+import {
+  ADVANCED_STATUSES,
+  listCandidateDirectory,
+  type CandidateFilterStatus,
+  type CandidateListItem,
+  type CandidateSortKey,
+  type CandidateStatusCounts,
+} from "@/lib/candidate-directory";
 import { CandidatesPageSkeleton } from "@/components/page-skeletons";
 
-type Candidate = CandidateRecord;
+type Candidate = CandidateListItem;
 
 const advanceOptions = [
   { key: "interview" as const, label: "Interview", icon: Calendar, desc: "Schedule a screening or panel interview" },
@@ -50,10 +57,8 @@ const statusLabels: Record<CandidateStatus, string> = {
   new: "New",
 };
 
-type SortKey = "matchScore" | "name" | "appliedDate";
-type FilterStatus = "all" | "shortlisted" | "advanced" | "interview" | "exam" | "assessment" | "practical" | "rejected" | "new";
-
-const ADVANCED_STATUSES: CandidateStatus[] = ["interview", "exam", "assessment", "practical"];
+type SortKey = CandidateSortKey;
+type FilterStatus = CandidateFilterStatus;
 const PAGE_SIZE = 10;
 
 function getEmailSubject(c: Candidate): string {
@@ -113,6 +118,20 @@ function getScheduleDefaults(c: Candidate): { round: string; notes: string; dura
 
 export default function CandidatesPage() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
+  const [jobOptions, setJobOptions] = useState<Array<{ job: string; count: number }>>([]);
+  const [totalCandidates, setTotalCandidates] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [counts, setCounts] = useState<CandidateStatusCounts>({
+    all: 0,
+    shortlisted: 0,
+    advanced: 0,
+    interview: 0,
+    exam: 0,
+    assessment: 0,
+    practical: 0,
+    rejected: 0,
+    new: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
@@ -129,77 +148,59 @@ export default function CandidatesPage() {
   const [emailSent, setEmailSent] = useState(false);
   const [scheduleSent, setScheduleSent] = useState(false);
   const [advanceDropdownId, setAdvanceDropdownId] = useState<string | null>(null);
+  const [localStatusOverrides, setLocalStatusOverrides] = useState<
+    Record<string, { previous: CandidateStatus; next: CandidateStatus; job: string }>
+  >({});
 
   useEffect(() => {
     let cancelled = false;
-
-    async function loadCandidates() {
+    const timeoutId = window.setTimeout(async () => {
       setLoading(true);
       setLoadError("");
 
       try {
-        const nextCandidates = await loadCandidateRecords();
+        const response = await listCandidateDirectory({
+          page,
+          pageSize: PAGE_SIZE,
+          search,
+          sortKey,
+          sortDir: sortAsc ? "asc" : "desc",
+          status: filterStatus,
+          job: filterJob,
+        });
 
         if (cancelled) {
           return;
         }
 
-        setCandidates(nextCandidates);
+        setCandidates(
+          response.data.map((candidate) => ({
+            ...candidate,
+            status: localStatusOverrides[candidate.id]?.next ?? candidate.status,
+          }))
+        );
+        setCounts(response.statusCounts);
+        setJobOptions(response.jobOptions);
+        setTotalCandidates(response.total);
+        setTotalPages(response.totalPages);
       } catch (error) {
         if (cancelled) {
           return;
         }
 
-        setCandidates([]);
         setLoadError(error instanceof Error ? error.message : "Failed to load candidates.");
       } finally {
         if (!cancelled) {
           setLoading(false);
         }
       }
-    }
-
-    void loadCandidates();
+    }, 220);
 
     return () => {
       cancelled = true;
+      window.clearTimeout(timeoutId);
     };
-  }, []);
-
-  const jobList = useMemo(
-    () => Array.from(new Set(candidates.map((candidate) => candidate.job))).sort((left, right) => left.localeCompare(right)),
-    [candidates]
-  );
-
-  const jobFiltered = useMemo(() =>
-    filterJob === "all" ? candidates : candidates.filter((c) => c.job === filterJob),
-    [filterJob, candidates]
-  );
-
-  const filtered = useMemo(() => {
-    let list = jobFiltered.filter((c) => {
-      const matchesSearch =
-        c.name.toLowerCase().includes(search.toLowerCase()) ||
-        c.title.toLowerCase().includes(search.toLowerCase()) ||
-        c.skills.some((s) => s.toLowerCase().includes(search.toLowerCase()));
-      let matchesStatus: boolean;
-      if (filterStatus === "all") matchesStatus = true;
-      else if (filterStatus === "advanced") matchesStatus = ADVANCED_STATUSES.includes(c.status);
-      else matchesStatus = c.status === filterStatus;
-      return matchesSearch && matchesStatus;
-    });
-    list = [...list].sort((a, b) => {
-      let val: number;
-      if (sortKey === "name") val = a.name.localeCompare(b.name);
-      else if (sortKey === "appliedDate") val = a.appliedDate.localeCompare(b.appliedDate);
-      else val = a.matchScore - b.matchScore;
-      return sortAsc ? val : -val;
-    });
-    return list;
-  }, [jobFiltered, search, sortKey, sortAsc, filterStatus]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  }, [filterJob, filterStatus, page, search, sortAsc, sortKey, localStatusOverrides]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) setSortAsc((v) => !v);
@@ -209,21 +210,16 @@ export default function CandidatesPage() {
   }
 
   function handleAdvance(id: string, status: AdvanceKey | "rejected") {
+    const target = candidates.find((entry) => entry.id === id);
     setCandidates((prev) => prev.map((c) => c.id === id ? { ...c, status } : c));
+    if (target && target.status !== status) {
+      setLocalStatusOverrides((prev) => ({
+        ...prev,
+        [id]: { previous: target.status, next: status, job: target.job },
+      }));
+    }
     setAdvanceDropdownId(null);
   }
-
-  const counts = {
-    all: jobFiltered.length,
-    shortlisted: jobFiltered.filter((c) => c.status === "shortlisted").length,
-    advanced: jobFiltered.filter((c) => ADVANCED_STATUSES.includes(c.status)).length,
-    interview: jobFiltered.filter((c) => c.status === "interview").length,
-    exam: jobFiltered.filter((c) => c.status === "exam").length,
-    assessment: jobFiltered.filter((c) => c.status === "assessment").length,
-    practical: jobFiltered.filter((c) => c.status === "practical").length,
-    rejected: jobFiltered.filter((c) => c.status === "rejected").length,
-    new: jobFiltered.filter((c) => c.status === "new").length,
-  };
 
   function handleJobSwitch(job: string) {
     setFilterJob(job);
@@ -244,6 +240,23 @@ export default function CandidatesPage() {
     rejected: "Rejected",
     new: "New",
   };
+
+  const displayCounts = useMemo(() => {
+    const next = { ...counts };
+    const currentJob = filterJob;
+    Object.values(localStatusOverrides).forEach((override) => {
+      if (currentJob !== "all" && override.job !== currentJob) {
+        return;
+      }
+      next[override.previous as keyof CandidateStatusCounts] = Math.max(
+        0,
+        next[override.previous as keyof CandidateStatusCounts] - 1
+      );
+      next[override.next as keyof CandidateStatusCounts] += 1;
+    });
+    next.advanced = next.interview + next.exam + next.assessment + next.practical;
+    return next;
+  }, [counts, filterJob, localStatusOverrides]);
 
   if (loading) {
     return <CandidatesPageSkeleton />;
@@ -282,7 +295,7 @@ export default function CandidatesPage() {
               {filterJob === "all" ? "All Jobs" : filterJob}
             </p>
           </div>
-          <Badge tone="neutral" pill>{counts.all} candidates</Badge>
+          <Badge tone="neutral" pill>{displayCounts.all} candidates</Badge>
           <ChevronDown className={`h-4 w-4 shrink-0 text-ink-muted transition-transform ${showJobPicker ? "rotate-180" : ""}`} />
         </button>
 
@@ -304,17 +317,16 @@ export default function CandidatesPage() {
                     <p className={`text-sm font-semibold ${filterJob === "all" ? "text-brand" : "text-ink"}`}>All Jobs</p>
                     <p className="text-[11px] text-ink-muted">View candidates across all positions</p>
                   </div>
-                  <p className="text-xs font-bold text-ink">{candidates.length}</p>
+                  <p className="text-xs font-bold text-ink">{displayCounts.all}</p>
                   {filterJob === "all" && <Check className="h-4 w-4 shrink-0 text-brand" />}
                 </button>
               </li>
-              {jobList.map((j) => {
-                const jobCount = candidates.filter((c) => c.job === j).length;
-                const isActive = filterJob === j;
+              {jobOptions.map(({ job, count }) => {
+                const isActive = filterJob === job;
                 return (
-                  <li key={j}>
+                  <li key={job}>
                     <button
-                      onClick={() => handleJobSwitch(j)}
+                      onClick={() => handleJobSwitch(job)}
                       className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${
                         isActive ? "bg-brand-soft/30" : "hover:bg-surface-soft"
                       }`}
@@ -323,9 +335,9 @@ export default function CandidatesPage() {
                         <Briefcase className={`h-4 w-4 ${isActive ? "text-brand" : "text-ink-muted"}`} />
                       </span>
                       <div className="flex-1">
-                        <p className={`text-sm font-semibold ${isActive ? "text-brand" : "text-ink"}`}>{j}</p>
+                        <p className={`text-sm font-semibold ${isActive ? "text-brand" : "text-ink"}`}>{job}</p>
                       </div>
-                      <p className="text-xs font-bold text-ink">{jobCount}</p>
+                      <p className="text-xs font-bold text-ink">{count}</p>
                       {isActive && <Check className="h-4 w-4 shrink-0 text-brand" />}
                     </button>
                   </li>
@@ -339,11 +351,11 @@ export default function CandidatesPage() {
 
       <section className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
         {([
-          { label: "Total", value: counts.all, tone: "brand" },
-          { label: "Shortlisted", value: counts.shortlisted, tone: "brand" },
-          { label: "Advanced", value: counts.advanced, tone: "success" },
-          { label: "New", value: counts.new, tone: "neutral" },
-          { label: "Rejected", value: counts.rejected, tone: "danger" },
+          { label: "Total", value: displayCounts.all, tone: "brand" },
+          { label: "Shortlisted", value: displayCounts.shortlisted, tone: "brand" },
+          { label: "Advanced", value: displayCounts.advanced, tone: "success" },
+          { label: "New", value: displayCounts.new, tone: "neutral" },
+          { label: "Rejected", value: displayCounts.rejected, tone: "danger" },
         ] as const).map((s) => (
           <Card key={s.label} className="p-4">
             <p className="text-xs text-ink-muted">{s.label}</p>
@@ -357,7 +369,7 @@ export default function CandidatesPage() {
       <Card className="mt-6">
         <div className="flex flex-wrap items-center gap-3 border-b border-line px-4 py-4 sm:px-5">
           <h2 className="flex items-center gap-2 font-display text-base font-semibold text-ink">
-            All Candidates <Badge tone="neutral">{filtered.length}</Badge>
+            All Candidates <Badge tone="neutral">{totalCandidates}</Badge>
           </h2>
 
           <div className="relative ml-0 flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto">
@@ -411,13 +423,13 @@ export default function CandidatesPage() {
           </div>
         </div>
 
-        {paginated.length === 0 ? (
+        {candidates.length === 0 ? (
           <div className="px-5 py-16 text-center text-sm text-ink-muted">
             No candidates match your filters.
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 p-4 sm:p-5 md:grid-cols-2">
-            {paginated.map((c) => {
+            {candidates.map((c) => {
               const matchColor = c.matchScore >= 90 ? "text-success" : c.matchScore >= 80 ? "text-brand" : "text-ink-muted";
               const ringColor = c.matchScore >= 90 ? "#22c55e" : c.matchScore >= 80 ? "var(--color-brand)" : "#94a3b8";
               const ringBg = c.matchScore >= 90 ? "rgba(34,197,94,0.1)" : c.matchScore >= 80 ? "rgba(59,130,246,0.1)" : "rgba(148,163,184,0.1)";
@@ -557,7 +569,7 @@ export default function CandidatesPage() {
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-4 text-sm text-ink-muted sm:px-5">
-          <p>Showing {Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}</p>
+          <p>Showing {Math.min((page - 1) * PAGE_SIZE + 1, totalCandidates)}–{Math.min(page * PAGE_SIZE, totalCandidates)} of {totalCandidates}</p>
           <nav className="flex gap-1">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
               <button key={p} onClick={() => setPage(p)}
