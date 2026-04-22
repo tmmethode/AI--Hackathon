@@ -195,14 +195,6 @@ function averageMatchScore(results: IShortlist["screeningResults"] | undefined):
   return Number((sum / results.length).toFixed(1));
 }
 
-function topLocationBreakdown(applicants: IApplicant[]): Array<{ location: string; count: number }> {
-  const byLocation = tallyByKey(applicants.map((applicant) => applicant.location), "Unknown");
-  return Object.entries(byLocation)
-    .map(([location, count]) => ({ location, count }))
-    .sort((left, right) => right.count - left.count || left.location.localeCompare(right.location))
-    .slice(0, ANALYTICS_TOP_ITEMS);
-}
-
 function toRunAnalyticsSummary(shortlists: IShortlist[]): GeminiRecruiterRunAnalyticsSummary {
   return {
     totalRuns: shortlists.length,
@@ -218,6 +210,14 @@ function toRunAnalyticsSummary(shortlists: IShortlist[]): GeminiRecruiterRunAnal
       recommendationCounts: stageCountsFromResults(shortlist.screeningResults),
     })),
   };
+}
+
+function toCountRecord(rows: Array<{ _id: string | null; count: number }>, fallback = "Unknown"): Record<string, number> {
+  return rows.reduce<Record<string, number>>((acc, row) => {
+    const key = (row._id || fallback).trim() || fallback;
+    acc[key] = row.count;
+    return acc;
+  }, {});
 }
 
 function toBatchJobFromModel(job: IJob): GeminiBatchJob {
@@ -585,20 +585,32 @@ export class GeminiRecruiterAssistantService {
         ? "job"
         : "workspace";
 
-    const [allJobs, relevantShortlists, scopedApplicants, jobCountsByEmail] = await Promise.all([
+    const shortlistFilter = resolvedJobId ? { job: new mongoose.Types.ObjectId(resolvedJobId) } : {};
+    const applicantFilter = resolvedJobId ? { job: new mongoose.Types.ObjectId(resolvedJobId) } : {};
+
+    const [allJobs, relevantShortlists, totalRunsInScope, totalApplicantsInScope, applicantSourceRows, applicantIngestRows, applicantLocationRows, jobCountsByEmail] = await Promise.all([
       Job.find().select("_id title status applicantsCount").lean<IJob[]>(),
       resolvedJobId
-        ? Shortlist.find({ job: resolvedJobId }).sort({ createdAt: -1 }).lean<IShortlist[]>()
-        : Shortlist.find().sort({ createdAt: -1 }).limit(40).lean<IShortlist[]>(),
-      resolvedJobId
-        ? Applicant.find({ job: resolvedJobId })
-            .select("email source ingestStatus location job")
-            .lean<IApplicant[]>()
-        : Applicant.find()
-            .select("email source ingestStatus location job")
-            .sort({ createdAt: -1 })
-            .limit(300)
-            .lean<IApplicant[]>(),
+        ? Shortlist.find(shortlistFilter).sort({ createdAt: -1 }).lean<IShortlist[]>()
+        : Shortlist.find(shortlistFilter).sort({ createdAt: -1 }).limit(40).lean<IShortlist[]>(),
+      Shortlist.countDocuments(shortlistFilter),
+      Applicant.countDocuments(applicantFilter),
+      Applicant.aggregate<{ _id: string | null; count: number }>([
+        { $match: applicantFilter },
+        { $group: { _id: "$source", count: { $sum: 1 } } },
+        { $sort: { count: -1, _id: 1 } },
+      ]),
+      Applicant.aggregate<{ _id: string | null; count: number }>([
+        { $match: applicantFilter },
+        { $group: { _id: "$ingestStatus", count: { $sum: 1 } } },
+        { $sort: { count: -1, _id: 1 } },
+      ]),
+      Applicant.aggregate<{ _id: string | null; count: number }>([
+        { $match: applicantFilter },
+        { $group: { _id: "$location", count: { $sum: 1 } } },
+        { $sort: { count: -1, _id: 1 } },
+        { $limit: ANALYTICS_TOP_ITEMS },
+      ]),
       Applicant.aggregate<{ _id: string; jobCount: number }>([
         { $group: { _id: "$email", jobCount: { $addToSet: "$job" } } },
         { $project: { _id: 1, jobCount: { $size: "$jobCount" } } },
@@ -617,8 +629,12 @@ export class GeminiRecruiterAssistantService {
       .slice(0, ANALYTICS_TOP_ITEMS);
 
     const totalApplicantsAcrossJobs = allJobs.reduce((sum, jobDoc) => sum + (jobDoc.applicantsCount || 0), 0);
-    const applicantsBySource = tallyByKey(scopedApplicants.map((entry) => entry.source), "Unknown");
-    const applicantsByIngestStatus = tallyByKey(scopedApplicants.map((entry) => entry.ingestStatus), "Unknown");
+    const applicantsBySource = toCountRecord(applicantSourceRows, "Unknown");
+    const applicantsByIngestStatus = toCountRecord(applicantIngestRows, "Unknown");
+    const applicantsByLocationTop = applicantLocationRows.map((entry) => ({
+      location: (entry._id || "Unknown").trim() || "Unknown",
+      count: entry.count,
+    }));
 
     const multiEmailSet = new Set(jobCountsByEmail.map((entry) => normalizeEmail(entry._id)));
     const multiJobApplicantsTop: GeminiRecruiterApplicantAnalyticsSummary["multiJobApplicantsTop"] = [];
@@ -682,13 +698,16 @@ export class GeminiRecruiterAssistantService {
         })),
       },
       applicants: {
-        totalApplicantsInScope: scopedApplicants.length,
+        totalApplicantsInScope,
         applicantsBySource,
         applicantsByIngestStatus,
-        applicantsByLocationTop: topLocationBreakdown(scopedApplicants),
+        applicantsByLocationTop,
         multiJobApplicantsTop,
       },
-      runs: toRunAnalyticsSummary(relevantShortlists),
+      runs: {
+        ...toRunAnalyticsSummary(relevantShortlists),
+        totalRuns: totalRunsInScope,
+      },
     };
 
     if (resolvedJobId && job) {
@@ -697,8 +716,8 @@ export class GeminiRecruiterAssistantService {
         jobId: resolvedJobId,
         title: job.title,
         status: job.status,
-        applicantsCount: scopedApplicants.length,
-        runCount: relevantShortlists.length,
+        applicantsCount: totalApplicantsInScope,
+        runCount: totalRunsInScope,
         latestRun: latestJobRun
           ? {
               shortlistId: latestJobRun._id.toString(),
