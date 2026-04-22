@@ -1,10 +1,11 @@
 "use client";
 
-import { type ComponentType, type FormEvent, type ReactNode } from "react";
+import { type ChangeEvent, type ComponentType, type FormEvent, type ReactNode, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight,
+  Brain,
   Briefcase,
   CheckCircle2,
   FileText,
@@ -21,7 +22,9 @@ import { Field, Input, Select, Textarea } from "@/components/ui/Input";
 import { Modal, ModalBody, ModalFooter } from "@/components/ui/Modal";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { type EducationLevel, type EmploymentType, type LocationPolicy, type SeniorityLevel } from "@/lib/jobs";
+import { parseJobFromFile, parseJobFromLink } from "@/lib/job-import";
 import {
+  mergeParsedJobData as mergeParsedJobDataAction,
   setShowSuccessModal as setShowSuccessModalAction,
   submitJob as submitJobAction,
   updateFormField as updateFormFieldAction,
@@ -76,6 +79,25 @@ export default function NewJobPage() {
   const { form, showSuccessModal, createdJobTitle, error, isSubmitting } = useAppSelector(
     (state) => state.jobForm
   );
+  const [jobUrl, setJobUrl] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [linkState, setLinkState] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [fileState, setFileState] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [importError, setImportError] = useState("");
+  const [importWarnings, setImportWarnings] = useState<string[]>([]);
+
+  const uploadConstraints = useMemo(
+    () => ({
+      maxBytes: 10 * 1024 * 1024,
+      acceptedExtensions: [".pdf", ".doc", ".docx"],
+      acceptedMimeTypes: new Set([
+        "application/pdf",
+        "application/msword",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ]),
+    }),
+    []
+  );
 
   function updateFormField<Key extends keyof JobFormState>(key: Key, value: JobFormState[Key]) {
     dispatch(updateFormFieldAction({ field: key, value }));
@@ -84,6 +106,85 @@ export default function NewJobPage() {
   function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void dispatch(submitJobAction({ status: "Active" }));
+  }
+
+  function applyParsedJobData(data: Parameters<typeof mergeParsedJobDataAction>[0]) {
+    dispatch(mergeParsedJobDataAction(data));
+  }
+
+  async function handleParseFromLink() {
+    if (!jobUrl.trim()) {
+      setLinkState("error");
+      setImportError("Please enter a public job link to parse.");
+      return;
+    }
+
+    setLinkState("loading");
+    setImportError("");
+    setImportWarnings([]);
+
+    try {
+      const response = await parseJobFromLink(jobUrl.trim());
+      applyParsedJobData(response.data);
+      setImportWarnings(response.warnings || []);
+      setLinkState("success");
+    } catch (parseError) {
+      setLinkState("error");
+      setImportError(parseError instanceof Error ? parseError.message : "Unable to parse this job link.");
+    }
+  }
+
+  function handleSelectFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    setFileState("idle");
+    setImportError("");
+
+    if (!file) {
+      setSelectedFile(null);
+      return;
+    }
+
+    const extension = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+    const extensionSupported = uploadConstraints.acceptedExtensions.includes(extension);
+    const mimeSupported = !file.type || uploadConstraints.acceptedMimeTypes.has(file.type);
+
+    if (!extensionSupported || !mimeSupported) {
+      setSelectedFile(null);
+      setFileState("error");
+      setImportError("Unsupported file type. Please upload a PDF, DOC, or DOCX file.");
+      return;
+    }
+
+    if (file.size > uploadConstraints.maxBytes) {
+      setSelectedFile(null);
+      setFileState("error");
+      setImportError("File is too large. Please upload a file up to 10MB.");
+      return;
+    }
+
+    setSelectedFile(file);
+  }
+
+  async function handleParseFromFile() {
+    if (!selectedFile) {
+      setFileState("error");
+      setImportError("Please choose a PDF, DOC, or DOCX file first.");
+      return;
+    }
+
+    setFileState("loading");
+    setImportError("");
+    setImportWarnings([]);
+
+    try {
+      const response = await parseJobFromFile(selectedFile);
+      applyParsedJobData(response.data);
+      setImportWarnings(response.warnings || []);
+      setFileState("success");
+    } catch (parseError) {
+      setFileState("error");
+      setImportError(parseError instanceof Error ? parseError.message : "Unable to parse this file.");
+    }
   }
 
   return (
@@ -124,6 +225,92 @@ export default function NewJobPage() {
       )}
 
       <form className="flex flex-col gap-6" onSubmit={handleSave}>
+        <Section
+          icon={Brain}
+          title="AI Import (Optional)"
+          description="Use Gemini to prefill this job form from a public link or job document."
+        >
+          <p className="mb-5 text-sm text-ink-muted">Review all AI-filled fields before saving.</p>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <div className="rounded-xl border border-line p-4">
+              <h3 className="text-sm font-semibold text-ink">Option A: Paste Job Link</h3>
+              <p className="mt-1 text-xs text-ink-muted">Paste a public job link to extract job details.</p>
+              <Input
+                className="mt-3"
+                placeholder="https://company.com/careers/software-engineer"
+                value={jobUrl}
+                onChange={(event) => {
+                  setJobUrl(event.target.value);
+                  if (linkState !== "idle") {
+                    setLinkState("idle");
+                  }
+                }}
+                aria-label="Job posting URL"
+              />
+              <div className="mt-3 flex items-center gap-2">
+                <Button
+                  type="button"
+                  onClick={() => void handleParseFromLink()}
+                  disabled={linkState === "loading" || fileState === "loading"}
+                  leftIcon={linkState === "loading" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : undefined}
+                >
+                  Parse from link
+                </Button>
+                {linkState === "error" && (
+                  <Button type="button" variant="secondary" onClick={() => void handleParseFromLink()}>
+                    Retry
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-line p-4">
+              <h3 className="text-sm font-semibold text-ink">Option B: Upload Job File</h3>
+              <p className="mt-1 text-xs text-ink-muted">Upload a PDF or Word job description to extract details.</p>
+              <Input
+                className="mt-3"
+                type="file"
+                accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                onChange={handleSelectFile}
+                aria-label="Job description file"
+              />
+              <p className="mt-2 text-xs text-ink-muted">Supported files: PDF, DOC, DOCX up to 10MB.</p>
+              <div className="mt-3 flex items-center gap-2">
+                <Button
+                  type="button"
+                  onClick={() => void handleParseFromFile()}
+                  disabled={!selectedFile || linkState === "loading" || fileState === "loading"}
+                  leftIcon={fileState === "loading" ? <LoaderCircle className="h-4 w-4 animate-spin" /> : undefined}
+                >
+                  Parse from file
+                </Button>
+                {fileState === "error" && (
+                  <Button type="button" variant="secondary" onClick={() => void handleParseFromFile()}>
+                    Retry
+                  </Button>
+                )}
+              </div>
+              {selectedFile && <p className="mt-2 text-xs text-ink-muted">Selected: {selectedFile.name}</p>}
+            </div>
+          </div>
+
+          {(linkState === "success" || fileState === "success") && (
+            <div className="mt-4 rounded-xl border border-success/20 bg-success/5 px-4 py-3 text-sm text-success">
+              Job details were imported. Please review and edit fields before saving.
+            </div>
+          )}
+          {importWarnings.length > 0 && (
+            <div className="mt-4 rounded-xl border border-warning/20 bg-warning/10 px-4 py-3 text-sm text-ink">
+              {importWarnings.join(" ")}
+            </div>
+          )}
+          {importError && (
+            <div className="mt-4 rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+              {importError}
+            </div>
+          )}
+        </Section>
+
         <Section
           icon={Briefcase}
           title="Role Fundamentals"
