@@ -24,8 +24,8 @@ import {
   getAssistantHealth,
 } from "@/lib/assistant";
 import { getStoredAuth } from "@/lib/auth";
-import { listAllJobs, type JobRecord } from "@/lib/jobs";
-import { listAllShortlists, type ShortlistSummary } from "@/lib/shortlists";
+import { listJobSelectors, type JobSelectorItem } from "@/lib/jobs";
+import { listShortlistSelectors, type ShortlistSelectorItem } from "@/lib/shortlists";
 
 type PanelState = "closed" | "open" | "minimized";
 type DeliveryState = "sent" | "loading" | "error";
@@ -50,8 +50,8 @@ const DEFAULT_SCOPE: ScopeState = {
 };
 
 interface AssistantScopeData {
-  jobs: JobRecord[];
-  shortlists: ShortlistSummary[];
+  jobs: JobSelectorItem[];
+  shortlists: ShortlistSelectorItem[];
 }
 
 const SCOPE_CACHE_TTL_MS = 60_000;
@@ -93,8 +93,8 @@ async function fetchAssistantScopeData(): Promise<AssistantScopeData> {
 
   if (!cachedScopePromise) {
     cachedScopePromise = Promise.all([
-      listAllJobs({ pageSize: 100 }).catch(() => [] as JobRecord[]),
-      listAllShortlists({ pageSize: 100 }).catch(() => [] as ShortlistSummary[]),
+      listJobSelectors({ limit: 200 }).then((response) => response.data).catch(() => [] as JobSelectorItem[]),
+      listShortlistSelectors({ limit: 200 }).then((response) => response.data).catch(() => [] as ShortlistSelectorItem[]),
     ]).then(([jobs, shortlists]) => {
       cachedScopeData = { jobs, shortlists };
       cachedScopeLoadedAt = Date.now();
@@ -109,11 +109,11 @@ async function fetchAssistantScopeData(): Promise<AssistantScopeData> {
   return cachedScopePromise;
 }
 
-function buildPrompts(selectedJob?: JobRecord, selectedShortlist?: ShortlistSummary) {
+function buildPrompts(selectedJob?: JobSelectorItem, selectedShortlist?: ShortlistSelectorItem) {
   if (selectedShortlist) {
     return [
       `Summarise this shortlist for ${selectedShortlist.jobTitle}.`,
-      `Why was ${selectedShortlist.topCandidateName || "the top candidate"} ranked #1?`,
+      "Why was the top candidate ranked #1?",
       `What interview focus areas should I use for the top 3 candidates?`,
       `Which shortlisted profiles have the biggest risks and why?`,
     ];
@@ -241,8 +241,8 @@ export function AIAssistant() {
   const [healthLoading, setHealthLoading] = useState(false);
   const [healthError, setHealthError] = useState<string | null>(null);
 
-  const [jobs, setJobs] = useState<JobRecord[]>([]);
-  const [shortlists, setShortlists] = useState<ShortlistSummary[]>([]);
+  const [jobs, setJobs] = useState<JobSelectorItem[]>([]);
+  const [shortlists, setShortlists] = useState<ShortlistSelectorItem[]>([]);
   const [scope, setScope] = useState<ScopeState>(DEFAULT_SCOPE);
   const [scopeLoading, setScopeLoading] = useState(false);
   const scopeLoadInFlightRef = useRef(false);

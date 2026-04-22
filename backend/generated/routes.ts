@@ -4,11 +4,15 @@
 import type { TsoaRoute } from '@tsoa/runtime';
 import {  fetchMiddlewares, ExpressTemplateService } from '@tsoa/runtime';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { SidebarController } from './../controllers/SidebarController';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { ShortlistController } from './../controllers/ShortlistController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { NotificationController } from './../controllers/NotificationController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { JobController } from './../controllers/JobController';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { HistoryController } from './../controllers/HistoryController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { GeminiController } from './../controllers/GeminiController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
@@ -27,6 +31,24 @@ const expressAuthenticationRecasted = expressAuthentication as (req: ExRequest, 
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 
 const models: TsoaRoute.Models = {
+    "SidebarUsageDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "weeklyCount": {"dataType":"double","required":true},
+            "totalCount": {"dataType":"double","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "SidebarUsageResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "data": {"ref":"SidebarUsageDTO","required":true},
+            "message": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "ShortlistSummaryDTO": {
         "dataType": "refObject",
         "properties": {
@@ -58,6 +80,27 @@ const models: TsoaRoute.Models = {
             "page": {"dataType":"double","required":true},
             "pageSize": {"dataType":"double","required":true},
             "totalPages": {"dataType":"double","required":true},
+            "message": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ShortlistSelectItemDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "_id": {"dataType":"string","required":true},
+            "runName": {"dataType":"string","required":true},
+            "job": {"dataType":"string","required":true},
+            "jobTitle": {"dataType":"string","required":true},
+            "createdAt": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ShortlistSelectResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "data": {"dataType":"array","array":{"dataType":"refObject","ref":"ShortlistSelectItemDTO"},"required":true},
             "message": {"dataType":"string","required":true},
         },
         "additionalProperties": false,
@@ -301,6 +344,25 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "JobSelectItemDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "_id": {"dataType":"string","required":true},
+            "title": {"dataType":"string","required":true},
+            "status": {"ref":"JobStatus","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "JobSelectResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "data": {"dataType":"array","array":{"dataType":"refObject","ref":"JobSelectItemDTO"},"required":true},
+            "message": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "JobResponse": {
         "dataType": "refObject",
         "properties": {
@@ -367,6 +429,44 @@ const models: TsoaRoute.Models = {
         "properties": {
             "message": {"dataType":"string","required":true},
             "id": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "HistoryRunSummaryDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "_id": {"dataType":"string","required":true},
+            "runName": {"dataType":"string","required":true},
+            "jobTitle": {"dataType":"string","required":true},
+            "totalApplicants": {"dataType":"double","required":true},
+            "shortlistCount": {"dataType":"double","required":true},
+            "topMatchScore": {"dataType":"double","required":true},
+            "topCandidateName": {"dataType":"string","required":true},
+            "screeningCompletedAt": {"dataType":"string"},
+            "screeningDurationSeconds": {"dataType":"double"},
+            "createdAt": {"dataType":"string","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "HistorySummaryDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "runs": {"dataType":"array","array":{"dataType":"refObject","ref":"HistoryRunSummaryDTO"},"required":true},
+            "total": {"dataType":"double","required":true},
+            "page": {"dataType":"double","required":true},
+            "pageSize": {"dataType":"double","required":true},
+            "totalPages": {"dataType":"double","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "HistorySummaryResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "data": {"ref":"HistorySummaryDTO","required":true},
+            "message": {"dataType":"string","required":true},
         },
         "additionalProperties": false,
     },
@@ -1396,6 +1496,36 @@ export function RegisterRoutes(app: Router) {
 
 
     
+        const argsSidebarController_getUsage: Record<string, TsoaRoute.ParameterSchema> = {
+        };
+        app.get('/sidebar/usage',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(SidebarController)),
+            ...(fetchMiddlewares<RequestHandler>(SidebarController.prototype.getUsage)),
+
+            async function SidebarController_getUsage(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsSidebarController_getUsage, request, response });
+
+                const controller = new SidebarController();
+
+              await templateService.apiHandler({
+                methodName: 'getUsage',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         const argsShortlistController_listShortlists: Record<string, TsoaRoute.ParameterSchema> = {
                 jobId: {"in":"query","name":"jobId","dataType":"string"},
                 page: {"default":1,"in":"query","name":"page","dataType":"double"},
@@ -1418,6 +1548,38 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'listShortlists',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsShortlistController_listShortlistSelect: Record<string, TsoaRoute.ParameterSchema> = {
+                jobId: {"in":"query","name":"jobId","dataType":"string"},
+                limit: {"default":100,"in":"query","name":"limit","dataType":"double"},
+        };
+        app.get('/shortlists/select',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(ShortlistController)),
+            ...(fetchMiddlewares<RequestHandler>(ShortlistController.prototype.listShortlistSelect)),
+
+            async function ShortlistController_listShortlistSelect(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsShortlistController_listShortlistSelect, request, response });
+
+                const controller = new ShortlistController();
+
+              await templateService.apiHandler({
+                methodName: 'listShortlistSelect',
                 controller,
                 response,
                 next,
@@ -1608,6 +1770,39 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'listJobs',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsJobController_listJobSelect: Record<string, TsoaRoute.ParameterSchema> = {
+                search: {"in":"query","name":"search","dataType":"string"},
+                status: {"in":"query","name":"status","dataType":"union","subSchemas":[{"ref":"JobStatus"},{"dataType":"enum","enums":["All"]}]},
+                limit: {"default":100,"in":"query","name":"limit","dataType":"double"},
+        };
+        app.get('/jobs/select',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(JobController)),
+            ...(fetchMiddlewares<RequestHandler>(JobController.prototype.listJobSelect)),
+
+            async function JobController_listJobSelect(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsJobController_listJobSelect, request, response });
+
+                const controller = new JobController();
+
+              await templateService.apiHandler({
+                methodName: 'listJobSelect',
                 controller,
                 response,
                 next,
@@ -1831,6 +2026,38 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'deleteJob',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsHistoryController_getSummary: Record<string, TsoaRoute.ParameterSchema> = {
+                page: {"default":1,"in":"query","name":"page","dataType":"double"},
+                pageSize: {"default":20,"in":"query","name":"pageSize","dataType":"double"},
+        };
+        app.get('/history/summary',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(HistoryController)),
+            ...(fetchMiddlewares<RequestHandler>(HistoryController.prototype.getSummary)),
+
+            async function HistoryController_getSummary(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsHistoryController_getSummary, request, response });
+
+                const controller = new HistoryController();
+
+              await templateService.apiHandler({
+                methodName: 'getSummary',
                 controller,
                 response,
                 next,
