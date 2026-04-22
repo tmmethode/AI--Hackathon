@@ -126,6 +126,22 @@ export interface IngestSummary {
     email?: string;
     message: string;
   }>;
+  itemResults?: Array<{
+    index: number;
+    source: ApplicantSource;
+    state:
+      | "parsed-successfully"
+      | "saved-successfully"
+      | "partially-parsed"
+      | "duplicate-detected"
+      | "validation-failed"
+      | "unsupported-file"
+      | "parse-failed";
+    sourceFileName?: string;
+    sourceUrl?: string;
+    email?: string;
+    message?: string;
+  }>;
   applicants: ApplicantRecord[];
   message: string;
 }

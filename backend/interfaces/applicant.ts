@@ -143,6 +143,25 @@ export interface IngestLinksRequest {
   links: string[];
 }
 
+export type IngestItemState =
+  | 'parsed-successfully'
+  | 'saved-successfully'
+  | 'partially-parsed'
+  | 'duplicate-detected'
+  | 'validation-failed'
+  | 'unsupported-file'
+  | 'parse-failed';
+
+export interface IngestItemResult {
+  index: number;
+  source: ApplicantSource;
+  state: IngestItemState;
+  sourceFileName?: string;
+  sourceUrl?: string;
+  email?: string;
+  message?: string;
+}
+
 export interface IngestSummary {
   received: number;
   created: number;
@@ -150,6 +169,7 @@ export interface IngestSummary {
   failed: number;
   errors: { index: number; email?: string; message: string }[];
   applicants: IApplicantResponse[];
+  itemResults?: IngestItemResult[];
   message: string;
 }
 

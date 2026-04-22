@@ -1326,10 +1326,10 @@ export default function IngestPage() {
   }
 
   const successTitle =
-    lastImportTab === "pdf" || lastImportTab === "links" ? "Applicants Queued!" : "Applicants Imported!";
+    lastImportTab === "pdf" || lastImportTab === "links" ? "Applicants Processed!" : "Applicants Imported!";
   const successDescription =
     lastImportTab === "pdf" || lastImportTab === "links"
-      ? `${lastImportSummary?.created ?? 0} applicant records were queued for backend parsing.`
+      ? `${lastImportSummary?.created ?? 0} applicant records were processed for the selected job.`
       : `${lastImportSummary?.created ?? 0} applicant records were saved to the selected job.`;
   const currentImportStageIndex = importProgress
     ? importStages.findIndex((stage) => stage.id === importProgress.stage)
