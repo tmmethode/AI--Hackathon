@@ -1,4 +1,5 @@
 import { listAllApplicants, type ApplicantRecord, type ApplicantSource } from "@/lib/applicants";
+import { calculateApplicantExperienceYears } from "@/lib/experience";
 import { getShortlist, listShortlists, type ShortlistRecord } from "@/lib/shortlists";
 import { listJobs, type JobRecord } from "@/lib/jobs";
 
@@ -76,37 +77,7 @@ function applicantDisplayName(applicant?: ApplicantRecord, fallbackValue?: strin
 }
 
 function deriveExperienceYears(applicant?: ApplicantRecord) {
-  if (!applicant?.experience?.length) {
-    return 0;
-  }
-
-  let earliestYear = Number.POSITIVE_INFINITY;
-  let latestYear = 0;
-
-  for (const entry of applicant.experience) {
-    const startYear = entry.startDate ? new Date(entry.startDate).getFullYear() : NaN;
-    const endYear = entry.isCurrent
-      ? new Date().getFullYear()
-      : entry.endDate
-      ? new Date(entry.endDate).getFullYear()
-      : NaN;
-
-    if (Number.isFinite(startYear)) {
-      earliestYear = Math.min(earliestYear, startYear);
-      latestYear = Math.max(latestYear, Number.isFinite(endYear) ? endYear : startYear);
-    }
-  }
-
-  if (!Number.isFinite(earliestYear) || latestYear <= 0) {
-    return 0;
-  }
-
-  return Math.max(0, latestYear - earliestYear + 1);
-}
-
-function formatExperience(applicant?: ApplicantRecord) {
-  const years = deriveExperienceYears(applicant);
-  return years > 0 ? `${years} Years` : "—";
+  return calculateApplicantExperienceYears(applicant);
 }
 
 function formatAppliedDate(value?: string) {

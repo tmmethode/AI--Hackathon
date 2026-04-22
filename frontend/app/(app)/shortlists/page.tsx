@@ -21,6 +21,9 @@ import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Moda
 import { ShortlistsPageSkeleton } from "@/components/page-skeletons";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { buildCandidateId } from "@/lib/candidates";
+import { listAllApplicants, type ApplicantRecord } from "@/lib/applicants";
+import { calculateApplicantExperienceYears } from "@/lib/experience";
+import { createPdfFromLines } from "@/lib/pdf";
 import {
   getShortlist,
   listShortlists,
@@ -90,7 +93,8 @@ function buildCandidateFromResult(
   shortlistJobId: string,
   candidateKey: number,
   pillarLabels: { skills: string; experience: string; education: string; relevance: string },
-  shortlistedEmails: Set<string>
+  shortlistedEmails: Set<string>,
+  experienceYears: number
 ): Candidate {
   const strengths = entry.strengths || [];
   const primaryStrength = strengths[0] || "—";
@@ -108,7 +112,7 @@ function buildCandidateFromResult(
     summary:
       entry.summaryExplanation ||
       "AI explanation was generated only for the top-ranked candidates in this run.",
-    years: 0,
+    years: experienceYears,
     strength: primaryStrength,
     cultureFit: cultureFitFromScore(entry.relevanceScore),
     retentionRisk: retentionRiskFromScore(entry.confidenceScore),
@@ -143,7 +147,7 @@ function buildScreeningJobFromSummary(summary: ShortlistSummary, isCurrent: bool
   };
 }
 
-function buildCandidatesFromRecord(record: ShortlistRecord): Candidate[] {
+function buildCandidatesFromRecord(record: ShortlistRecord, applicants: ApplicantRecord[]): Candidate[] {
   const labels = {
     skills: "Skills Match",
     experience: "Experience Match",
@@ -153,10 +157,21 @@ function buildCandidatesFromRecord(record: ShortlistRecord): Candidate[] {
   const shortlistedEmails = new Set(
     (record.shortlist || []).map((entry) => entry.applicantEmail.trim().toLowerCase())
   );
-
-  return (record.screeningResults || []).map((entry, index) =>
-    buildCandidateFromResult(entry, record.job, index + 1, labels, shortlistedEmails)
+  const applicantsByEmail = new Map(
+    applicants.map((applicant) => [applicant.email.trim().toLowerCase(), applicant])
   );
+
+  return (record.screeningResults || []).map((entry, index) => {
+    const applicant = applicantsByEmail.get(entry.applicantEmail.trim().toLowerCase());
+    return buildCandidateFromResult(
+      entry,
+      record.job,
+      index + 1,
+      labels,
+      shortlistedEmails,
+      calculateApplicantExperienceYears(applicant)
+    );
+  });
 }
 
 type SortKey = "rank" | "match" | "name" | "years";
@@ -280,12 +295,13 @@ function ShortlistsPageInner() {
 
       try {
         const response = await getShortlist(activeJobId);
+        const applicants = await listAllApplicants(response.data.job);
 
         if (cancelled) {
           return;
         }
 
-        const nextCandidates = buildCandidatesFromRecord(response.data);
+        const nextCandidates = buildCandidatesFromRecord(response.data, applicants);
         setCandidatesByJob((prev) => ({ ...prev, [activeJobId]: nextCandidates }));
         setSelectedId(nextCandidates[0]?.id ?? 0);
         setCompareIds([nextCandidates[0]?.id ?? 0, nextCandidates[1]?.id ?? 0]);
@@ -341,11 +357,24 @@ function ShortlistsPageInner() {
       const blob = new Blob([JSON.stringify(exportable, null, 2)], { type: "application/json" });
       triggerDownload(blob, "shortlist.json");
     } else {
-      const lines = exportable.map((c) =>
-        `#${c.rank} ${c.name} | ${c.title} | ${c.match}% match | ${c.skills.join(", ")}`
-      );
-      const blob = new Blob([`Shortlist Export\n\n${lines.join("\n")}`], { type: "text/plain" });
-      triggerDownload(blob, "shortlist.txt");
+      const lines = [
+        "Shortlist Export",
+        `Role: ${activeJob?.title || "—"}`,
+        `Run: ${activeJob?.description || "—"}`,
+        `Generated: ${new Date().toLocaleString()}`,
+        "",
+        "Candidates",
+        ...exportable.flatMap((candidate) => [
+          `#${candidate.rank} ${candidate.name}` ,
+          `Title: ${candidate.title}`,
+          `Match: ${candidate.match}% | Experience: ${candidate.years} years | Status: ${candidate.status}`,
+          `Skills: ${candidate.skills.join(", ") || "—"}` ,
+          `Summary: ${candidate.summary || "No AI summary available."}` ,
+          "",
+        ]),
+      ];
+      const blob = createPdfFromLines(lines);
+      triggerDownload(blob, "shortlist.pdf");
     }
     setExportDone(true);
     setTimeout(() => { setExportDone(false); setShowExportModal(false); }, 1500);

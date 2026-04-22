@@ -73,6 +73,29 @@ export async function getNotification(id: string) {
   return handleApiResponse<NotificationResponse>(response, "Failed to load notification details.");
 }
 
+
+export async function markNotificationAsRead(id: string) {
+  const response = await fetch(`${getApiBaseUrl()}/notifications/${id}/read`, {
+    method: "PATCH",
+    headers: {
+      ...getAuthHeader(),
+    },
+  });
+
+  return handleApiResponse<NotificationResponse>(response, "Failed to mark notification as read.");
+}
+
+export async function markAllNotificationsAsRead() {
+  const response = await fetch(`${getApiBaseUrl()}/notifications/read-all`, {
+    method: "POST",
+    headers: {
+      ...getAuthHeader(),
+    },
+  });
+
+  return handleApiResponse<{ message: string }>(response, "Failed to mark notifications as read.");
+}
+
 export function toRelativeTime(value: string) {
   const date = new Date(value);
 

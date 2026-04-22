@@ -3383,6 +3383,51 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"IngestItemState": {
+				"type": "string",
+				"enum": [
+					"parsed-successfully",
+					"saved-successfully",
+					"partially-parsed",
+					"duplicate-detected",
+					"validation-failed",
+					"unsupported-file",
+					"parse-failed"
+				]
+			},
+			"IngestItemResult": {
+				"properties": {
+					"index": {
+						"type": "number",
+						"format": "double"
+					},
+					"source": {
+						"$ref": "#/components/schemas/ApplicantSource"
+					},
+					"state": {
+						"$ref": "#/components/schemas/IngestItemState"
+					},
+					"sourceFileName": {
+						"type": "string"
+					},
+					"sourceUrl": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"index",
+					"source",
+					"state"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"IngestSummary": {
 				"properties": {
 					"received": {
@@ -3426,6 +3471,12 @@
 					"applicants": {
 						"items": {
 							"$ref": "#/components/schemas/IApplicantResponse"
+						},
+						"type": "array"
+					},
+					"itemResults": {
+						"items": {
+							"$ref": "#/components/schemas/IngestItemResult"
 						},
 						"type": "array"
 					},
@@ -4021,6 +4072,75 @@
 						}
 					}
 				]
+			}
+		},
+		"/notifications/{id}/read": {
+			"patch": {
+				"operationId": "MarkAsRead",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/NotificationResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Notifications"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/notifications/read-all": {
+			"post": {
+				"operationId": "MarkAllAsRead",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"message": {
+											"type": "string"
+										}
+									},
+									"required": [
+										"message"
+									],
+									"type": "object"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Notifications"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
 			}
 		},
 		"/jobs": {
