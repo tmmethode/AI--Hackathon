@@ -383,7 +383,74 @@ export interface GeminiRecruiterAssistantContext {
   job?: GeminiBatchJob;
   applicants?: GeminiBatchApplicant[];
   shortlist?: GeminiRecruiterAssistantShortlistContext;
+  analytics?: GeminiRecruiterAssistantAnalyticsContext;
   contextNote?: string;
+}
+
+export interface GeminiRecruiterJobAnalyticsSummary {
+  totalJobs: number;
+  statusCounts: Record<string, number>;
+  totalApplicants: number;
+  averageApplicantsPerJob: number;
+  jobsWithNoApplicants: Array<{ jobId: string; title: string; status?: string }>;
+  jobsWithMostApplicants: Array<{ jobId: string; title: string; applicants: number; status?: string }>;
+  jobsWithFewestApplicants: Array<{ jobId: string; title: string; applicants: number; status?: string }>;
+}
+
+export interface GeminiRecruiterStageCounts {
+  shortlisted: number;
+  rejected: number;
+  consider: number;
+  strongShortlist: number;
+  strongReject: number;
+}
+
+export interface GeminiRecruiterRunAnalyticsSummary {
+  totalRuns: number;
+  comparedRuns: Array<{
+    shortlistId: string;
+    runName: string;
+    jobId?: string;
+    jobTitle?: string;
+    createdAt?: string;
+    totalApplicants?: number;
+    shortlistCount?: number;
+    averageMatchScore?: number;
+    recommendationCounts?: Partial<GeminiRecruiterStageCounts>;
+  }>;
+}
+
+export interface GeminiRecruiterApplicantAnalyticsSummary {
+  totalApplicantsInScope: number;
+  applicantsBySource: Record<string, number>;
+  applicantsByIngestStatus: Record<string, number>;
+  applicantsByLocationTop: Array<{ location: string; count: number }>;
+  multiJobApplicantsTop: Array<{ email: string; jobCount: number; jobTitles: string[] }>;
+}
+
+export interface GeminiRecruiterAssistantAnalyticsContext {
+  scope: "workspace" | "job" | "shortlist";
+  generatedAt: string;
+  job?: GeminiRecruiterJobAnalyticsSummary;
+  applicants?: GeminiRecruiterApplicantAnalyticsSummary;
+  runs?: GeminiRecruiterRunAnalyticsSummary;
+  selectedJob?: {
+    jobId: string;
+    title: string;
+    status?: string;
+    applicantsCount: number;
+    runCount: number;
+    latestRun?: { shortlistId: string; runName: string; createdAt?: string };
+  };
+  selectedRun?: {
+    shortlistId: string;
+    runName?: string;
+    jobTitle?: string;
+    totalApplicants?: number;
+    shortlistCount?: number;
+    averageMatchScore?: number;
+    recommendationCounts?: Partial<GeminiRecruiterStageCounts>;
+  };
 }
 
 export interface GeminiRecruiterAssistantRequest {

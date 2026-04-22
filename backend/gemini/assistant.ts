@@ -11,10 +11,14 @@ import {
 import {
   GeminiBatchApplicant,
   GeminiBatchJob,
+  GeminiRecruiterApplicantAnalyticsSummary,
+  GeminiRecruiterAssistantAnalyticsContext,
   GeminiRecruiterAssistantContext,
   GeminiRecruiterAssistantContextSummary,
   GeminiRecruiterAssistantRequest,
   GeminiRecruiterAssistantResponse,
+  GeminiRecruiterRunAnalyticsSummary,
+  GeminiRecruiterStageCounts,
   GeminiRecruiterAssistantShortlistContext,
 } from "./types";
 
@@ -25,6 +29,7 @@ const MAX_HISTORY_CHARS = 24_000;
 const MAX_HISTORY_TURN_CHARS = 1_500;
 const MAX_TEXT_FIELD_CHARS = 500;
 const MAX_LIST_FIELD_ITEMS = 12;
+const ANALYTICS_TOP_ITEMS = 5;
 
 function normalizeEmail(email?: string): string {
   return (email || "").trim().toLowerCase();
@@ -152,6 +157,67 @@ function buildWorkspaceOverviewNote(input: {
   }
 
   return lines.length > 0 ? lines.join("\n") : undefined;
+}
+
+function tallyByKey(values: Array<string | undefined>, fallback = "Unknown"): Record<string, number> {
+  return values.reduce<Record<string, number>>((acc, raw) => {
+    const key = (raw || fallback).trim() || fallback;
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+}
+
+function stageCountsFromResults(
+  results: Array<Pick<IShortlist["screeningResults"][number], "finalRecommendation">> | undefined
+): GeminiRecruiterStageCounts {
+  const counts: GeminiRecruiterStageCounts = {
+    shortlisted: 0,
+    rejected: 0,
+    consider: 0,
+    strongShortlist: 0,
+    strongReject: 0,
+  };
+
+  for (const result of results || []) {
+    if (result.finalRecommendation === "Shortlist") counts.shortlisted += 1;
+    if (result.finalRecommendation === "Strong Shortlist") counts.strongShortlist += 1;
+    if (result.finalRecommendation === "Consider") counts.consider += 1;
+    if (result.finalRecommendation === "Reject") counts.rejected += 1;
+    if (result.finalRecommendation === "Strong Reject") counts.strongReject += 1;
+  }
+
+  return counts;
+}
+
+function averageMatchScore(results: IShortlist["screeningResults"] | undefined): number | undefined {
+  if (!results || results.length === 0) return undefined;
+  const sum = results.reduce((acc, row) => acc + (row.matchScore || 0), 0);
+  return Number((sum / results.length).toFixed(1));
+}
+
+function toRunAnalyticsSummary(shortlists: IShortlist[]): GeminiRecruiterRunAnalyticsSummary {
+  return {
+    totalRuns: shortlists.length,
+    comparedRuns: shortlists.slice(0, ANALYTICS_TOP_ITEMS).map((shortlist) => ({
+      shortlistId: shortlist._id.toString(),
+      runName: shortlist.runName,
+      jobId: shortlist.job?.toString(),
+      jobTitle: shortlist.jobTitle,
+      createdAt: shortlist.createdAt?.toISOString(),
+      totalApplicants: shortlist.totalApplicants,
+      shortlistCount: shortlist.shortlistCount,
+      averageMatchScore: averageMatchScore(shortlist.screeningResults),
+      recommendationCounts: stageCountsFromResults(shortlist.screeningResults),
+    })),
+  };
+}
+
+function toCountRecord(rows: Array<{ _id: string | null; count: number }>, fallback = "Unknown"): Record<string, number> {
+  return rows.reduce<Record<string, number>>((acc, row) => {
+    const key = (row._id || fallback).trim() || fallback;
+    acc[key] = row.count;
+    return acc;
+  }, {});
 }
 
 function toBatchJobFromModel(job: IJob): GeminiBatchJob {
@@ -379,6 +445,7 @@ export class GeminiRecruiterAssistantService {
       job: resolved.context.job,
       applicants: resolved.context.applicants,
       shortlist: resolved.context.shortlist,
+      analytics: resolved.context.analytics,
       contextNote: resolved.context.contextNote,
     });
 
@@ -420,6 +487,7 @@ export class GeminiRecruiterAssistantService {
     let truncatedApplicants = false;
     let shortlistedApplicantsPrioritized = false;
     let shortlistPriorityEmails: string[] = [];
+    let selectedShortlistDoc: IShortlist | undefined;
 
     if (request.shortlistId) {
       if (!mongoose.Types.ObjectId.isValid(request.shortlistId)) {
@@ -433,6 +501,7 @@ export class GeminiRecruiterAssistantService {
 
       usedDatabase = true;
       resolvedShortlistId = shortlistDoc._id.toString();
+      selectedShortlistDoc = shortlistDoc as IShortlist;
       shortlistContext = toShortlistContextFromModel(shortlistDoc as IShortlist);
       shortlistPriorityEmails = collectShortlistPriorityEmails(shortlistDoc as IShortlist);
       resolvedJobId = resolvedJobId || shortlistDoc.job.toString();
@@ -510,6 +579,166 @@ export class GeminiRecruiterAssistantService {
     }
 
     const applicants = dbApplicants;
+    const analyticsScope: GeminiRecruiterAssistantAnalyticsContext["scope"] = resolvedShortlistId
+      ? "shortlist"
+      : resolvedJobId
+        ? "job"
+        : "workspace";
+
+    const shortlistFilter = resolvedJobId ? { job: new mongoose.Types.ObjectId(resolvedJobId) } : {};
+    const applicantFilter = resolvedJobId ? { job: new mongoose.Types.ObjectId(resolvedJobId) } : {};
+
+    const [allJobs, relevantShortlists, totalRunsInScope, totalApplicantsInScope, applicantSourceRows, applicantIngestRows, applicantLocationRows, jobCountsByEmail] = await Promise.all([
+      Job.find().select("_id title status applicantsCount").lean<IJob[]>(),
+      resolvedJobId
+        ? Shortlist.find(shortlistFilter).sort({ createdAt: -1 }).lean<IShortlist[]>()
+        : Shortlist.find(shortlistFilter).sort({ createdAt: -1 }).limit(40).lean<IShortlist[]>(),
+      Shortlist.countDocuments(shortlistFilter),
+      Applicant.countDocuments(applicantFilter),
+      Applicant.aggregate<{ _id: string | null; count: number }>([
+        { $match: applicantFilter },
+        { $group: { _id: "$source", count: { $sum: 1 } } },
+        { $sort: { count: -1, _id: 1 } },
+      ]),
+      Applicant.aggregate<{ _id: string | null; count: number }>([
+        { $match: applicantFilter },
+        { $group: { _id: "$ingestStatus", count: { $sum: 1 } } },
+        { $sort: { count: -1, _id: 1 } },
+      ]),
+      Applicant.aggregate<{ _id: string | null; count: number }>([
+        { $match: applicantFilter },
+        { $group: { _id: "$location", count: { $sum: 1 } } },
+        { $sort: { count: -1, _id: 1 } },
+        { $limit: ANALYTICS_TOP_ITEMS },
+      ]),
+      Applicant.aggregate<{ _id: string; jobCount: number }>([
+        { $group: { _id: "$email", jobCount: { $addToSet: "$job" } } },
+        { $project: { _id: 1, jobCount: { $size: "$jobCount" } } },
+        { $match: { jobCount: { $gt: 1 } } },
+        { $sort: { jobCount: -1, _id: 1 } },
+        { $limit: ANALYTICS_TOP_ITEMS },
+      ]),
+    ]);
+    usedDatabase = true;
+
+    const sortedJobsByApplicants = [...allJobs].sort(
+      (left, right) => (right.applicantsCount || 0) - (left.applicantsCount || 0)
+    );
+    const jobsWithFewestApplicants = [...allJobs]
+      .sort((left, right) => (left.applicantsCount || 0) - (right.applicantsCount || 0))
+      .slice(0, ANALYTICS_TOP_ITEMS);
+
+    const totalApplicantsAcrossJobs = allJobs.reduce((sum, jobDoc) => sum + (jobDoc.applicantsCount || 0), 0);
+    const applicantsBySource = toCountRecord(applicantSourceRows, "Unknown");
+    const applicantsByIngestStatus = toCountRecord(applicantIngestRows, "Unknown");
+    const applicantsByLocationTop = applicantLocationRows.map((entry) => ({
+      location: (entry._id || "Unknown").trim() || "Unknown",
+      count: entry.count,
+    }));
+
+    const multiEmailSet = new Set(jobCountsByEmail.map((entry) => normalizeEmail(entry._id)));
+    const multiJobApplicantsTop: GeminiRecruiterApplicantAnalyticsSummary["multiJobApplicantsTop"] = [];
+    if (multiEmailSet.size > 0) {
+      const multiRows = await Applicant.aggregate<{
+        _id: string;
+        jobIds: mongoose.Types.ObjectId[];
+        jobCount: number;
+      }>([
+        { $match: { email: { $in: Array.from(multiEmailSet) } } },
+        { $group: { _id: "$email", jobIds: { $addToSet: "$job" } } },
+        {
+          $project: {
+            _id: 1,
+            jobIds: 1,
+            jobCount: { $size: "$jobIds" },
+          },
+        },
+        { $sort: { jobCount: -1, _id: 1 } },
+        { $limit: ANALYTICS_TOP_ITEMS },
+      ]);
+
+      const jobIdSet = new Set(multiRows.flatMap((row) => row.jobIds.map((id) => id.toString())));
+      const jobTitles = await Job.find({ _id: { $in: Array.from(jobIdSet) } })
+        .select("_id title")
+        .lean<Array<Pick<IJob, "_id" | "title">>>();
+      const titleById = new Map(jobTitles.map((entry) => [entry._id.toString(), entry.title]));
+
+      for (const row of multiRows) {
+        multiJobApplicantsTop.push({
+          email: row._id,
+          jobCount: row.jobCount,
+          jobTitles: row.jobIds.map((id) => titleById.get(id.toString()) || id.toString()).slice(0, ANALYTICS_TOP_ITEMS),
+        });
+      }
+    }
+
+    const analytics: GeminiRecruiterAssistantAnalyticsContext = {
+      scope: analyticsScope,
+      generatedAt: new Date().toISOString(),
+      job: {
+        totalJobs: allJobs.length,
+        statusCounts: tallyByKey(allJobs.map((jobDoc) => jobDoc.status), "Unknown"),
+        totalApplicants: totalApplicantsAcrossJobs,
+        averageApplicantsPerJob: allJobs.length > 0 ? Number((totalApplicantsAcrossJobs / allJobs.length).toFixed(1)) : 0,
+        jobsWithNoApplicants: allJobs
+          .filter((jobDoc) => (jobDoc.applicantsCount || 0) === 0)
+          .slice(0, ANALYTICS_TOP_ITEMS)
+          .map((jobDoc) => ({ jobId: jobDoc._id.toString(), title: jobDoc.title, status: jobDoc.status })),
+        jobsWithMostApplicants: sortedJobsByApplicants.slice(0, ANALYTICS_TOP_ITEMS).map((jobDoc) => ({
+          jobId: jobDoc._id.toString(),
+          title: jobDoc.title,
+          applicants: jobDoc.applicantsCount || 0,
+          status: jobDoc.status,
+        })),
+        jobsWithFewestApplicants: jobsWithFewestApplicants.map((jobDoc) => ({
+          jobId: jobDoc._id.toString(),
+          title: jobDoc.title,
+          applicants: jobDoc.applicantsCount || 0,
+          status: jobDoc.status,
+        })),
+      },
+      applicants: {
+        totalApplicantsInScope,
+        applicantsBySource,
+        applicantsByIngestStatus,
+        applicantsByLocationTop,
+        multiJobApplicantsTop,
+      },
+      runs: {
+        ...toRunAnalyticsSummary(relevantShortlists),
+        totalRuns: totalRunsInScope,
+      },
+    };
+
+    if (resolvedJobId && job) {
+      const latestJobRun = relevantShortlists[0];
+      analytics.selectedJob = {
+        jobId: resolvedJobId,
+        title: job.title,
+        status: job.status,
+        applicantsCount: totalApplicantsInScope,
+        runCount: totalRunsInScope,
+        latestRun: latestJobRun
+          ? {
+              shortlistId: latestJobRun._id.toString(),
+              runName: latestJobRun.runName,
+              createdAt: latestJobRun.createdAt?.toISOString(),
+            }
+          : undefined,
+      };
+    }
+
+    if (selectedShortlistDoc) {
+      analytics.selectedRun = {
+        shortlistId: selectedShortlistDoc._id.toString(),
+        runName: selectedShortlistDoc.runName,
+        jobTitle: selectedShortlistDoc.jobTitle,
+        totalApplicants: selectedShortlistDoc.totalApplicants,
+        shortlistCount: selectedShortlistDoc.shortlistCount,
+        averageMatchScore: averageMatchScore(selectedShortlistDoc.screeningResults),
+        recommendationCounts: stageCountsFromResults(selectedShortlistDoc.screeningResults),
+      };
+    }
 
     let workspaceOverviewNote: string | undefined;
     const hasResolvedStructuredContext = Boolean(job || applicants?.length || shortlistContext);
@@ -548,6 +777,7 @@ export class GeminiRecruiterAssistantService {
       job,
       applicants,
       shortlist: shortlistContext,
+      analytics,
       contextNote,
     };
 

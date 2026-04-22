@@ -7,6 +7,7 @@ import {
   GeminiBatchScreeningResultEntry,
   GeminiBatchShortlistEntry,
   GeminiCandidateScreenRequest,
+  GeminiRecruiterAssistantAnalyticsContext,
   GeminiRecruiterAssistantMessage,
   GeminiRecruiterAssistantShortlistContext,
 } from "./types";
@@ -419,6 +420,9 @@ STRICT RULES
 11. Treat saved screening results and shortlist entries as the authoritative source for ranks, scores, and shortlist status.
 12. If only workspace overview data is available, answer only at workspace-overview level and ask the recruiter to select a job or shortlist for candidate-specific questions.
 13. If the context says applicant profiles were truncated or limited, mention that limitation whenever it materially affects the answer.
+14. Use the ANALYTICS CONTEXT block for counts, rates, run comparisons, and pipeline summaries before using heuristics.
+15. When asked for totals or comparisons, provide the number first, then a brief explanation of how you derived it from context.
+16. For run comparisons, use saved run metadata and scoring metrics; call out what improved, declined, or stayed similar.
 
 WHAT YOU CAN DO
 - explain why a candidate is ranked in a certain position
@@ -536,6 +540,7 @@ OUTPUT STYLE
 - Prioritise clarity over jargon
 - Factual and neutral tone
 - Plain text / light markdown only; never return JSON unless explicitly requested
+- Prefer response order: direct answer → evidence snapshot → optional next actions
 
 FINAL BEHAVIOUR INSTRUCTION
 Act like a professional recruiter assistant. Be accurate, calm, practical, and evidence-based. Help the recruiter understand the data, not guess beyond it.
@@ -655,6 +660,106 @@ function formatAssistantShortlistContext(shortlist?: GeminiRecruiterAssistantSho
   return [header.join("\n"), results, shortlisted].join("\n\n");
 }
 
+function formatCountsInline(counts?: Record<string, number>): string {
+  if (!counts || Object.keys(counts).length === 0) {
+    return "none";
+  }
+  return Object.entries(counts)
+    .sort((left, right) => right[1] - left[1] || left[0].localeCompare(right[0]))
+    .map(([label, value]) => `${label}=${value}`)
+    .join(", ");
+}
+
+function formatAssistantAnalytics(analytics?: GeminiRecruiterAssistantAnalyticsContext): string {
+  if (!analytics) {
+    return "ANALYTICS CONTEXT: None provided";
+  }
+
+  const lines: string[] = [
+    "ANALYTICS CONTEXT:",
+    `- Scope: ${analytics.scope}`,
+    `- Generated At: ${analytics.generatedAt}`,
+  ];
+
+  if (analytics.job) {
+    lines.push("- Jobs:");
+    lines.push(`  - Total Jobs: ${analytics.job.totalJobs}`);
+    lines.push(`  - Status Counts: ${formatCountsInline(analytics.job.statusCounts)}`);
+    lines.push(`  - Total Applicants (all jobs): ${analytics.job.totalApplicants}`);
+    lines.push(`  - Avg Applicants / Job: ${analytics.job.averageApplicantsPerJob}`);
+    if (analytics.job.jobsWithMostApplicants.length > 0) {
+      lines.push(
+        `  - Most Applicants: ${analytics.job.jobsWithMostApplicants
+          .map((entry) => `${entry.title} (${entry.applicants})`)
+          .join(" | ")}`
+      );
+    }
+    if (analytics.job.jobsWithFewestApplicants.length > 0) {
+      lines.push(
+        `  - Fewest Applicants: ${analytics.job.jobsWithFewestApplicants
+          .map((entry) => `${entry.title} (${entry.applicants})`)
+          .join(" | ")}`
+      );
+    }
+    if (analytics.job.jobsWithNoApplicants.length > 0) {
+      lines.push(
+        `  - Jobs With No Applicants: ${analytics.job.jobsWithNoApplicants
+          .map((entry) => entry.title)
+          .join(" | ")}`
+      );
+    }
+  }
+
+  if (analytics.applicants) {
+    lines.push("- Applicant Insights:");
+    lines.push(`  - Applicants In Scope: ${analytics.applicants.totalApplicantsInScope}`);
+    lines.push(`  - By Source: ${formatCountsInline(analytics.applicants.applicantsBySource)}`);
+    lines.push(`  - By Ingest Status: ${formatCountsInline(analytics.applicants.applicantsByIngestStatus)}`);
+    if (analytics.applicants.applicantsByLocationTop.length > 0) {
+      lines.push(
+        `  - Top Locations: ${analytics.applicants.applicantsByLocationTop
+          .map((entry) => `${entry.location} (${entry.count})`)
+          .join(" | ")}`
+      );
+    }
+    if (analytics.applicants.multiJobApplicantsTop.length > 0) {
+      lines.push(
+        `  - Multi-job Applicants: ${analytics.applicants.multiJobApplicantsTop
+          .map((entry) => `${entry.email} (${entry.jobCount} jobs)`)
+          .join(" | ")}`
+      );
+    }
+  }
+
+  if (analytics.runs) {
+    lines.push("- Run Insights:");
+    lines.push(`  - Total Runs In Scope: ${analytics.runs.totalRuns}`);
+    if (analytics.runs.comparedRuns.length > 0) {
+      lines.push(
+        ...analytics.runs.comparedRuns.map((entry) =>
+          `  - ${entry.runName} (${entry.jobTitle || "Unknown job"}) applicants=${entry.totalApplicants ?? 0}, shortlist=${entry.shortlistCount ?? 0}, avgMatch=${entry.averageMatchScore ?? "n/a"}, recommendations=${formatCountsInline(entry.recommendationCounts || {})}`
+        )
+      );
+    }
+  }
+
+  if (analytics.selectedJob) {
+    lines.push("- Selected Job Snapshot:");
+    lines.push(
+      `  - ${analytics.selectedJob.title} (${analytics.selectedJob.status || "Unknown status"}), applicants=${analytics.selectedJob.applicantsCount}, runs=${analytics.selectedJob.runCount}`
+    );
+  }
+
+  if (analytics.selectedRun) {
+    lines.push("- Selected Run Snapshot:");
+    lines.push(
+      `  - ${analytics.selectedRun.runName || "Unnamed run"} for ${analytics.selectedRun.jobTitle || "Unknown job"}: applicants=${analytics.selectedRun.totalApplicants ?? 0}, shortlist=${analytics.selectedRun.shortlistCount ?? 0}, avgMatch=${analytics.selectedRun.averageMatchScore ?? "n/a"}, recommendations=${formatCountsInline(analytics.selectedRun.recommendationCounts || {})}`
+    );
+  }
+
+  return lines.join("\n");
+}
+
 function formatAssistantHistory(history?: GeminiRecruiterAssistantMessage[]): string {
   if (!history || history.length === 0) {
     return "";
@@ -674,17 +779,19 @@ export interface BuildRecruiterAssistantPromptInput {
   job?: GeminiBatchJob;
   applicants?: GeminiBatchApplicant[];
   shortlist?: GeminiRecruiterAssistantShortlistContext;
+  analytics?: GeminiRecruiterAssistantAnalyticsContext;
   contextNote?: string;
 }
 
 export function buildRecruiterAssistantPrompt(input: BuildRecruiterAssistantPromptInput): string {
-  const { message, job, applicants, shortlist, contextNote } = input;
+  const { message, job, applicants, shortlist, analytics, contextNote } = input;
 
   const sections = [
     "DATA CONTEXT (authoritative; do not invent anything outside of it):",
     formatAssistantJob(job),
     formatAssistantApplicants(applicants),
     formatAssistantShortlistContext(shortlist),
+    formatAssistantAnalytics(analytics),
   ];
 
   if (contextNote) {
