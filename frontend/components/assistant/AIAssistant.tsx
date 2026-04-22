@@ -552,7 +552,7 @@ export function AIAssistant() {
         onTouchStart={warmScopeData}
         aria-label="Open AI recruiter assistant"
         className={cn(
-          "fixed bottom-4 right-4 z-[60] inline-flex items-center gap-2 rounded-full bg-brand px-3 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 sm:bottom-6 sm:right-6 sm:px-4",
+          "fixed bottom-6 right-6 z-[60] inline-flex items-center gap-2 rounded-full bg-brand px-3 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 sm:px-4",
           panelOpen && "opacity-0 pointer-events-none"
         )}
       >
