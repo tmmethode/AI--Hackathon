@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
 import {
   getShortlist,
-  listAllShortlists,
+  listShortlists,
   type ShortlistRecord,
   type ShortlistSummary,
 } from "@/lib/shortlists";
@@ -177,7 +177,8 @@ export default function ExportsPage() {
       setLoadError("");
 
       try {
-        const data = await listAllShortlists({ pageSize: 100 });
+        const response = await listShortlists({ page: 1, pageSize: 100 });
+        const data = response.data;
 
         if (cancelled) {
           return;

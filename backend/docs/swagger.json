@@ -7,6 +7,40 @@
 		"requestBodies": {},
 		"responses": {},
 		"schemas": {
+			"SidebarUsageDTO": {
+				"properties": {
+					"weeklyCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"totalCount": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"weeklyCount",
+					"totalCount"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"SidebarUsageResponse": {
+				"properties": {
+					"data": {
+						"$ref": "#/components/schemas/SidebarUsageDTO"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"data",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"ShortlistSummaryDTO": {
 				"properties": {
 					"_id": {
@@ -114,6 +148,53 @@
 					"page",
 					"pageSize",
 					"totalPages",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ShortlistSelectItemDTO": {
+				"properties": {
+					"_id": {
+						"type": "string"
+					},
+					"runName": {
+						"type": "string"
+					},
+					"job": {
+						"type": "string"
+					},
+					"jobTitle": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"_id",
+					"runName",
+					"job",
+					"jobTitle",
+					"createdAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ShortlistSelectResponse": {
+				"properties": {
+					"data": {
+						"items": {
+							"$ref": "#/components/schemas/ShortlistSelectItemDTO"
+						},
+						"type": "array"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"data",
 					"message"
 				],
 				"type": "object",
@@ -796,6 +877,45 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"JobSelectItemDTO": {
+				"properties": {
+					"_id": {
+						"type": "string"
+					},
+					"title": {
+						"type": "string"
+					},
+					"status": {
+						"$ref": "#/components/schemas/JobStatus"
+					}
+				},
+				"required": [
+					"_id",
+					"title",
+					"status"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"JobSelectResponse": {
+				"properties": {
+					"data": {
+						"items": {
+							"$ref": "#/components/schemas/JobSelectItemDTO"
+						},
+						"type": "array"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"data",
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"JobResponse": {
 				"properties": {
 					"data": {
@@ -986,6 +1106,107 @@
 				"required": [
 					"message",
 					"id"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"HistoryRunSummaryDTO": {
+				"properties": {
+					"_id": {
+						"type": "string"
+					},
+					"runName": {
+						"type": "string"
+					},
+					"jobTitle": {
+						"type": "string"
+					},
+					"totalApplicants": {
+						"type": "number",
+						"format": "double"
+					},
+					"shortlistCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"topMatchScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"topCandidateName": {
+						"type": "string"
+					},
+					"screeningCompletedAt": {
+						"type": "string"
+					},
+					"screeningDurationSeconds": {
+						"type": "number",
+						"format": "double"
+					},
+					"createdAt": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"_id",
+					"runName",
+					"jobTitle",
+					"totalApplicants",
+					"shortlistCount",
+					"topMatchScore",
+					"topCandidateName",
+					"createdAt"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"HistorySummaryDTO": {
+				"properties": {
+					"runs": {
+						"items": {
+							"$ref": "#/components/schemas/HistoryRunSummaryDTO"
+						},
+						"type": "array"
+					},
+					"total": {
+						"type": "number",
+						"format": "double"
+					},
+					"page": {
+						"type": "number",
+						"format": "double"
+					},
+					"pageSize": {
+						"type": "number",
+						"format": "double"
+					},
+					"totalPages": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"runs",
+					"total",
+					"page",
+					"pageSize",
+					"totalPages"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"HistorySummaryResponse": {
+				"properties": {
+					"data": {
+						"$ref": "#/components/schemas/HistorySummaryDTO"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"data",
+					"message"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -3724,6 +3945,32 @@
 		}
 	},
 	"paths": {
+		"/sidebar/usage": {
+			"get": {
+				"operationId": "GetUsage",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/SidebarUsageResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Sidebar"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
+			}
+		},
 		"/shortlists": {
 			"get": {
 				"operationId": "ListShortlists",
@@ -3813,6 +4060,52 @@
 						}
 					}
 				}
+			}
+		},
+		"/shortlists/select": {
+			"get": {
+				"operationId": "ListShortlistSelect",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ShortlistSelectResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Lightweight shortlist rows for selectors.",
+				"tags": [
+					"Shortlists"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "jobId",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"default": 100,
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
 			}
 		},
 		"/shortlists/{id}": {
@@ -4058,6 +4351,58 @@
 						}
 					}
 				}
+			}
+		},
+		"/jobs/select": {
+			"get": {
+				"operationId": "ListJobSelect",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/JobSelectResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "List lightweight job rows for selectors.",
+				"tags": [
+					"Jobs"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "search",
+						"required": false,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "query",
+						"name": "status",
+						"required": false,
+						"schema": {}
+					},
+					{
+						"in": "query",
+						"name": "limit",
+						"required": false,
+						"schema": {
+							"default": 100,
+							"format": "double",
+							"type": "number"
+						}
+					}
+				]
 			}
 		},
 		"/jobs/{id}": {
@@ -4318,6 +4663,53 @@
 						"required": true,
 						"schema": {
 							"type": "string"
+						}
+					}
+				]
+			}
+		},
+		"/history/summary": {
+			"get": {
+				"operationId": "GetSummary",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/HistorySummaryResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"History"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "query",
+						"name": "page",
+						"required": false,
+						"schema": {
+							"default": 1,
+							"format": "double",
+							"type": "number"
+						}
+					},
+					{
+						"in": "query",
+						"name": "pageSize",
+						"required": false,
+						"schema": {
+							"default": 20,
+							"format": "double",
+							"type": "number"
 						}
 					}
 				]

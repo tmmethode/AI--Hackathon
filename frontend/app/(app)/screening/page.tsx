@@ -38,7 +38,7 @@ import {
 } from "@/lib/screening";
 import { startScreeningRun } from "@/lib/screening-progress";
 import { getHiringManagerName, listJobs, splitLinesToList, type JobRecord } from "@/lib/jobs";
-import { listAllShortlists, type ShortlistSummary } from "@/lib/shortlists";
+import { listShortlistSelectors, type ShortlistSelectorItem } from "@/lib/shortlists";
 
 interface ScreeningAsset {
   name: string;
@@ -200,7 +200,7 @@ export default function ScreeningPage() {
   const [jobs, setJobs] = useState<JobRecord[]>([]);
   const [jobsLoading, setJobsLoading] = useState(true);
   const [jobsError, setJobsError] = useState("");
-  const [shortlists, setShortlists] = useState<ShortlistSummary[]>([]);
+  const [shortlists, setShortlists] = useState<ShortlistSelectorItem[]>([]);
   const [selectedJobId, setSelectedJobId] = useState("");
 
   const [applicants, setApplicants] = useState<ApplicantRecord[]>([]);
@@ -267,13 +267,13 @@ export default function ScreeningPage() {
 
     async function loadShortlists() {
       try {
-        const loadedShortlists = await listAllShortlists({ pageSize: 100 });
+        const loadedShortlists = await listShortlistSelectors({ limit: 200 });
 
         if (isCancelled) {
           return;
         }
 
-        setShortlists(loadedShortlists);
+        setShortlists(loadedShortlists.data);
       } catch {
         if (isCancelled) {
           return;

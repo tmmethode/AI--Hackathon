@@ -22,9 +22,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Progress } from "@/components/ui/Progress";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getStoredAuth, type AuthUser } from "@/lib/auth";
-import { listApplicants } from "@/lib/applicants";
-import { listAllJobs } from "@/lib/jobs";
-import { listAllShortlists } from "@/lib/shortlists";
+import { fetchDashboardSummary } from "@/lib/dashboard";
 
 interface DashboardMetric {
   label: string;
@@ -54,11 +52,6 @@ interface DashboardSnapshot {
   nextSteps: string;
 }
 
-function startOfThirtyDaysAgo() {
-  const date = new Date();
-  date.setDate(date.getDate() - 30);
-  return date;
-}
 
 function formatRelativeTime(value: string) {
   const then = new Date(value).getTime();
@@ -89,10 +82,6 @@ function formatHours(hours: number) {
   }
 
   return `${(hours / 24).toFixed(1)}d`;
-}
-
-function secondsToHours(seconds: number) {
-  return seconds / (60 * 60);
 }
 
 function DashboardSkeleton() {
@@ -239,80 +228,31 @@ export default function DashboardPage() {
     setError("");
 
     try {
-      const [jobs, shortlists] = await Promise.all([listAllJobs(), listAllShortlists()]);
-      const thirtyDaysAgo = startOfThirtyDaysAgo();
-
-      // Lightweight fetch: only grab the newest 10 applicants per job to
-      // estimate 30-day activity instead of downloading every full profile.
-      const recentSamples = await Promise.all(
-        jobs.map(async (job) => {
-          try {
-            const page = await listApplicants(job._id, { page: 1, pageSize: 10 });
-            const recentCount = page.data.filter(
-              (applicant) => new Date(applicant.createdAt) >= thirtyDaysAgo
-            ).length;
-            // If every record on the page is recent and there are more pages,
-            // use the total as a rough upper bound rather than fetching them all.
-            const estimated =
-              recentCount === page.data.length && page.totalPages > 1
-                ? page.total
-                : recentCount;
-            return { jobId: job._id, recentApplicants: estimated };
-          } catch {
-            return { jobId: job._id, recentApplicants: 0 };
-          }
-        })
-      );
-
-      const recentByJob = new Map(
-        recentSamples.map((entry) => [entry.jobId, entry.recentApplicants])
-      );
-
-      const totalApplicants = jobs.reduce((sum, job) => sum + job.applicantsCount, 0);
-      const activeJobs = jobs.filter((job) => job.status === "Active");
-      const draftJobs = jobs.filter((job) => job.status === "Draft");
-      const applicantsIn30Days = recentSamples.reduce(
-        (sum, entry) => sum + entry.recentApplicants,
-        0
-      );
-      const shortlistsIn30Days = shortlists.filter(
-        (shortlist) => new Date(shortlist.createdAt) >= thirtyDaysAgo
-      ).length;
-
-      const screeningRuntimeHours = shortlists
-        .map((shortlist) =>
-          typeof shortlist.screeningDurationSeconds === "number" &&
-          Number.isFinite(shortlist.screeningDurationSeconds) &&
-          shortlist.screeningDurationSeconds >= 0
-            ? secondsToHours(shortlist.screeningDurationSeconds)
-            : null
-        )
-        .filter((value): value is number => value !== null);
-
-      const averageScreeningRuntime =
-        screeningRuntimeHours.length > 0
-          ? screeningRuntimeHours.reduce((sum, value) => sum + value, 0) / screeningRuntimeHours.length
-          : 0;
+      const summary = await fetchDashboardSummary();
+      const activeJobs = summary.activeJobs;
+      const draftJobs = summary.draftJobs;
+      const timedRunsCount = summary.timedRunsCount;
+      const averageScreeningRuntime = summary.averageScreeningRuntimeHours;
 
       const metrics: DashboardMetric[] = [
         {
           label: "Active Jobs",
-          value: String(activeJobs.length),
-          context: draftJobs.length > 0 ? `${draftJobs.length} drafts waiting` : "No drafts pending",
+          value: String(activeJobs),
+          context: draftJobs > 0 ? `${draftJobs} drafts waiting` : "No drafts pending",
           icon: Briefcase,
         },
         {
           label: "Applicants Ingested (30d)",
-          value: String(applicantsIn30Days),
-          context: `${totalApplicants} total applicants tracked`,
+          value: String(summary.applicantsIn30Days),
+          context: `${summary.totalApplicants} total applicants tracked`,
           icon: Users,
         },
         {
           label: "Screenings Completed",
-          value: String(shortlists.length),
+          value: String(summary.totalShortlists),
           context:
-            shortlistsIn30Days > 0
-              ? `${shortlistsIn30Days} completed in the last 30 days`
+            summary.shortlistsIn30Days > 0
+              ? `${summary.shortlistsIn30Days} completed in the last 30 days`
               : "No completed runs in the last 30 days",
           icon: CircleCheck,
         },
@@ -320,35 +260,22 @@ export default function DashboardPage() {
           label: "Avg. Screening Runtime",
           value: formatHours(averageScreeningRuntime),
           context:
-            screeningRuntimeHours.length > 0
-              ? `Based on ${screeningRuntimeHours.length} runs from screening start to shortlist output`
+            timedRunsCount > 0
+              ? `Based on ${timedRunsCount} runs from screening start to shortlist output`
               : "Waiting for runs with saved screening timing",
           icon: Timer,
         },
       ];
 
-      const runs: DashboardRun[] = shortlists.slice(0, 5).map((shortlist) => ({
-        title: shortlist.jobTitle,
-        when: formatRelativeTime(shortlist.createdAt),
-        applicants: `${shortlist.totalApplicants} candidates`,
-        topMatch: shortlist.topMatchScore || null,
+      const runs: DashboardRun[] = summary.recentRuns.slice(0, 5).map((run) => ({
+        title: run.title,
+        when: formatRelativeTime(run.createdAt),
+        applicants: `${run.applicants} candidates`,
+        topMatch: run.topMatch || null,
         status: "Completed",
       }));
 
-      const spotlight: SpotlightItem[] = jobs
-        .map((job) => {
-          const recentApplicants = recentByJob.get(job._id) ?? 0;
-
-          return {
-            title: job.title,
-            recentApplicants,
-            applicantsCount: job.applicantsCount,
-          };
-        })
-        .filter((job) => job.recentApplicants > 0 || job.applicantsCount > 0)
-        .sort((a, b) => b.recentApplicants - a.recentApplicants || b.applicantsCount - a.applicantsCount)
-        .slice(0, 3)
-        .map((job) => ({
+      const spotlight: SpotlightItem[] = summary.spotlight.map((job) => ({
           title: job.title,
           count:
             job.recentApplicants > 0
@@ -357,13 +284,13 @@ export default function DashboardPage() {
         }));
 
       const hiringEfficiency =
-        screeningRuntimeHours.length > 0
-          ? `Across ${screeningRuntimeHours.length} timed screening runs, the current average screening runtime is ${formatHours(
+        timedRunsCount > 0
+          ? `Across ${timedRunsCount} timed screening runs, the current average screening runtime is ${formatHours(
               averageScreeningRuntime
-            )}. ${activeJobs.length} jobs are active and ${applicantsIn30Days} applicants were added in the last 30 days.`
+            )}. ${activeJobs} jobs are active and ${summary.applicantsIn30Days} applicants were added in the last 30 days.`
           : "No timed screening runs are available yet. Newly saved shortlist results will automatically include screening runtime so this panel can summarize pipeline efficiency.";
 
-      const bestRun = [...shortlists].sort((a, b) => b.topMatchScore - a.topMatchScore)[0];
+      const bestRun = summary.bestRun;
       const nextSteps = bestRun
         ? `${bestRun.topCandidateName || "A top candidate"} from ${bestRun.jobTitle} currently leads with a ${bestRun.topMatchScore}% top-match score. Review the shortlist and move strong matches forward while the pipeline is fresh.`
         : "No shortlist recommendations are available yet. Run a screening on an active job to generate next-step guidance here.";

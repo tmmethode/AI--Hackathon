@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { listAllShortlists, type ShortlistSummary } from "@/lib/shortlists";
+import { fetchHistorySummary, type HistoryRunSummary } from "@/lib/shortlists";
 
 function formatDateTime(value?: string) {
   if (!value) return "--";
@@ -24,17 +24,17 @@ function formatDateTime(value?: string) {
   }).format(date);
 }
 
-function getStatusTone(run: ShortlistSummary): "success" | "warning" {
+function getStatusTone(run: HistoryRunSummary): "success" | "warning" {
   const hasDuration = typeof run.screeningDurationSeconds === "number";
   return hasDuration ? "success" : "warning";
 }
 
-function getStatusLabel(run: ShortlistSummary) {
+function getStatusLabel(run: HistoryRunSummary) {
   return typeof run.screeningDurationSeconds === "number" ? "Completed" : "Recorded";
 }
 
 export default function ScreeningHistoryPage() {
-  const [runs, setRuns] = useState<ShortlistSummary[]>([]);
+  const [runs, setRuns] = useState<HistoryRunSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,11 +43,8 @@ export default function ScreeningHistoryPage() {
     setError(null);
 
     try {
-      const records = await listAllShortlists({ pageSize: 100 });
-      const sorted = [...records].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      setRuns(sorted);
+      const response = await fetchHistorySummary({ page: 1, pageSize: 50 });
+      setRuns(response.data.runs);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load screening history.");
     } finally {

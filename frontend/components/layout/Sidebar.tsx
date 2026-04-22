@@ -15,7 +15,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { listAllShortlists } from "@/lib/shortlists";
+import { fetchSidebarUsage } from "@/lib/shortlists";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -57,16 +57,13 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
       setUsageError(false);
 
       try {
-        const shortlists = await listAllShortlists({ pageSize: 100 });
+        const summary = await fetchSidebarUsage();
         if (cancelled) {
           return;
         }
-
-        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-        const weeklyCount = shortlists.filter((run) => new Date(run.createdAt).getTime() >= sevenDaysAgo).length;
         setWeeklyUsage({
-          weeklyCount,
-          totalCount: shortlists.length,
+          weeklyCount: summary.data.weeklyCount,
+          totalCount: summary.data.totalCount,
         });
       } catch {
         if (!cancelled) {

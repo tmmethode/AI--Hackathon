@@ -56,6 +56,12 @@ export interface JobsResponse {
   message: string;
 }
 
+export interface JobSelectorItem {
+  _id: string;
+  title: string;
+  status: JobStatus;
+}
+
 export interface JobResponse {
   data: JobRecord;
   message: string;
@@ -171,6 +177,36 @@ export async function listAllJobs(params: {
   );
 
   return firstPage.data.concat(...remainingPages.map((page) => page.data));
+}
+
+export async function listJobSelectors(params: {
+  search?: string;
+  status?: JobStatus | "All";
+  limit?: number;
+} = {}) {
+  const url = new URL(`${getApiBaseUrl()}/jobs/select`);
+
+  if (params.search?.trim()) {
+    url.searchParams.set("search", params.search.trim());
+  }
+  if (params.status && params.status !== "All") {
+    url.searchParams.set("status", params.status);
+  }
+  if (params.limit) {
+    url.searchParams.set("limit", String(params.limit));
+  }
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      ...getAuthHeader(),
+    },
+    cache: "force-cache",
+  });
+
+  return handleApiResponse<{ data: JobSelectorItem[]; message: string }>(
+    response,
+    "Failed to load job selector options."
+  );
 }
 
 export async function createJob(payload: CreateJobPayload) {

@@ -125,6 +125,19 @@ export interface ShortlistListResponse {
   message: string;
 }
 
+export interface ShortlistSelectItemDTO {
+  _id: string;
+  runName: string;
+  job: string;
+  jobTitle: string;
+  createdAt: string;
+}
+
+export interface ShortlistSelectResponse {
+  data: ShortlistSelectItemDTO[];
+  message: string;
+}
+
 export interface DeleteShortlistResponse {
   id: string;
   message: string;
@@ -329,6 +342,53 @@ export class ShortlistController {
         pageSize: safeSize,
         totalPages: Math.max(1, Math.ceil(total / safeSize)),
         message: 'Shortlists retrieved successfully',
+      };
+    } catch (error) {
+      throw this.toHttpError(error);
+    }
+  }
+
+  /**
+   * Lightweight shortlist rows for selectors.
+   */
+  @Get('select')
+  @Security('jwt')
+  public async listShortlistSelect(
+    @Query() jobId?: string,
+    @Query() limit: number = 100
+  ): Promise<ShortlistSelectResponse> {
+    try {
+      const safeLimit = Math.min(300, Math.max(1, Number(limit) || 100));
+      const filter: Record<string, any> = {};
+
+      if (jobId) {
+        if (!mongoose.Types.ObjectId.isValid(jobId)) {
+          throw new Error('Invalid jobId');
+        }
+        filter.job = new mongoose.Types.ObjectId(jobId);
+      }
+
+      const rows = await Shortlist.find(filter)
+        .sort({ createdAt: -1 })
+        .select('_id runName job jobTitle createdAt')
+        .limit(safeLimit)
+        .lean<Array<{
+          _id: mongoose.Types.ObjectId;
+          runName: string;
+          job: mongoose.Types.ObjectId;
+          jobTitle: string;
+          createdAt: Date;
+        }>>();
+
+      return {
+        data: rows.map((row) => ({
+          _id: row._id.toString(),
+          runName: row.runName,
+          job: row.job.toString(),
+          jobTitle: row.jobTitle,
+          createdAt: row.createdAt.toISOString(),
+        })),
+        message: 'Shortlist selector data retrieved successfully',
       };
     } catch (error) {
       throw this.toHttpError(error);

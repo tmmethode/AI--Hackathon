@@ -27,6 +27,17 @@ import {
   HiringManagerSummary,
 } from '../interfaces/job';
 
+export interface JobSelectItemDTO {
+  _id: string;
+  title: string;
+  status: JobStatus;
+}
+
+export interface JobSelectResponse {
+  data: JobSelectItemDTO[];
+  message: string;
+}
+
 @Tags('Jobs')
 @Route('jobs')
 export class JobController {
@@ -179,6 +190,50 @@ export class JobController {
     } catch (error) {
       throw new Error(
         `Failed to list jobs: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * List lightweight job rows for selectors.
+   */
+  @Get('select')
+  @Security('jwt')
+  public async listJobSelect(
+    @Query() search?: string,
+    @Query() status?: JobStatus | 'All',
+    @Query() limit: number = 100
+  ): Promise<JobSelectResponse> {
+    try {
+      const safeLimit = Math.min(300, Math.max(1, Number(limit) || 100));
+      const filter: Record<string, any> = {};
+
+      if (status && status !== 'All') {
+        filter.status = status;
+      }
+
+      if (search && search.trim().length > 0) {
+        const regex = new RegExp(search.trim(), 'i');
+        filter.$or = [{ title: regex }, { department: regex }, { location: regex }];
+      }
+
+      const jobs = await Job.find(filter)
+        .select('_id title status')
+        .sort({ createdAt: -1 })
+        .limit(safeLimit)
+        .lean<Array<{ _id: mongoose.Types.ObjectId; title: string; status: JobStatus }>>();
+
+      return {
+        data: jobs.map((job) => ({
+          _id: job._id.toString(),
+          title: job.title,
+          status: job.status,
+        })),
+        message: 'Job selector data retrieved successfully',
+      };
+    } catch (error) {
+      throw new Error(
+        `Failed to load job selector data: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
   }
