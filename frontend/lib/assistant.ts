@@ -8,7 +8,7 @@ export interface AssistantMessage {
 }
 
 export interface AssistantContextSummary {
-  source: "inline" | "database" | "mixed" | "none";
+  source: "database" | "none";
   jobId?: string;
   shortlistId?: string;
   jobTitle?: string;
@@ -16,6 +16,7 @@ export interface AssistantContextSummary {
   screeningResultCount: number;
   shortlistCount: number;
   truncatedApplicants: boolean;
+  truncatedHistory: boolean;
 }
 
 export interface AssistantUsageMetadata {

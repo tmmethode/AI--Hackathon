@@ -394,13 +394,12 @@ export interface GeminiRecruiterAssistantRequest {
   applicantEmails?: string[];
   includeApplicants?: boolean;
   applicantLimit?: number;
-  context?: GeminiRecruiterAssistantContext;
   temperature?: number;
   maxOutputTokens?: number;
 }
 
 export interface GeminiRecruiterAssistantContextSummary {
-  source: "inline" | "database" | "mixed" | "none";
+  source: "database" | "none";
   jobId?: string;
   shortlistId?: string;
   jobTitle?: string;
@@ -408,6 +407,7 @@ export interface GeminiRecruiterAssistantContextSummary {
   screeningResultCount: number;
   shortlistCount: number;
   truncatedApplicants: boolean;
+  truncatedHistory: boolean;
 }
 
 export interface GeminiRecruiterAssistantResponse {
