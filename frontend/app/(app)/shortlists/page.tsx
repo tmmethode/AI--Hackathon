@@ -595,11 +595,38 @@ function ShortlistsPageInner() {
               )}
             </div>
           </div>
-          <div className="flex gap-2">
-            <Button variant="secondary" leftIcon={<Briefcase className="h-4 w-4" />} onClick={() => setShowJobModal(true)}>Job Details</Button>
-            <Button variant="secondary" leftIcon={<BarChart3 className="h-4 w-4" />} onClick={() => setShowCompare(true)}>Compare</Button>
-            <Button variant="secondary" leftIcon={<Download className="h-4 w-4" />} onClick={() => setShowExportModal(true)}>Export</Button>
-            <Button leftIcon={<ChevronRight className="h-4 w-4" />} onClick={() => setShowNextStepModal(true)}>Continue to Candidates</Button>
+          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 md:w-auto md:grid-cols-1 lg:grid-cols-2">
+            <Button
+              variant="secondary"
+              className="w-full"
+              leftIcon={<Briefcase className="h-4 w-4" />}
+              onClick={() => setShowJobModal(true)}
+            >
+              Job Details
+            </Button>
+            <Button
+              variant="secondary"
+              className="w-full"
+              leftIcon={<BarChart3 className="h-4 w-4" />}
+              onClick={() => setShowCompare(true)}
+            >
+              Compare
+            </Button>
+            <Button
+              variant="secondary"
+              className="w-full"
+              leftIcon={<Download className="h-4 w-4" />}
+              onClick={() => setShowExportModal(true)}
+            >
+              Export
+            </Button>
+            <Button
+              className="w-full"
+              leftIcon={<ChevronRight className="h-4 w-4" />}
+              onClick={() => setShowNextStepModal(true)}
+            >
+              Continue to Candidates
+            </Button>
           </div>
         </div>
       </Card>
@@ -768,15 +795,15 @@ function ShortlistsPageInner() {
                         ))}
                       </div>
                     </div>
-                    <div className="flex gap-2 md:flex-col" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="secondary" size="sm" leftIcon={<X className="h-3.5 w-3.5" />}
+                    <div className="flex flex-wrap gap-2 md:flex-col md:flex-nowrap md:items-end" onClick={(e) => e.stopPropagation()}>
+                      <Button variant="secondary" size="sm" className="flex-1 sm:flex-none" leftIcon={<X className="h-3.5 w-3.5" />}
                         onClick={() => handleAction(c.id, "rejected")}
                         disabled={c.status === "rejected"}>
                         Reject
                       </Button>
 
-                      <div className="relative">
-                        <Button size="sm" leftIcon={<Check className="h-3.5 w-3.5" />}
+                      <div className="relative flex-1 sm:flex-none">
+                        <Button size="sm" className="w-full" leftIcon={<Check className="h-3.5 w-3.5" />}
                           onClick={() => setAdvanceDropdownId(advanceDropdownId === c.id ? null : c.id)}
                           disabled={c.status !== "shortlisted"}>
                           Advance ▾
@@ -799,8 +826,12 @@ function ShortlistsPageInner() {
                         )}
                       </div>
 
-                      <Link href={`/candidates/${encodeURIComponent(c.candidateRecordId)}`} onClick={(e) => e.stopPropagation()}>
-                        <Button variant="ghost" size="sm" leftIcon={<Eye className="h-3.5 w-3.5" />}>
+                      <Link
+                        href={`/candidates/${encodeURIComponent(c.candidateRecordId)}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 sm:flex-none"
+                      >
+                        <Button variant="ghost" size="sm" className="w-full" leftIcon={<Eye className="h-3.5 w-3.5" />}>
                           Profile
                         </Button>
                       </Link>

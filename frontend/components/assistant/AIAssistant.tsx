@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
+import remarkGfm from "remark-gfm";
 import { cn } from "@/lib/cn";
 import {
   AssistantAskResponse,
@@ -203,7 +204,7 @@ function AssistantMarkdownMessage({ content }: { content: string }) {
   return (
     <div className="break-words text-[13px] leading-5 sm:text-sm sm:leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
       <ReactMarkdown
-        remarkPlugins={[remarkBreaks]}
+        remarkPlugins={[remarkGfm, remarkBreaks]}
         components={{
           p: ({ children }) => <p className="mb-1.5 whitespace-pre-wrap sm:mb-2">{children}</p>,
           ul: ({ children }) => <ul className="mb-1.5 list-disc space-y-1 pl-5 sm:mb-2">{children}</ul>,
@@ -217,9 +218,32 @@ function AssistantMarkdownMessage({ content }: { content: string }) {
           blockquote: ({ children }) => (
             <blockquote className="mb-1.5 border-l-2 border-line pl-3 text-ink-muted sm:mb-2">{children}</blockquote>
           ),
-          code: ({ children }) => (
-            <code className="rounded bg-surface px-1 py-0.5 font-mono text-[0.92em]">{children}</code>
+          pre: ({ children }) => (
+            <pre className="mb-2 overflow-x-auto rounded-lg border border-line bg-surface px-3 py-2 text-xs sm:text-sm">
+              {children}
+            </pre>
           ),
+          code: ({ className, children }) => {
+            const isCodeBlock = Boolean(className);
+            if (isCodeBlock) {
+              return (
+                <code className={cn("font-mono", className)}>
+                  {children}
+                </code>
+              );
+            }
+            return <code className="rounded bg-surface px-1 py-0.5 font-mono text-[0.92em]">{children}</code>;
+          },
+          table: ({ children }) => (
+            <div className="mb-2 max-w-full overflow-x-auto rounded-md border border-line">
+              <table className="w-full min-w-[440px] border-collapse text-left text-xs sm:text-sm">{children}</table>
+            </div>
+          ),
+          thead: ({ children }) => <thead className="bg-surface-soft">{children}</thead>,
+          th: ({ children }) => (
+            <th className="border-b border-line px-3 py-2 font-semibold text-ink">{children}</th>
+          ),
+          td: ({ children }) => <td className="border-b border-line/70 px-3 py-2 align-top">{children}</td>,
         }}
       >
         {normalizedContent}
