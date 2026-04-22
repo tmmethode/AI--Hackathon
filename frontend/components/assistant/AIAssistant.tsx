@@ -145,6 +145,7 @@ function contextLabel(summary?: AssistantContextSummary) {
   if (summary.applicantCount > 0) parts.push(`${summary.applicantCount} applicants`);
   if (summary.screeningResultCount > 0) parts.push(`${summary.screeningResultCount} scored`);
   if (summary.truncatedApplicants) parts.push("trimmed");
+  if (summary.truncatedHistory) parts.push("history trimmed");
 
   if (parts.length > 0) return parts.join(" • ");
   return summary.source === "database" ? "Workspace overview" : "Live context";

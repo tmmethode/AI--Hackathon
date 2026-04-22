@@ -20,6 +20,13 @@ import {
 
 const DEFAULT_APPLICANT_LIMIT = 25;
 const MAX_APPLICANT_LIMIT = 60;
+const MAX_HISTORY_MESSAGES = 30;
+const MAX_HISTORY_CHARS = 24_000;
+const MAX_HISTORY_TURN_CHARS = 1_500;
+const MAX_TEXT_FIELD_CHARS = 500;
+const MAX_LIST_FIELD_ITEMS = 12;
+const WORKSPACE_JOB_STATS_LIMIT = 6;
+const WORKSPACE_RUN_COMPARISON_LIMIT = 6;
 
 function normalizeEmail(email?: string): string {
   return (email || "").trim().toLowerCase();
@@ -115,6 +122,7 @@ function buildWorkspaceOverviewNote(input: {
   totalJobs: number;
   activeJobs: number;
   totalShortlists: number;
+  topJobsByApplicants: IJob[];
   recentJobs: IJob[];
   recentShortlists: IShortlist[];
 }): string | undefined {
@@ -133,6 +141,15 @@ function buildWorkspaceOverviewNote(input: {
     }
   }
 
+  if (input.topJobsByApplicants.length > 0) {
+    lines.push("Job pipeline comparison (by applicant volume):");
+    for (const job of input.topJobsByApplicants) {
+      lines.push(
+        `- ${job.title} (${job.department || "No department"}) | ${job.applicantsCount || 0} applicants | status ${job.status}`
+      );
+    }
+  }
+
   if (input.recentShortlists.length > 0) {
     lines.push("Recent shortlist runs:");
     for (const shortlist of input.recentShortlists) {
@@ -147,6 +164,61 @@ function buildWorkspaceOverviewNote(input: {
   }
 
   return lines.length > 0 ? lines.join("\n") : undefined;
+}
+
+function formatScore(value: number | undefined): string {
+  if (!Number.isFinite(value)) {
+    return "n/a";
+  }
+  return Number(value).toFixed(1);
+}
+
+function computeAverageMatchScore(shortlist: IShortlist): number | undefined {
+  const entries = shortlist.screeningResults || shortlist.shortlist || [];
+  if (!entries.length) {
+    return undefined;
+  }
+  const sum = entries.reduce((acc, entry) => acc + (entry.matchScore || 0), 0);
+  return sum / entries.length;
+}
+
+function buildJobAnalyticsNote(input: {
+  job?: IJob;
+  totalApplicantsForJob?: number;
+  latestRunsForJob: IShortlist[];
+  selectedShortlistId?: string;
+}): string | undefined {
+  if (!input.job && !input.latestRunsForJob.length && !Number.isFinite(input.totalApplicantsForJob)) {
+    return undefined;
+  }
+
+  const lines: string[] = ["JOB ANALYTICS:"];
+
+  if (input.job) {
+    lines.push(
+      `- ${input.job.title} (${input.job.department || "No department"}) | status ${input.job.status} | total applicants ${input.totalApplicantsForJob ?? input.job.applicantsCount ?? 0}`
+    );
+  } else if (Number.isFinite(input.totalApplicantsForJob)) {
+    lines.push(`- Total applicants for selected job: ${input.totalApplicantsForJob}`);
+  }
+
+  if (input.latestRunsForJob.length > 0) {
+    lines.push("Recent shortlist run comparison:");
+
+    for (const run of input.latestRunsForJob) {
+      const avgMatch = computeAverageMatchScore(run);
+      const topCandidate =
+        run.shortlist?.find((entry) => entry.candidateRank === 1)?.fullName ||
+        run.shortlist?.[0]?.fullName ||
+        "Top candidate not saved";
+      const marker = input.selectedShortlistId === run._id.toString() ? " (selected)" : "";
+      lines.push(
+        `- ${run.runName}${marker} | created ${formatDateLabel(run.createdAt)} | shortlisted ${run.shortlistCount}/${run.totalApplicants} | avg match ${formatScore(avgMatch)} | top candidate: ${topCandidate}`
+      );
+    }
+  }
+
+  return lines.join("\n");
 }
 
 function toBatchJobFromModel(job: IJob): GeminiBatchJob {
@@ -178,47 +250,58 @@ function toBatchJobFromModel(job: IJob): GeminiBatchJob {
 }
 
 function toBatchApplicantFromModel(applicant: IApplicant): GeminiBatchApplicant {
+  const trimText = (value?: string, max = MAX_TEXT_FIELD_CHARS): string | undefined => {
+    if (!value) return undefined;
+    const normalized = value.trim();
+    return normalized.length > max ? `${normalized.slice(0, max)}…` : normalized;
+  };
+
+  const capItems = <T>(items?: T[], max = MAX_LIST_FIELD_ITEMS): T[] | undefined => {
+    if (!items?.length) return undefined;
+    return items.slice(0, max);
+  };
+
   return {
-    firstName: applicant.firstName,
-    lastName: applicant.lastName,
+    firstName: trimText(applicant.firstName, 80),
+    lastName: trimText(applicant.lastName, 80),
     email: applicant.email,
-    headline: applicant.headline,
-    bio: applicant.bio,
-    location: applicant.location,
-    skills: applicant.skills?.map((skill) => ({
+    headline: trimText(applicant.headline, 160),
+    bio: trimText(applicant.bio, 450),
+    location: trimText(applicant.location, 120),
+    skills: capItems(applicant.skills)?.map((skill) => ({
       name: skill.name,
       level: skill.level,
       yearsOfExperience: skill.yearsOfExperience,
     })),
-    languages: applicant.languages?.map((language) => ({
+    languages: capItems(applicant.languages, 8)?.map((language) => ({
       name: language.name,
       proficiency: language.proficiency,
     })),
-    experience: applicant.experience?.map((entry) => ({
+    experience: capItems(applicant.experience, 8)?.map((entry) => ({
       company: entry.company,
       role: entry.role,
       startDate: entry.startDate,
       endDate: entry.endDate,
-      description: entry.description,
-      technologies: entry.technologies,
+      description: trimText(entry.description, 320),
+      technologies: capItems(entry.technologies, 8),
       isCurrent: entry.isCurrent,
     })),
-    education: applicant.education?.map((entry) => ({
+    education: capItems(applicant.education, 6)?.map((entry) => ({
       institution: entry.institution,
       degree: entry.degree,
       fieldOfStudy: entry.fieldOfStudy,
       startYear: entry.startYear,
       endYear: entry.endYear,
     })),
-    certifications: applicant.certifications?.map((entry) => ({
+    certifications: capItems(applicant.certifications, 8)?.map((entry) => ({
       name: entry.name,
       issuer: entry.issuer,
       issueDate: entry.issueDate,
     })),
-    projects: applicant.projects?.map((project) => ({
+    projects: capItems(applicant.projects, 6)?.map((project) => ({
       name: project.name,
-      description: project.description,
-      technologies: project.technologies,
+      description: trimText(project.description, 320),
+      technologies: capItems(project.technologies, 8),
       role: project.role,
       link: project.link,
       startDate: project.startDate,
@@ -239,6 +322,61 @@ function toBatchApplicantFromModel(applicant: IApplicant): GeminiBatchApplicant 
         }
       : undefined,
   };
+}
+
+function trimHistory(
+  history: GeminiRecruiterAssistantRequest["history"]
+): {
+  trimmedHistory: Array<{ role: "user" | "assistant"; content: string }>;
+  truncatedHistory: boolean;
+} {
+  if (!history?.length) {
+    return { trimmedHistory: [], truncatedHistory: false };
+  }
+
+  const normalized = history
+    .filter((turn) => turn.content?.trim())
+    .map((turn) => ({
+      role: turn.role === "assistant" ? ("assistant" as const) : ("user" as const),
+      content:
+        turn.content.length > MAX_HISTORY_TURN_CHARS
+          ? `${turn.content.slice(0, MAX_HISTORY_TURN_CHARS)}…`
+          : turn.content,
+    }));
+
+  if (normalized.length === 0) {
+    return { trimmedHistory: [], truncatedHistory: false };
+  }
+
+  let truncatedHistory = false;
+  const recentByCount =
+    normalized.length > MAX_HISTORY_MESSAGES
+      ? (truncatedHistory = true, normalized.slice(-MAX_HISTORY_MESSAGES))
+      : normalized;
+
+  let totalChars = 0;
+  const recentWithinChars: Array<{ role: "user" | "assistant"; content: string }> = [];
+  for (let index = recentByCount.length - 1; index >= 0; index -= 1) {
+    const turn = recentByCount[index];
+    const turnChars = turn.content.length;
+    if (totalChars + turnChars > MAX_HISTORY_CHARS && recentWithinChars.length > 0) {
+      truncatedHistory = true;
+      break;
+    }
+    if (turnChars > MAX_HISTORY_CHARS) {
+      truncatedHistory = true;
+      continue;
+    }
+    recentWithinChars.push(turn);
+    totalChars += turnChars;
+  }
+
+  if (recentWithinChars.length < recentByCount.length) {
+    truncatedHistory = true;
+  }
+
+  recentWithinChars.reverse();
+  return { trimmedHistory: recentWithinChars, truncatedHistory };
 }
 
 function toShortlistContextFromModel(shortlist: IShortlist): GeminiRecruiterAssistantShortlistContext {
@@ -270,29 +408,6 @@ function toShortlistContextFromModel(shortlist: IShortlist): GeminiRecruiterAssi
   };
 }
 
-function mergeApplicants(
-  inline: GeminiBatchApplicant[] | undefined,
-  fromDb: GeminiBatchApplicant[] | undefined
-): GeminiBatchApplicant[] | undefined {
-  const inlineList = inline || [];
-  const dbList = fromDb || [];
-
-  if (inlineList.length === 0 && dbList.length === 0) {
-    return undefined;
-  }
-
-  const byEmail = new Map<string, GeminiBatchApplicant>();
-  for (const applicant of [...dbList, ...inlineList]) {
-    const key = (applicant.email || "").trim().toLowerCase();
-    if (!key) {
-      continue;
-    }
-    byEmail.set(key, applicant);
-  }
-
-  return Array.from(byEmail.values());
-}
-
 export class GeminiRecruiterAssistantService {
   constructor(private readonly client: GeminiClient) {}
 
@@ -306,13 +421,25 @@ export class GeminiRecruiterAssistantService {
       throw new HttpError(400, "message is required");
     }
 
+    if ("context" in (request as unknown as Record<string, unknown>)) {
+      throw new HttpError(
+        400,
+        "Inline assistant context is not accepted. Provide only lightweight selectors and let the server load context."
+      );
+    }
+
     const includeApplicants = request.includeApplicants ?? true;
     const rawLimit = Number(request.applicantLimit);
     const applicantLimit = Number.isFinite(rawLimit) && rawLimit > 0
       ? Math.min(Math.floor(rawLimit), MAX_APPLICANT_LIMIT)
       : DEFAULT_APPLICANT_LIMIT;
 
-    const resolved = await this.resolveContext(request, { includeApplicants, applicantLimit });
+    const history = trimHistory(request.history);
+    const resolved = await this.resolveContext(request, {
+      includeApplicants,
+      applicantLimit,
+      truncatedHistory: history.truncatedHistory,
+    });
 
     const prompt = buildRecruiterAssistantPrompt({
       message,
@@ -325,13 +452,7 @@ export class GeminiRecruiterAssistantService {
     // Build multi-turn conversation history for the Gemini API.
     // The DATA CONTEXT + current question go as the prompt (final user turn),
     // while previous conversation turns use proper user/model alternation.
-    const conversationHistory: Array<{ role: "user" | "assistant"; content: string }> =
-      (request.history || [])
-        .filter((turn) => turn.content?.trim())
-        .map((turn) => ({
-          role: turn.role === "assistant" ? "assistant" as const : "user" as const,
-          content: turn.content,
-        }));
+    const conversationHistory = history.trimmedHistory;
 
     const generation = await this.client.generateText({
       prompt,
@@ -353,19 +474,12 @@ export class GeminiRecruiterAssistantService {
 
   private async resolveContext(
     request: GeminiRecruiterAssistantRequest,
-    opts: { includeApplicants: boolean; applicantLimit: number }
+    opts: { includeApplicants: boolean; applicantLimit: number; truncatedHistory: boolean }
   ): Promise<{ context: GeminiRecruiterAssistantContext; summary: GeminiRecruiterAssistantContextSummary }> {
-    const inlineContext: GeminiRecruiterAssistantContext = request.context || {};
-    const hasInline = Boolean(
-      inlineContext.job ||
-        (inlineContext.applicants && inlineContext.applicants.length > 0) ||
-        inlineContext.shortlist
-    );
-
     let usedDatabase = false;
 
-    let job: GeminiBatchJob | undefined = inlineContext.job;
-    let shortlistContext: GeminiRecruiterAssistantShortlistContext | undefined = inlineContext.shortlist;
+    let job: GeminiBatchJob | undefined;
+    let shortlistContext: GeminiRecruiterAssistantShortlistContext | undefined;
     let dbApplicants: GeminiBatchApplicant[] | undefined;
 
     let resolvedJobId: string | undefined = request.jobId;
@@ -373,6 +487,7 @@ export class GeminiRecruiterAssistantService {
     let truncatedApplicants = false;
     let shortlistedApplicantsPrioritized = false;
     let shortlistPriorityEmails: string[] = [];
+    let jobDocForAnalytics: IJob | undefined;
 
     if (request.shortlistId) {
       if (!mongoose.Types.ObjectId.isValid(request.shortlistId)) {
@@ -401,7 +516,8 @@ export class GeminiRecruiterAssistantService {
         throw new HttpError(404, "Job not found");
       }
       usedDatabase = true;
-      job = toBatchJobFromModel(jobDoc as IJob);
+      jobDocForAnalytics = jobDoc as IJob;
+      job = toBatchJobFromModel(jobDocForAnalytics);
     }
 
     if (opts.includeApplicants && resolvedJobId) {
@@ -462,11 +578,30 @@ export class GeminiRecruiterAssistantService {
       }
     }
 
-    const applicants = mergeApplicants(inlineContext.applicants, dbApplicants);
+    const applicants = dbApplicants;
+    let jobAnalyticsNote: string | undefined;
 
     let workspaceOverviewNote: string | undefined;
     const hasResolvedStructuredContext = Boolean(job || applicants?.length || shortlistContext);
-    if (!hasResolvedStructuredContext && !hasInline) {
+    if (resolvedJobId && mongoose.Types.ObjectId.isValid(resolvedJobId)) {
+      const [totalApplicantsForJob, latestRunsForJob] = await Promise.all([
+        Applicant.countDocuments({ job: new mongoose.Types.ObjectId(resolvedJobId) }),
+        Shortlist.find({ job: new mongoose.Types.ObjectId(resolvedJobId) })
+          .sort({ createdAt: -1 })
+          .limit(WORKSPACE_RUN_COMPARISON_LIMIT)
+          .lean<IShortlist[]>(),
+      ]);
+
+      jobAnalyticsNote = buildJobAnalyticsNote({
+        job: jobDocForAnalytics,
+        totalApplicantsForJob,
+        latestRunsForJob,
+        selectedShortlistId: resolvedShortlistId,
+      });
+      usedDatabase = true;
+    }
+
+    if (!hasResolvedStructuredContext) {
       const [totalJobs, activeJobs, totalShortlists, recentJobs, recentShortlists] = await Promise.all([
         Job.countDocuments(),
         Job.countDocuments({ status: "Active" }),
@@ -474,11 +609,16 @@ export class GeminiRecruiterAssistantService {
         Job.find().sort({ createdAt: -1 }).limit(5).lean<IJob[]>(),
         Shortlist.find().sort({ createdAt: -1 }).limit(5).lean<IShortlist[]>(),
       ]);
+      const topJobsByApplicants = await Job.find()
+        .sort({ applicantsCount: -1, createdAt: -1 })
+        .limit(WORKSPACE_JOB_STATS_LIMIT)
+        .lean<IJob[]>();
 
       workspaceOverviewNote = buildWorkspaceOverviewNote({
         totalJobs,
         activeJobs,
         totalShortlists,
+        topJobsByApplicants,
         recentJobs,
         recentShortlists,
       });
@@ -486,7 +626,7 @@ export class GeminiRecruiterAssistantService {
     }
 
     const contextNote = [
-      inlineContext.contextNote,
+      jobAnalyticsNote,
       workspaceOverviewNote,
       shortlistedApplicantsPrioritized
         ? "Applicant profiles were prioritized from the selected shortlist's ranked and scored candidates before filling remaining slots from the same job."
@@ -506,13 +646,7 @@ export class GeminiRecruiterAssistantService {
     };
 
     const anyData = Boolean(job || applicants?.length || shortlistContext || contextNote);
-    const source: GeminiRecruiterAssistantContextSummary["source"] = !anyData
-      ? "none"
-      : hasInline && usedDatabase
-        ? "mixed"
-        : usedDatabase
-          ? "database"
-          : "inline";
+    const source: GeminiRecruiterAssistantContextSummary["source"] = anyData && usedDatabase ? "database" : "none";
 
     const summary: GeminiRecruiterAssistantContextSummary = {
       source,
@@ -523,6 +657,7 @@ export class GeminiRecruiterAssistantService {
       screeningResultCount: shortlistContext?.screeningResults?.length || 0,
       shortlistCount: shortlistContext?.shortlist?.length || 0,
       truncatedApplicants,
+      truncatedHistory: opts.truncatedHistory,
     };
 
     return { context, summary };
