@@ -33,7 +33,9 @@ export function proxy(request: NextRequest) {
   }
 
   if (pathname === "/login") {
-    if (!token) {
+    const authError = nextUrl.searchParams.get("error");
+
+    if (!token || authError) {
       return NextResponse.next();
     }
 

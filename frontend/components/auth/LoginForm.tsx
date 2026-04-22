@@ -40,19 +40,19 @@ export function LoginForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleRedirecting, setIsGoogleRedirecting] = useState(false);
   const nextPath = resolveSafeNextPath(searchParams.get("next"));
+  const serverError = searchParams.get("error");
 
   useEffect(() => {
-    if (getStoredAuth()?.token) {
+    if (!serverError && getStoredAuth()?.token) {
       router.replace(nextPath);
     }
-  }, [nextPath, router]);
+  }, [nextPath, router, serverError]);
 
   useEffect(() => {
-    const serverError = searchParams.get("error");
     if (serverError) {
       setError(serverError);
     }
-  }, [searchParams]);
+  }, [serverError]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
