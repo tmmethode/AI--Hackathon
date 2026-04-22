@@ -17,7 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {sidebarOpen && (
           <div className="fixed inset-0 z-[15] bg-black/40 md:hidden" onClick={() => setSidebarOpen(false)} />
         )}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-surface">{children}</main>
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-surface pb-28 sm:pb-32">{children}</main>
       </div>
       <AIAssistant />
     </div>

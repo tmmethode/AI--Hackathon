@@ -49,8 +49,64 @@ const DEFAULT_SCOPE: ScopeState = {
   includeApplicants: true,
 };
 
+interface AssistantScopeData {
+  jobs: JobRecord[];
+  shortlists: ShortlistSummary[];
+}
+
+const SCOPE_CACHE_TTL_MS = 60_000;
+
+let cachedScopeData: AssistantScopeData | null = null;
+let cachedScopeLoadedAt = 0;
+let cachedScopePromise: Promise<AssistantScopeData> | null = null;
+
 function newId() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function shouldAutoFocusAssistantInput() {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+
+  return (
+    window.innerWidth >= 640 &&
+    window.matchMedia("(hover: hover) and (pointer: fine)").matches
+  );
+}
+
+function hasFreshScopeCache() {
+  return Boolean(cachedScopeData) && Date.now() - cachedScopeLoadedAt < SCOPE_CACHE_TTL_MS;
+}
+
+type IdleCallbackHandle = number;
+type IdleDeadline = { didTimeout: boolean; timeRemaining: () => number };
+type WindowWithIdleCallback = Window & {
+  requestIdleCallback?: (callback: (deadline: IdleDeadline) => void, options?: { timeout: number }) => IdleCallbackHandle;
+  cancelIdleCallback?: (handle: IdleCallbackHandle) => void;
+};
+
+async function fetchAssistantScopeData(): Promise<AssistantScopeData> {
+  if (hasFreshScopeCache() && cachedScopeData) {
+    return cachedScopeData;
+  }
+
+  if (!cachedScopePromise) {
+    cachedScopePromise = Promise.all([
+      listAllJobs({ pageSize: 100 }).catch(() => [] as JobRecord[]),
+      listAllShortlists({ pageSize: 100 }).catch(() => [] as ShortlistSummary[]),
+    ]).then(([jobs, shortlists]) => {
+      cachedScopeData = { jobs, shortlists };
+      cachedScopeLoadedAt = Date.now();
+      cachedScopePromise = null;
+      return cachedScopeData;
+    }).catch((error) => {
+      cachedScopePromise = null;
+      throw error;
+    });
+  }
+
+  return cachedScopePromise;
 }
 
 function buildPrompts(selectedJob?: JobRecord, selectedShortlist?: ShortlistSummary) {
@@ -112,9 +168,30 @@ function ErrorBanner({ message, onRetry }: { message: string; onRetry?: () => vo
 }
 
 function normalizeAssistantContent(content: string) {
-  return content
+  let normalized = content.trim();
+
+  if (normalized.startsWith('"') && normalized.endsWith('"')) {
+    try {
+      const parsed = JSON.parse(normalized);
+      if (typeof parsed === "string") {
+        normalized = parsed;
+      }
+    } catch {
+      // Keep the original string when it is not valid JSON text.
+    }
+  }
+
+  const fencedMatch = normalized.match(/^```(?:markdown|md|text)?\n([\s\S]*?)\n```$/i);
+  if (fencedMatch) {
+    normalized = fencedMatch[1] || "";
+  }
+
+  return normalized
     .replace(/\r\n/g, "\n")
-    .replace(/\\([*_`])/g, "$1")
+    .replace(/\\n/g, "\n")
+    .replace(/\\t/g, "  ")
+    .replace(/\\"/g, '"')
+    .replace(/\\([*_`#[\]()!>~-])/g, "$1")
     .trim();
 }
 
@@ -186,12 +263,17 @@ export function AIAssistant() {
     if (scopeLoadInFlightRef.current) return;
 
     scopeLoadInFlightRef.current = true;
-    setScopeLoading(true);
+    const canUseCache = hasFreshScopeCache() && cachedScopeData;
+
+    if (canUseCache && cachedScopeData) {
+      setJobs(cachedScopeData.jobs);
+      setShortlists(cachedScopeData.shortlists);
+    } else {
+      setScopeLoading(true);
+    }
+
     try {
-      const [jobRows, shortlistRows] = await Promise.all([
-        listAllJobs({ pageSize: 100 }).catch(() => [] as JobRecord[]),
-        listAllShortlists({ pageSize: 100 }).catch(() => [] as ShortlistSummary[]),
-      ]);
+      const { jobs: jobRows, shortlists: shortlistRows } = await fetchAssistantScopeData();
       setJobs(jobRows);
       setShortlists(shortlistRows);
 
@@ -236,15 +318,48 @@ export function AIAssistant() {
     }
   }, []);
 
+  const warmScopeData = useCallback(() => {
+    if (hasFreshScopeCache() || scopeLoadInFlightRef.current) return;
+    void loadScope();
+  }, [loadScope]);
+
+  useEffect(() => {
+    if (!isVisible || hasFreshScopeCache()) return;
+
+    const nextWindow = window as WindowWithIdleCallback;
+
+    if (typeof nextWindow.requestIdleCallback === "function") {
+      const idleHandle = nextWindow.requestIdleCallback(() => {
+        warmScopeData();
+      }, { timeout: 2500 });
+
+      return () => {
+        if (typeof nextWindow.cancelIdleCallback === "function") {
+          nextWindow.cancelIdleCallback(idleHandle);
+        }
+      };
+    }
+
+    const timer = window.setTimeout(() => {
+      warmScopeData();
+    }, 1200);
+
+    return () => window.clearTimeout(timer);
+  }, [isVisible, warmScopeData]);
+
   useEffect(() => {
     if (!panelOpen) return;
-    void loadScope();
     if (!health) {
       void loadHealth();
     }
+  }, [health, loadHealth, panelOpen]);
+
+  useEffect(() => {
+    if (!panelOpen || !shouldAutoFocusAssistantInput()) return;
+
     const timer = window.setTimeout(() => textareaRef.current?.focus(), 20);
     return () => window.clearTimeout(timer);
-  }, [health, loadHealth, loadScope, panelOpen]);
+  }, [panelOpen]);
 
   useEffect(() => {
     if (!panelOpen) return;
@@ -431,9 +546,12 @@ export function AIAssistant() {
       <button
         type="button"
         onClick={() => setPanelState("open")}
+        onMouseEnter={warmScopeData}
+        onFocus={warmScopeData}
+        onTouchStart={warmScopeData}
         aria-label="Open AI recruiter assistant"
         className={cn(
-          "fixed bottom-6 right-6 z-[60] inline-flex items-center gap-2 rounded-full bg-brand px-4 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40",
+          "fixed bottom-4 right-4 z-[60] inline-flex items-center gap-2 rounded-full bg-brand px-3 py-3 text-sm font-semibold text-white shadow-soft transition hover:bg-brand-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 sm:bottom-6 sm:right-6 sm:px-4",
           panelOpen && "opacity-0 pointer-events-none"
         )}
       >

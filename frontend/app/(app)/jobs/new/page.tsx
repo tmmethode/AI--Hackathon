@@ -7,7 +7,6 @@ import {
   ArrowRight,
   Briefcase,
   CheckCircle2,
-  Cpu,
   FileText,
   LoaderCircle,
   Play,
@@ -23,14 +22,9 @@ import { Modal, ModalBody, ModalFooter } from "@/components/ui/Modal";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { type EducationLevel, type EmploymentType, type LocationPolicy, type SeniorityLevel } from "@/lib/jobs";
 import {
-  addWeightCriterion as addWeightCriterionAction,
-  removeWeightCriterion as removeWeightCriterionAction,
   setShowSuccessModal as setShowSuccessModalAction,
   submitJob as submitJobAction,
   updateFormField as updateFormFieldAction,
-  updateWeightLabel as updateWeightLabelAction,
-  updateWeightValue as updateWeightValueAction,
-  type WeightCriterion,
 } from "@/lib/features/jobs/jobFormSlice";
 
 interface SectionProps {
@@ -76,104 +70,19 @@ function Section({ icon: Icon, title, description, children }: SectionProps) {
   );
 }
 
-function WeightRow({
-  criterion,
-  maxValue,
-  onLabelChange,
-  onValueChange,
-  onRemove,
-  canRemove,
-}: {
-  criterion: WeightCriterion;
-  maxValue: number;
-  onLabelChange: (id: string, label: string) => void;
-  onValueChange: (id: string, value: number) => void;
-  onRemove: (id: string) => void;
-  canRemove: boolean;
-}) {
-  return (
-    <Card className="border border-line p-4 shadow-none">
-      <div className="mb-4 flex items-start gap-3">
-        <div className="flex-1">
-          <Input
-            value={criterion.label}
-            onChange={(event) => onLabelChange(criterion.id, event.target.value)}
-            placeholder="Scoring criterion"
-          />
-        </div>
-        <div className="w-24">
-          <Input
-            type="number"
-            min={0}
-            max={maxValue}
-            value={criterion.value}
-            onChange={(event) => onValueChange(criterion.id, Number(event.target.value))}
-          />
-        </div>
-        <div className="pt-1 text-sm font-semibold text-brand">%</div>
-        {canRemove ? (
-          <Button type="button" variant="ghost" onClick={() => onRemove(criterion.id)}>
-            Remove
-          </Button>
-        ) : null}
-      </div>
-      <div className="flex items-center gap-3">
-        <input
-          type="range"
-          min={0}
-          max={maxValue}
-          value={criterion.value}
-          onChange={(event) => onValueChange(criterion.id, Number(event.target.value))}
-          className="h-2 w-full cursor-pointer appearance-none rounded-full bg-surface-soft accent-brand"
-        />
-        <span className="w-12 text-right text-sm font-semibold text-brand">{criterion.value}%</span>
-      </div>
-      <p className="mt-2 text-xs text-ink-muted">
-        Adjust this criterion to reflect how important it is for this role. Maximum available here: {maxValue}%.
-      </p>
-    </Card>
-  );
-}
-
 export default function NewJobPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { form, showSuccessModal, createdJobTitle, error, isSubmitting, weightCriteria } = useAppSelector(
+  const { form, showSuccessModal, createdJobTitle, error, isSubmitting } = useAppSelector(
     (state) => state.jobForm
   );
-
-  const totalWeight = weightCriteria.reduce((sum, criterion) => sum + criterion.value, 0);
-  const remainingWeight = 100 - totalWeight;
-  const isWeightBalanced = remainingWeight === 0;
 
   function updateFormField<Key extends keyof JobFormState>(key: Key, value: JobFormState[Key]) {
     dispatch(updateFormFieldAction({ field: key, value }));
   }
 
-  function getMaxWeightValue(id: string) {
-    const otherTotal = weightCriteria.reduce(
-      (sum, criterion) => (criterion.id === id ? sum : sum + criterion.value),
-      0
-    );
-
-    return Math.max(0, 100 - otherTotal);
-  }
-
-  function addWeightCriterion() {
-    dispatch(addWeightCriterionAction());
-  }
-
-  function removeWeightCriterion(id: string) {
-    dispatch(removeWeightCriterionAction(id));
-  }
-
   function handleSave(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (!isWeightBalanced) {
-      return;
-    }
-
     void dispatch(submitJobAction({ status: "Active" }));
   }
 
@@ -201,7 +110,7 @@ export default function NewJobPage() {
           <Button
             leftIcon={isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
             onClick={() => void dispatch(submitJobAction({ status: "Active" }))}
-            disabled={!isWeightBalanced || isSubmitting}
+            disabled={isSubmitting}
           >
             Save Job
           </Button>
@@ -392,38 +301,6 @@ export default function NewJobPage() {
           </div>
         </Section>
 
-        <Section
-          icon={Cpu}
-          title="AI Weighting & Prioritization"
-          description="Adjust the importance of each category. Add or remove criteria so the scoring model fits the specific job."
-        >
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {weightCriteria.map((criterion) => (
-              <WeightRow
-                key={criterion.id}
-                criterion={criterion}
-                maxValue={getMaxWeightValue(criterion.id)}
-                onLabelChange={(id, label) => dispatch(updateWeightLabelAction({ id, label }))}
-                onValueChange={(id, value) => dispatch(updateWeightValueAction({ id, value }))}
-                onRemove={removeWeightCriterion}
-                canRemove={weightCriteria.length > 1}
-              />
-            ))}
-          </div>
-          <div className="mt-4 flex justify-start">
-            <Button type="button" variant="secondary" onClick={addWeightCriterion}>
-              Add Criterion
-            </Button>
-          </div>
-          <p className="mt-4 rounded-md bg-brand-soft/60 px-4 py-3 text-xs text-info-deep">
-            <strong className="font-semibold">Total: {totalWeight}%</strong>
-            {isWeightBalanced
-              ? " - Your weighting is balanced and ready for scoring."
-              : ` - Assign the remaining ${remainingWeight}% before saving the job.`}
-            {" "}Each criterion is capped by the percentage left after the others are allocated, so the total cannot go above 100%.
-          </p>
-        </Section>
-
         <div className="flex items-center justify-end gap-3">
           <Button type="button" variant="ghost" onClick={() => router.push("/jobs")}>Discard Changes</Button>
           <Button
@@ -438,7 +315,7 @@ export default function NewJobPage() {
           <Button
             type="submit"
             leftIcon={isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-            disabled={!isWeightBalanced || isSubmitting}
+            disabled={isSubmitting}
           >
             Save Job
           </Button>
