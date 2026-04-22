@@ -167,10 +167,13 @@ function buildScreeningApplicant(applicant: ApplicantRecord): GeminiBatchApplica
   };
 }
 
-function buildRunName(job: JobRecord, nextVersion: number): string {
-  const dateCode = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-  const baseCode = `SC-${job._id.slice(-4).toUpperCase()}-${dateCode}-${String(nextVersion).padStart(3, "0")}`;
-  return `${job.title} Screening Run [CODE:${baseCode}] v${nextVersion}`;
+function extractRunSequence(runName?: string): number {
+  const match = (runName || "").trim().match(/^RUN-(\d+)$/i);
+  return match ? Number(match[1]) || 0 : 0;
+}
+
+function buildRunName(nextSequence: number): string {
+  return `RUN-${String(nextSequence).padStart(3, "0")}`;
 }
 
 async function listAllJobs() {
@@ -424,13 +427,11 @@ export default function ScreeningPage() {
     });
   }, [effectiveDefaultShortlist, effectiveShortlistMax, effectiveShortlistMin, selectedJobId]);
 
-  const runVersion = useMemo(() => {
-    if (!selectedJob) {
-      return 1;
-    }
-    return shortlists.filter((entry) => entry.job === selectedJob._id).length + 1;
-  }, [selectedJob, shortlists]);
-  const runName = selectedJob ? buildRunName(selectedJob, runVersion) : "Screening Run";
+  const runSequence = useMemo(
+    () => shortlists.reduce((max, entry) => Math.max(max, extractRunSequence(entry.runName)), 0) + 1,
+    [shortlists]
+  );
+  const runName = selectedJob ? buildRunName(runSequence) : "RUN-001";
   const estimatedMinSeconds = Math.max(30, Math.round(parsedApplicants.length * 0.4));
   const estimatedMaxSeconds = Math.max(45, Math.round(parsedApplicants.length * 0.5));
   const geminiConfigured = screeningConfig?.configured !== false;

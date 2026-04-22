@@ -12,6 +12,8 @@ import { JobController } from './../controllers/JobController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { GeminiController } from './../controllers/GeminiController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { DashboardController } from './../controllers/DashboardController';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { AuthController } from './../controllers/AuthController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { ApplicantController } from './../controllers/ApplicantController';
@@ -94,6 +96,12 @@ const models: TsoaRoute.Models = {
             "applicantEmail": {"dataType":"string","required":true},
             "fullName": {"dataType":"string","required":true},
             "matchScore": {"dataType":"double","required":true},
+            "confidenceScore": {"dataType":"double","required":true},
+            "skillsScore": {"dataType":"double","required":true},
+            "experienceScore": {"dataType":"double","required":true},
+            "educationScore": {"dataType":"double","required":true},
+            "relevanceScore": {"dataType":"double","required":true},
+            "criticalRequirementGap": {"dataType":"boolean","required":true},
             "strengths": {"dataType":"array","array":{"dataType":"string"},"required":true},
             "gapsOrRisks": {"dataType":"array","array":{"dataType":"string"},"required":true},
             "finalRecommendation": {"ref":"ShortlistRecommendation","required":true},
@@ -404,6 +412,8 @@ const models: TsoaRoute.Models = {
             "maxOutputTokens": {"dataType":"double"},
             "responseMimeType": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["text/plain"]},{"dataType":"enum","enums":["application/json"]}]},
             "seed": {"dataType":"double"},
+            "topP": {"dataType":"double"},
+            "conversationHistory": {"dataType":"array","array":{"dataType":"nestedObjectLiteral","nestedProperties":{"content":{"dataType":"string","required":true},"role":{"dataType":"union","subSchemas":[{"dataType":"enum","enums":["user"]},{"dataType":"enum","enums":["assistant"]}],"required":true}}}},
         },
         "additionalProperties": false,
     },
@@ -597,6 +607,12 @@ const models: TsoaRoute.Models = {
             "applicantEmail": {"dataType":"string","required":true},
             "fullName": {"dataType":"string","required":true},
             "matchScore": {"dataType":"double","required":true},
+            "confidenceScore": {"dataType":"double","required":true},
+            "skillsScore": {"dataType":"double","required":true},
+            "experienceScore": {"dataType":"double","required":true},
+            "educationScore": {"dataType":"double","required":true},
+            "relevanceScore": {"dataType":"double","required":true},
+            "criticalRequirementGap": {"dataType":"boolean","required":true},
             "strengths": {"dataType":"array","array":{"dataType":"string"},"required":true},
             "gapsOrRisks": {"dataType":"array","array":{"dataType":"string"},"required":true},
             "finalRecommendation": {"ref":"GeminiBatchRecommendation","required":true},
@@ -858,6 +874,68 @@ const models: TsoaRoute.Models = {
             "context": {"ref":"GeminiRecruiterAssistantContext"},
             "temperature": {"dataType":"double"},
             "maxOutputTokens": {"dataType":"double"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "DashboardRecentRunDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"string","required":true},
+            "title": {"dataType":"string","required":true},
+            "createdAt": {"dataType":"string","required":true},
+            "applicants": {"dataType":"double","required":true},
+            "topMatch": {"dataType":"union","subSchemas":[{"dataType":"double"},{"dataType":"enum","enums":[null]}],"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "DashboardSpotlightItemDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "jobId": {"dataType":"string","required":true},
+            "title": {"dataType":"string","required":true},
+            "recentApplicants": {"dataType":"double","required":true},
+            "applicantsCount": {"dataType":"double","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "DashboardBestRunDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "jobTitle": {"dataType":"string","required":true},
+            "topCandidateName": {"dataType":"string","required":true},
+            "topMatchScore": {"dataType":"double","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "DashboardSummaryDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "userFirstName": {"dataType":"string"},
+            "activeJobs": {"dataType":"double","required":true},
+            "draftJobs": {"dataType":"double","required":true},
+            "totalApplicants": {"dataType":"double","required":true},
+            "applicantsIn30Days": {"dataType":"double","required":true},
+            "totalShortlists": {"dataType":"double","required":true},
+            "shortlistsIn30Days": {"dataType":"double","required":true},
+            "averageScreeningRuntimeHours": {"dataType":"double","required":true},
+            "timedRunsCount": {"dataType":"double","required":true},
+            "weeklyScreeningRuns": {"dataType":"double","required":true},
+            "recentRuns": {"dataType":"array","array":{"dataType":"refObject","ref":"DashboardRecentRunDTO"},"required":true},
+            "spotlight": {"dataType":"array","array":{"dataType":"refObject","ref":"DashboardSpotlightItemDTO"},"required":true},
+            "bestRun": {"dataType":"union","subSchemas":[{"ref":"DashboardBestRunDTO"},{"dataType":"enum","enums":[null]}],"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "DashboardSummaryResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "data": {"ref":"DashboardSummaryDTO","required":true},
+            "message": {"dataType":"string","required":true},
         },
         "additionalProperties": false,
     },
@@ -1967,6 +2045,37 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'assistant',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsDashboardController_getSummary: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+        };
+        app.get('/dashboard/summary',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(DashboardController)),
+            ...(fetchMiddlewares<RequestHandler>(DashboardController.prototype.getSummary)),
+
+            async function DashboardController_getSummary(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsDashboardController_getSummary, request, response });
+
+                const controller = new DashboardController();
+
+              await templateService.apiHandler({
+                methodName: 'getSummary',
                 controller,
                 response,
                 next,

@@ -5,6 +5,8 @@ export interface GeminiGenerateRequest {
   maxOutputTokens?: number;
   responseMimeType?: "text/plain" | "application/json";
   seed?: number;
+  topP?: number;
+  conversationHistory?: Array<{ role: "user" | "assistant"; content: string }>;
 }
 
 export interface GeminiUsageMetadata {
@@ -316,6 +318,12 @@ export interface GeminiBatchShortlistEntry {
   applicantEmail: string;
   fullName: string;
   matchScore: number;
+  confidenceScore: number;
+  skillsScore: number;
+  experienceScore: number;
+  educationScore: number;
+  relevanceScore: number;
+  criticalRequirementGap: boolean;
   strengths: string[];
   gapsOrRisks: string[];
   finalRecommendation: GeminiBatchRecommendation;

@@ -230,6 +230,12 @@ export interface GeminiBatchShortlistEntry {
   applicantEmail: string;
   fullName: string;
   matchScore: number;
+  confidenceScore: number;
+  skillsScore: number;
+  experienceScore: number;
+  educationScore: number;
+  relevanceScore: number;
+  criticalRequirementGap: boolean;
   strengths: string[];
   gapsOrRisks: string[];
   finalRecommendation: "Strong Reject" | "Reject" | "Consider" | "Shortlist" | "Strong Shortlist";

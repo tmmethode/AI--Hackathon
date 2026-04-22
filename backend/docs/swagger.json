@@ -222,6 +222,29 @@
 						"type": "number",
 						"format": "double"
 					},
+					"confidenceScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"skillsScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"experienceScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"educationScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"relevanceScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"criticalRequirementGap": {
+						"type": "boolean"
+					},
 					"strengths": {
 						"items": {
 							"type": "string"
@@ -246,6 +269,12 @@
 					"applicantEmail",
 					"fullName",
 					"matchScore",
+					"confidenceScore",
+					"skillsScore",
+					"experienceScore",
+					"educationScore",
+					"relevanceScore",
+					"criticalRequirementGap",
 					"strengths",
 					"gapsOrRisks",
 					"finalRecommendation",
@@ -1127,6 +1156,32 @@
 					"seed": {
 						"type": "number",
 						"format": "double"
+					},
+					"topP": {
+						"type": "number",
+						"format": "double"
+					},
+					"conversationHistory": {
+						"items": {
+							"properties": {
+								"content": {
+									"type": "string"
+								},
+								"role": {
+									"type": "string",
+									"enum": [
+										"user",
+										"assistant"
+									]
+								}
+							},
+							"required": [
+								"content",
+								"role"
+							],
+							"type": "object"
+						},
+						"type": "array"
 					}
 				},
 				"required": [
@@ -1725,6 +1780,29 @@
 						"type": "number",
 						"format": "double"
 					},
+					"confidenceScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"skillsScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"experienceScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"educationScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"relevanceScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"criticalRequirementGap": {
+						"type": "boolean"
+					},
 					"strengths": {
 						"items": {
 							"type": "string"
@@ -1749,6 +1827,12 @@
 					"applicantEmail",
 					"fullName",
 					"matchScore",
+					"confidenceScore",
+					"skillsScore",
+					"experienceScore",
+					"educationScore",
+					"relevanceScore",
+					"criticalRequirementGap",
 					"strengths",
 					"gapsOrRisks",
 					"finalRecommendation",
@@ -2421,6 +2505,179 @@
 					}
 				},
 				"required": [
+					"message"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"DashboardRecentRunDTO": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"title": {
+						"type": "string"
+					},
+					"createdAt": {
+						"type": "string"
+					},
+					"applicants": {
+						"type": "number",
+						"format": "double"
+					},
+					"topMatch": {
+						"type": "number",
+						"format": "double",
+						"nullable": true
+					}
+				},
+				"required": [
+					"id",
+					"title",
+					"createdAt",
+					"applicants",
+					"topMatch"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"DashboardSpotlightItemDTO": {
+				"properties": {
+					"jobId": {
+						"type": "string"
+					},
+					"title": {
+						"type": "string"
+					},
+					"recentApplicants": {
+						"type": "number",
+						"format": "double"
+					},
+					"applicantsCount": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"jobId",
+					"title",
+					"recentApplicants",
+					"applicantsCount"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"DashboardBestRunDTO": {
+				"properties": {
+					"jobTitle": {
+						"type": "string"
+					},
+					"topCandidateName": {
+						"type": "string"
+					},
+					"topMatchScore": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"jobTitle",
+					"topCandidateName",
+					"topMatchScore"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"DashboardSummaryDTO": {
+				"properties": {
+					"userFirstName": {
+						"type": "string"
+					},
+					"activeJobs": {
+						"type": "number",
+						"format": "double"
+					},
+					"draftJobs": {
+						"type": "number",
+						"format": "double"
+					},
+					"totalApplicants": {
+						"type": "number",
+						"format": "double"
+					},
+					"applicantsIn30Days": {
+						"type": "number",
+						"format": "double"
+					},
+					"totalShortlists": {
+						"type": "number",
+						"format": "double"
+					},
+					"shortlistsIn30Days": {
+						"type": "number",
+						"format": "double"
+					},
+					"averageScreeningRuntimeHours": {
+						"type": "number",
+						"format": "double"
+					},
+					"timedRunsCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"weeklyScreeningRuns": {
+						"type": "number",
+						"format": "double"
+					},
+					"recentRuns": {
+						"items": {
+							"$ref": "#/components/schemas/DashboardRecentRunDTO"
+						},
+						"type": "array"
+					},
+					"spotlight": {
+						"items": {
+							"$ref": "#/components/schemas/DashboardSpotlightItemDTO"
+						},
+						"type": "array"
+					},
+					"bestRun": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/DashboardBestRunDTO"
+							}
+						],
+						"nullable": true
+					}
+				},
+				"required": [
+					"activeJobs",
+					"draftJobs",
+					"totalApplicants",
+					"applicantsIn30Days",
+					"totalShortlists",
+					"shortlistsIn30Days",
+					"averageScreeningRuntimeHours",
+					"timedRunsCount",
+					"weeklyScreeningRuns",
+					"recentRuns",
+					"spotlight",
+					"bestRun"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"DashboardSummaryResponse": {
+				"properties": {
+					"data": {
+						"$ref": "#/components/schemas/DashboardSummaryDTO"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"data",
 					"message"
 				],
 				"type": "object",
@@ -4322,6 +4579,32 @@
 						}
 					}
 				}
+			}
+		},
+		"/dashboard/summary": {
+			"get": {
+				"operationId": "GetSummary",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/DashboardSummaryResponse"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Dashboard"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": []
 			}
 		},
 		"/auth/register": {

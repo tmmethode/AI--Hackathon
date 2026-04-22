@@ -600,13 +600,27 @@ function formatAssistantScreeningResult(entry: GeminiBatchScreeningResultEntry):
 function formatAssistantShortlistEntry(entry: GeminiBatchShortlistEntry): string {
   const strengths = entry.strengths?.length ? entry.strengths.join("; ") : "—";
   const risks = entry.gapsOrRisks?.length ? entry.gapsOrRisks.join("; ") : "—";
-  return [
+  const lines = [
     `  #${entry.candidateRank} ${entry.fullName} <${entry.applicantEmail}>`,
     `    match=${entry.matchScore} recommendation=${entry.finalRecommendation}`,
-    `    strengths: ${strengths}`,
-    `    risks: ${risks}`,
-    `    summary: ${clip(entry.summaryExplanation, 240) || "—"}`,
-  ].join("\n");
+  ];
+  if (entry.criticalRequirementGap) {
+    lines.push(`    criticalRequirementGap=true`);
+  }
+  const subScores = [
+    entry.skillsScore != null ? `skills=${entry.skillsScore}` : null,
+    entry.experienceScore != null ? `exp=${entry.experienceScore}` : null,
+    entry.educationScore != null ? `edu=${entry.educationScore}` : null,
+    entry.relevanceScore != null ? `rel=${entry.relevanceScore}` : null,
+    entry.confidenceScore != null ? `conf=${entry.confidenceScore}` : null,
+  ].filter(Boolean);
+  if (subScores.length > 0) {
+    lines.push(`    ${subScores.join(" ")}`);
+  }
+  lines.push(`    strengths: ${strengths}`);
+  lines.push(`    risks: ${risks}`);
+  lines.push(`    summary: ${clip(entry.summaryExplanation, 240) || "—"}`);
+  return lines.join("\n");
 }
 
 function formatAssistantShortlistContext(shortlist?: GeminiRecruiterAssistantShortlistContext): string {
@@ -646,10 +660,10 @@ function formatAssistantHistory(history?: GeminiRecruiterAssistantMessage[]): st
     return "";
   }
 
-  const trimmed = history.slice(-10);
+  const trimmed = history.slice(-20);
   const lines = trimmed.map((turn) => {
     const role = turn.role === "assistant" ? "Assistant" : "Recruiter";
-    const content = clip(turn.content, 800) || "";
+    const content = clip(turn.content, 1500) || "";
     return `${role}: ${content}`;
   });
   return `\nCONVERSATION HISTORY (most recent last):\n${lines.join("\n")}\n`;
@@ -657,7 +671,6 @@ function formatAssistantHistory(history?: GeminiRecruiterAssistantMessage[]): st
 
 export interface BuildRecruiterAssistantPromptInput {
   message: string;
-  history?: GeminiRecruiterAssistantMessage[];
   job?: GeminiBatchJob;
   applicants?: GeminiBatchApplicant[];
   shortlist?: GeminiRecruiterAssistantShortlistContext;
@@ -665,7 +678,7 @@ export interface BuildRecruiterAssistantPromptInput {
 }
 
 export function buildRecruiterAssistantPrompt(input: BuildRecruiterAssistantPromptInput): string {
-  const { message, history, job, applicants, shortlist, contextNote } = input;
+  const { message, job, applicants, shortlist, contextNote } = input;
 
   const sections = [
     "DATA CONTEXT (authoritative; do not invent anything outside of it):",
@@ -678,9 +691,7 @@ export function buildRecruiterAssistantPrompt(input: BuildRecruiterAssistantProm
     sections.push(`CONTEXT NOTES:\n${contextNote}`);
   }
 
-  const historyBlock = formatAssistantHistory(history);
-
-  return `${sections.join("\n\n")}${historyBlock}\n\nRECRUITER QUESTION:\n${message.trim()}\n\nRespond as the recruiter assistant, following the rules in the system instruction. Ground every claim in the DATA CONTEXT above. If the answer is not supported by the data, say so plainly.`;
+  return `${sections.join("\n\n")}\n\nRECRUITER QUESTION:\n${message.trim()}\n\nRespond as the recruiter assistant, following the rules in the system instruction. Ground every claim in the DATA CONTEXT above. If the answer is not supported by the data, say so plainly.`;
 }
 
 export function buildBatchScreeningPrompt(request: GeminiBatchScreeningRequest): string {

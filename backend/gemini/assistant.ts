@@ -82,6 +82,35 @@ function formatDateLabel(value?: Date): string {
   return value.toISOString().slice(0, 10);
 }
 
+function hydrateShortlistEntriesFromScreening(
+  shortlist: IShortlist
+): GeminiRecruiterAssistantShortlistContext["shortlist"] {
+  const screeningByEmail = new Map(
+    (shortlist.screeningResults || []).map((entry) => [normalizeEmail(entry.applicantEmail), entry])
+  );
+
+  return shortlist.shortlist?.map((entry) => {
+    const source = screeningByEmail.get(normalizeEmail(entry.applicantEmail));
+
+    return {
+      candidateRank: entry.candidateRank,
+      applicantEmail: entry.applicantEmail,
+      fullName: entry.fullName,
+      matchScore: entry.matchScore,
+      confidenceScore: entry.confidenceScore ?? source?.confidenceScore ?? 0,
+      skillsScore: entry.skillsScore ?? source?.skillsScore ?? 0,
+      experienceScore: entry.experienceScore ?? source?.experienceScore ?? 0,
+      educationScore: entry.educationScore ?? source?.educationScore ?? 0,
+      relevanceScore: entry.relevanceScore ?? source?.relevanceScore ?? 0,
+      criticalRequirementGap: entry.criticalRequirementGap ?? source?.criticalRequirementGap ?? false,
+      strengths: entry.strengths || [],
+      gapsOrRisks: entry.gapsOrRisks || [],
+      finalRecommendation: entry.finalRecommendation,
+      summaryExplanation: entry.summaryExplanation,
+    };
+  });
+}
+
 function buildWorkspaceOverviewNote(input: {
   totalJobs: number;
   activeJobs: number;
@@ -237,16 +266,7 @@ function toShortlistContextFromModel(shortlist: IShortlist): GeminiRecruiterAssi
       finalRecommendation: entry.finalRecommendation,
       summaryExplanation: entry.summaryExplanation,
     })),
-    shortlist: shortlist.shortlist?.map((entry) => ({
-      candidateRank: entry.candidateRank,
-      applicantEmail: entry.applicantEmail,
-      fullName: entry.fullName,
-      matchScore: entry.matchScore,
-      strengths: entry.strengths || [],
-      gapsOrRisks: entry.gapsOrRisks || [],
-      finalRecommendation: entry.finalRecommendation,
-      summaryExplanation: entry.summaryExplanation,
-    })),
+    shortlist: hydrateShortlistEntriesFromScreening(shortlist),
   };
 }
 
@@ -296,12 +316,22 @@ export class GeminiRecruiterAssistantService {
 
     const prompt = buildRecruiterAssistantPrompt({
       message,
-      history: request.history,
       job: resolved.context.job,
       applicants: resolved.context.applicants,
       shortlist: resolved.context.shortlist,
       contextNote: resolved.context.contextNote,
     });
+
+    // Build multi-turn conversation history for the Gemini API.
+    // The DATA CONTEXT + current question go as the prompt (final user turn),
+    // while previous conversation turns use proper user/model alternation.
+    const conversationHistory: Array<{ role: "user" | "assistant"; content: string }> =
+      (request.history || [])
+        .filter((turn) => turn.content?.trim())
+        .map((turn) => ({
+          role: turn.role === "assistant" ? "assistant" as const : "user" as const,
+          content: turn.content,
+        }));
 
     const generation = await this.client.generateText({
       prompt,
@@ -309,6 +339,8 @@ export class GeminiRecruiterAssistantService {
       temperature: request.temperature,
       maxOutputTokens: request.maxOutputTokens,
       responseMimeType: "text/plain",
+      topP: 0.85,
+      conversationHistory: conversationHistory.length > 0 ? conversationHistory : undefined,
     });
 
     return {

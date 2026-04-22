@@ -151,6 +151,7 @@ export function AIAssistant() {
   const [scopeLoading, setScopeLoading] = useState(false);
   const scopeLoadInFlightRef = useRef(false);
   const healthLoadInFlightRef = useRef(false);
+  const chatSessionRef = useRef(0);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -272,10 +273,32 @@ export function AIAssistant() {
 
   const assistantUnavailable = health?.configured === false;
 
+  const startNewChatSession = useCallback(() => {
+    chatSessionRef.current += 1;
+    setMessages([]);
+    setDraft("");
+    setIsSending(false);
+    setLastFailedPrompt(null);
+    setRequestError(null);
+  }, []);
+
+  const handleJobScopeChange = useCallback(
+    (jobId: string) => {
+      startNewChatSession();
+      setScope((prev) => ({
+        ...prev,
+        jobId,
+        shortlistId: "",
+      }));
+    },
+    [startNewChatSession]
+  );
+
   const sendMessage = useCallback(
     async (text: string) => {
       const messageText = text.trim();
       if (!messageText || isSending || assistantUnavailable) return;
+      const requestSession = chatSessionRef.current;
 
       setRequestError(null);
       setLastFailedPrompt(null);
@@ -311,7 +334,10 @@ export function AIAssistant() {
           shortlistId: selectedShortlist?._id,
           includeApplicants: scope.includeApplicants,
           temperature: 0.1,
+          maxOutputTokens: 4096,
         });
+
+        if (chatSessionRef.current !== requestSession) return;
 
         setMessages((prev) => {
           const withoutLoader = prev.filter((entry) => entry.id !== loadingAssistantMessage.id);
@@ -328,6 +354,8 @@ export function AIAssistant() {
           ];
         });
       } catch (error) {
+        if (chatSessionRef.current !== requestSession) return;
+
         const message = error instanceof Error ? error.message : "Something went wrong while asking Gemini.";
         setLastFailedPrompt(messageText);
         setRequestError(message);
@@ -345,6 +373,7 @@ export function AIAssistant() {
           ];
         });
       } finally {
+        if (chatSessionRef.current !== requestSession) return;
         setIsSending(false);
       }
     },
@@ -448,7 +477,7 @@ export function AIAssistant() {
                     aria-label="Assistant job scope"
                     className="w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs text-ink"
                     value={scope.jobId}
-                    onChange={(event) => setScope((prev) => ({ ...prev, jobId: event.target.value }))}
+                    onChange={(event) => handleJobScopeChange(event.target.value)}
                     disabled={scopeLoading}
                   >
                     <option value="">Any job</option>

@@ -44,6 +44,12 @@ export interface ShortlistEntryDTO {
   applicantEmail: string;
   fullName: string;
   matchScore: number;
+  confidenceScore: number;
+  skillsScore: number;
+  experienceScore: number;
+  educationScore: number;
+  relevanceScore: number;
+  criticalRequirementGap: boolean;
   strengths: string[];
   gapsOrRisks: string[];
   finalRecommendation: ShortlistRecommendation;
@@ -127,45 +133,25 @@ export interface DeleteShortlistResponse {
 @Tags('Shortlists')
 @Route('shortlists')
 export class ShortlistController {
-  private stripRunMetadata(runName: string): string {
-    return runName
-      .replace(/\s+\[code:[^\]]+\]\s+v\d+\s*$/i, '')
-      .replace(/\s+v\d+\s*$/i, '')
-      .trim();
+  private normalizeEmail(email?: string): string {
+    return (email || '').trim().toLowerCase();
   }
 
-  private async buildUniqueRunName(
-    jobId: mongoose.Types.ObjectId,
-    jobTitle: string,
-    requestedRunName?: string
-  ): Promise<string> {
-    const existingRuns = await Shortlist.find({ job: jobId }).select('runName').lean<{ runName: string }[]>();
-    const existingCodes = new Set<string>();
-    let maxVersion = 0;
+  private extractRunSequence(runName?: string): number {
+    const match = (runName || '').trim().match(/^RUN-(\d+)$/i);
+    return match ? Number(match[1]) || 0 : 0;
+  }
+
+  private async buildUniqueRunName(): Promise<string> {
+    const existingRuns = await Shortlist.find({}).select('runName').lean<{ runName: string }[]>();
+    let maxSequence = 0;
 
     for (const run of existingRuns) {
-      const trimmed = (run.runName || '').trim();
-      const match = trimmed.match(/\[code:([^\]]+)\]\s+v(\d+)\s*$/i);
-      if (match) {
-        existingCodes.add(match[1].toUpperCase());
-        maxVersion = Math.max(maxVersion, Number(match[2]) || 0);
-      }
+      maxSequence = Math.max(maxSequence, this.extractRunSequence(run.runName));
     }
 
-    const nextVersion = maxVersion + 1;
-    const dateCode = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const baseCode = `SC-${jobId.toString().slice(-4).toUpperCase()}-${dateCode}-${String(nextVersion).padStart(3, '0')}`;
-    let uniqueCode = baseCode;
-    let suffix = 1;
-    while (existingCodes.has(uniqueCode.toUpperCase())) {
-      suffix += 1;
-      uniqueCode = `${baseCode}-${suffix}`;
-    }
-
-    const requestedBase = this.stripRunMetadata(requestedRunName?.trim() || '');
-    const baseName = requestedBase || `${jobTitle} Screening Run`;
-
-    return `${baseName} [CODE:${uniqueCode}] v${nextVersion}`;
+    const nextSequence = maxSequence + 1;
+    return `RUN-${String(nextSequence).padStart(3, '0')}`;
   }
 
   private toHttpError(error: unknown): HttpError {
@@ -216,6 +202,36 @@ export class ShortlistController {
       applicantEmail: entry.applicantEmail,
       fullName: entry.fullName || '',
       matchScore: entry.matchScore,
+      confidenceScore: entry.confidenceScore,
+      skillsScore: entry.skillsScore,
+      experienceScore: entry.experienceScore,
+      educationScore: entry.educationScore,
+      relevanceScore: entry.relevanceScore,
+      criticalRequirementGap: entry.criticalRequirementGap ?? false,
+      strengths: entry.strengths || [],
+      gapsOrRisks: entry.gapsOrRisks || [],
+      finalRecommendation: entry.finalRecommendation,
+      summaryExplanation: entry.summaryExplanation || '',
+    };
+  }
+
+  private toHydratedShortlistEntryDTO(
+    entry: IShortlistEntry,
+    screeningByEmail: Map<string, IShortlistResultEntry>
+  ): ShortlistEntryDTO {
+    const source = screeningByEmail.get(this.normalizeEmail(entry.applicantEmail));
+
+    return {
+      candidateRank: entry.candidateRank,
+      applicantEmail: entry.applicantEmail,
+      fullName: entry.fullName || '',
+      matchScore: entry.matchScore,
+      confidenceScore: entry.confidenceScore ?? source?.confidenceScore ?? 0,
+      skillsScore: entry.skillsScore ?? source?.skillsScore ?? 0,
+      experienceScore: entry.experienceScore ?? source?.experienceScore ?? 0,
+      educationScore: entry.educationScore ?? source?.educationScore ?? 0,
+      relevanceScore: entry.relevanceScore ?? source?.relevanceScore ?? 0,
+      criticalRequirementGap: entry.criticalRequirementGap ?? source?.criticalRequirementGap ?? false,
       strengths: entry.strengths || [],
       gapsOrRisks: entry.gapsOrRisks || [],
       finalRecommendation: entry.finalRecommendation,
@@ -224,6 +240,10 @@ export class ShortlistController {
   }
 
   private toShortlistDTO(shortlist: IShortlist): ShortlistDTO {
+    const screeningByEmail = new Map(
+      (shortlist.screeningResults || []).map((entry) => [this.normalizeEmail(entry.applicantEmail), entry])
+    );
+
     return {
       _id: shortlist._id.toString(),
       job: shortlist.job.toString(),
@@ -236,7 +256,9 @@ export class ShortlistController {
       screeningResults: (shortlist.screeningResults || []).map((entry) =>
         this.toResultEntryDTO(entry)
       ),
-      shortlist: (shortlist.shortlist || []).map((entry) => this.toShortlistEntryDTO(entry)),
+      shortlist: (shortlist.shortlist || []).map((entry) =>
+        this.toHydratedShortlistEntryDTO(entry, screeningByEmail)
+      ),
       instructions: shortlist.instructions || '',
       screeningStartedAt: shortlist.screeningStartedAt?.toISOString(),
       screeningCompletedAt: shortlist.screeningCompletedAt?.toISOString(),
@@ -401,11 +423,7 @@ export class ShortlistController {
 
       const screeningResults = Array.isArray(body.screeningResults) ? body.screeningResults : [];
       const shortlistEntries = Array.isArray(body.shortlist) ? body.shortlist : [];
-      const runName = await this.buildUniqueRunName(
-        job._id as mongoose.Types.ObjectId,
-        body.jobTitle || job.title,
-        body.runName
-      );
+      const runName = await this.buildUniqueRunName();
 
       const shortlist = new Shortlist({
         job: job._id,

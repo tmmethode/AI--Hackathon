@@ -29,6 +29,12 @@ export interface IShortlistEntry {
   applicantEmail: string;
   fullName: string;
   matchScore: number;
+  confidenceScore: number;
+  skillsScore: number;
+  experienceScore: number;
+  educationScore: number;
+  relevanceScore: number;
+  criticalRequirementGap: boolean;
   strengths: string[];
   gapsOrRisks: string[];
   finalRecommendation: ShortlistRecommendation;
@@ -94,6 +100,12 @@ const ShortlistEntrySchema: Schema = new Schema(
     applicantEmail: { type: String, required: true, trim: true, lowercase: true },
     fullName: { type: String, default: '' },
     matchScore: { type: Number, required: true, min: 0, max: 100 },
+    confidenceScore: { type: Number, default: 0, min: 0, max: 100 },
+    skillsScore: { type: Number, default: 0, min: 0, max: 100 },
+    experienceScore: { type: Number, default: 0, min: 0, max: 100 },
+    educationScore: { type: Number, default: 0, min: 0, max: 100 },
+    relevanceScore: { type: Number, default: 0, min: 0, max: 100 },
+    criticalRequirementGap: { type: Boolean, default: false },
     strengths: { type: [String], default: [] },
     gapsOrRisks: { type: [String], default: [] },
     finalRecommendation: {

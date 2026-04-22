@@ -1,6 +1,15 @@
 import { getGeminiConfig, type GeminiConfig } from "./config";
 import { GeminiGenerateRequest, GeminiGenerateResponse, GeminiUsageMetadata } from "./types";
 
+interface GeminiContentPart {
+  text: string;
+}
+
+interface GeminiContentTurn {
+  role: "user" | "model";
+  parts: GeminiContentPart[];
+}
+
 interface GeminiApiResponse {
   candidates?: Array<{
     content?: {
@@ -72,6 +81,26 @@ export class GeminiClient {
       generationConfig.seed = seed;
     }
 
+    const requestedTopP = Number(request.topP);
+    if (Number.isFinite(requestedTopP) && requestedTopP > 0 && requestedTopP <= 1) {
+      generationConfig.topP = requestedTopP;
+    }
+
+    // Build contents array — use multi-turn format when conversation
+    // history is provided so Gemini gets proper user/model turn structure.
+    let contents: GeminiContentTurn[];
+
+    if (request.conversationHistory && request.conversationHistory.length > 0) {
+      contents = request.conversationHistory.map((turn) => ({
+        role: turn.role === "assistant" ? "model" : "user",
+        parts: [{ text: turn.content }],
+      }));
+      // Append the current prompt as the final user turn
+      contents.push({ role: "user", parts: [{ text: request.prompt }] });
+    } else {
+      contents = [{ role: "user", parts: [{ text: request.prompt }] }];
+    }
+
     const response = await fetch(`${this.baseUrl}/${this.model}:generateContent`, {
       method: "POST",
       headers: {
@@ -79,12 +108,7 @@ export class GeminiClient {
         "x-goog-api-key": this.apiKey,
       },
       body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: request.prompt }],
-          },
-        ],
+        contents,
         systemInstruction: request.systemInstruction
           ? {
               parts: [{ text: request.systemInstruction }],
