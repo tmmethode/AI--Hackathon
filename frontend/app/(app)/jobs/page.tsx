@@ -434,18 +434,49 @@ export default function JobsPage() {
                   </div>
                 </dl>
 
-                <div className="mt-4">
-                  <div className="flex items-center gap-2 text-sm font-medium text-ink">
-                    <CircleCheck className="h-4 w-4 text-brand" /> Must-have Skills
+                <div className="mt-4 rounded-xl border border-line bg-surface-soft/70 p-3.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-ink">
+                      <CircleCheck className="h-4 w-4 text-brand" />
+                      Skills Snapshot
+                    </div>
+                    <span className="rounded-full bg-surface px-2 py-0.5 text-[11px] font-medium text-ink-muted">
+                      {selected.coreHardSkills.length + selected.coreSoftSkills.length} total
+                    </span>
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {selected.coreHardSkills.length > 0 ? (
-                      selected.coreHardSkills.map((skill) => (
-                        <Badge key={skill} tone="neutral">{skill}</Badge>
-                      ))
-                    ) : (
-                      <span className="text-xs text-ink-muted">No hard skills listed yet.</span>
-                    )}
+
+                  <div className="mt-3 grid gap-3">
+                    <div className="rounded-lg border border-line/80 bg-surface p-2.5">
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">Must-have</p>
+                        <span className="text-[11px] text-ink-muted">{selected.coreHardSkills.length}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selected.coreHardSkills.length > 0 ? (
+                          selected.coreHardSkills.map((skill) => (
+                            <Badge key={skill} tone="neutral">{skill}</Badge>
+                          ))
+                        ) : (
+                          <span className="text-xs text-ink-muted">No hard skills listed yet.</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-line/80 bg-surface p-2.5">
+                      <div className="mb-2 flex items-center justify-between">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-muted">Culture & Soft Skills</p>
+                        <span className="text-[11px] text-ink-muted">{selected.coreSoftSkills.length}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {selected.coreSoftSkills.length > 0 ? (
+                          selected.coreSoftSkills.map((skill) => (
+                            <Badge key={skill} tone="info">{skill}</Badge>
+                          ))
+                        ) : (
+                          <span className="text-xs text-ink-muted">No soft skills listed yet.</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
