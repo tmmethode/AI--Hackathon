@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Progress } from "@/components/ui/Progress";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { getStoredAuth, type AuthUser } from "@/lib/auth";
-import { listAllApplicants } from "@/lib/applicants";
+import { listApplicants } from "@/lib/applicants";
 import { listAllJobs } from "@/lib/jobs";
 import { listAllShortlists } from "@/lib/shortlists";
 
@@ -241,24 +241,38 @@ export default function DashboardPage() {
     try {
       const [jobs, shortlists] = await Promise.all([listAllJobs(), listAllShortlists()]);
       const thirtyDaysAgo = startOfThirtyDaysAgo();
-      const applicantBatches = await Promise.all(
-        jobs.map(async (job) => ({
-          jobId: job._id,
-          applicants: await listAllApplicants(job._id),
-        }))
+
+      // Lightweight fetch: only grab the newest 10 applicants per job to
+      // estimate 30-day activity instead of downloading every full profile.
+      const recentSamples = await Promise.all(
+        jobs.map(async (job) => {
+          try {
+            const page = await listApplicants(job._id, { page: 1, pageSize: 10 });
+            const recentCount = page.data.filter(
+              (applicant) => new Date(applicant.createdAt) >= thirtyDaysAgo
+            ).length;
+            // If every record on the page is recent and there are more pages,
+            // use the total as a rough upper bound rather than fetching them all.
+            const estimated =
+              recentCount === page.data.length && page.totalPages > 1
+                ? page.total
+                : recentCount;
+            return { jobId: job._id, recentApplicants: estimated };
+          } catch {
+            return { jobId: job._id, recentApplicants: 0 };
+          }
+        })
       );
 
-      const applicantsByJob = new Map(
-        applicantBatches.map((entry) => [entry.jobId, entry.applicants])
+      const recentByJob = new Map(
+        recentSamples.map((entry) => [entry.jobId, entry.recentApplicants])
       );
 
       const totalApplicants = jobs.reduce((sum, job) => sum + job.applicantsCount, 0);
       const activeJobs = jobs.filter((job) => job.status === "Active");
       const draftJobs = jobs.filter((job) => job.status === "Draft");
-      const applicantsIn30Days = applicantBatches.reduce(
-        (sum, entry) =>
-          sum +
-          entry.applicants.filter((applicant) => new Date(applicant.createdAt) >= thirtyDaysAgo).length,
+      const applicantsIn30Days = recentSamples.reduce(
+        (sum, entry) => sum + entry.recentApplicants,
         0
       );
       const shortlistsIn30Days = shortlists.filter(
@@ -323,10 +337,7 @@ export default function DashboardPage() {
 
       const spotlight: SpotlightItem[] = jobs
         .map((job) => {
-          const recentApplicants =
-            applicantsByJob
-              .get(job._id)
-              ?.filter((applicant) => new Date(applicant.createdAt) >= thirtyDaysAgo).length ?? 0;
+          const recentApplicants = recentByJob.get(job._id) ?? 0;
 
           return {
             title: job.title,
