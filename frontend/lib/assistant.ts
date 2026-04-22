@@ -64,6 +64,18 @@ async function parseJson<T>(response: Response): Promise<T | null> {
   return (await response.json().catch(() => null)) as T | null;
 }
 
+function isNetworkFetchError(error: unknown) {
+  return error instanceof TypeError && /fetch/i.test(error.message || "");
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function isRetryableAssistantStatus(status: number) {
+  return status === 502 || status === 503 || status === 504;
+}
+
 export async function askAssistant(request: AssistantAskRequest): Promise<AssistantAskResponse> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 45000);
@@ -71,18 +83,48 @@ export async function askAssistant(request: AssistantAskRequest): Promise<Assist
   let response: Response;
 
   try {
-    response = await fetch(`${getApiBaseUrl()}/gemini/assistant`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...getAuthHeader(),
-      },
-      body: JSON.stringify(request),
-      signal: controller.signal,
-    });
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        response = await fetch(`${getApiBaseUrl()}/gemini/assistant`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeader(),
+          },
+          body: JSON.stringify(request),
+          signal: controller.signal,
+        });
+
+        if (!isRetryableAssistantStatus(response.status) || attempt === 2) {
+          break;
+        }
+
+        await delay(350 * (attempt + 1));
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          throw error;
+        }
+
+        lastError = error;
+        if (!isNetworkFetchError(error) || attempt === 2) {
+          throw error;
+        }
+
+        await delay(350 * (attempt + 1));
+      }
+    }
+
+    if (!response!) {
+      throw lastError instanceof Error ? lastError : new Error("Assistant request failed.");
+    }
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
       throw new Error("The assistant request timed out. Please retry.");
+    }
+    if (isNetworkFetchError(error)) {
+      throw new Error("The AI assistant could not be reached. Check your connection and try again.");
     }
     throw error;
   } finally {

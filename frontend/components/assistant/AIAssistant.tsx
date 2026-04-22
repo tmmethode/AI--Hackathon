@@ -192,6 +192,7 @@ function normalizeAssistantContent(content: string) {
     .replace(/\\t/g, "  ")
     .replace(/\\"/g, '"')
     .replace(/\\([*_`#[\]()!>~-])/g, "$1")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
@@ -199,21 +200,21 @@ function AssistantMarkdownMessage({ content }: { content: string }) {
   const normalizedContent = normalizeAssistantContent(content);
 
   return (
-    <div className="break-words text-sm leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+    <div className="break-words text-[13px] leading-5 sm:text-sm sm:leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
       <ReactMarkdown
         remarkPlugins={[remarkBreaks]}
         components={{
-          p: ({ children }) => <p className="mb-2 whitespace-pre-wrap">{children}</p>,
-          ul: ({ children }) => <ul className="mb-2 list-disc space-y-1 pl-5">{children}</ul>,
-          ol: ({ children }) => <ol className="mb-2 list-decimal space-y-1 pl-5">{children}</ol>,
+          p: ({ children }) => <p className="mb-1.5 whitespace-pre-wrap sm:mb-2">{children}</p>,
+          ul: ({ children }) => <ul className="mb-1.5 list-disc space-y-1 pl-5 sm:mb-2">{children}</ul>,
+          ol: ({ children }) => <ol className="mb-1.5 list-decimal space-y-1 pl-5 sm:mb-2">{children}</ol>,
           li: ({ children }) => <li className="whitespace-pre-wrap">{children}</li>,
-          h1: ({ children }) => <h1 className="mb-2 text-base font-semibold">{children}</h1>,
-          h2: ({ children }) => <h2 className="mb-2 text-sm font-semibold">{children}</h2>,
-          h3: ({ children }) => <h3 className="mb-1.5 text-sm font-semibold">{children}</h3>,
+          h1: ({ children }) => <h1 className="mb-1.5 text-base font-semibold sm:mb-2">{children}</h1>,
+          h2: ({ children }) => <h2 className="mb-1.5 text-sm font-semibold sm:mb-2">{children}</h2>,
+          h3: ({ children }) => <h3 className="mb-1 text-sm font-semibold sm:mb-1.5">{children}</h3>,
           strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
           em: ({ children }) => <em className="italic">{children}</em>,
           blockquote: ({ children }) => (
-            <blockquote className="mb-2 border-l-2 border-line pl-3 text-ink-muted">{children}</blockquote>
+            <blockquote className="mb-1.5 border-l-2 border-line pl-3 text-ink-muted sm:mb-2">{children}</blockquote>
           ),
           code: ({ children }) => (
             <code className="rounded bg-surface px-1 py-0.5 font-mono text-[0.92em]">{children}</code>
