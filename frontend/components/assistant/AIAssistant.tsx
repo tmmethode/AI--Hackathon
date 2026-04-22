@@ -12,6 +12,8 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkBreaks from "remark-breaks";
 import { cn } from "@/lib/cn";
 import {
   AssistantAskResponse,
@@ -105,6 +107,47 @@ function ErrorBanner({ message, onRetry }: { message: string; onRetry?: () => vo
           <RefreshCw className="h-3 w-3" /> Retry
         </button>
       ) : null}
+    </div>
+  );
+}
+
+function AssistantMarkdownMessage({ content }: { content: string }) {
+  const normalizedContent = useMemo(() => {
+    const lines = content.replace(/\r\n/g, "\n").split("\n");
+    const nonEmptyLines = lines.filter((line) => line.trim().length > 0);
+
+    if (nonEmptyLines.length === 0) return content;
+
+    const minIndent = nonEmptyLines.reduce((smallest, line) => {
+      const match = line.match(/^(\s+)/);
+      if (!match) return 0;
+      return Math.min(smallest, match[1].length);
+    }, Number.POSITIVE_INFINITY);
+
+    if (!Number.isFinite(minIndent) || minIndent <= 0) {
+      return lines.join("\n").trim();
+    }
+
+    return lines.map((line) => line.slice(Math.min(minIndent, line.length))).join("\n").trim();
+  }, [content]);
+
+  return (
+    <div className="space-y-2 break-words text-sm leading-relaxed">
+      <ReactMarkdown
+        remarkPlugins={[remarkBreaks]}
+        skipHtml
+        components={{
+          p: ({ children }) => <p className="whitespace-normal">{children}</p>,
+          ul: ({ children }) => <ul className="list-disc space-y-1 pl-5">{children}</ul>,
+          ol: ({ children }) => <ol className="list-decimal space-y-1 pl-5">{children}</ol>,
+          li: ({ children }) => <li className="whitespace-normal">{children}</li>,
+          strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+          em: ({ children }) => <em className="italic">{children}</em>,
+          br: () => <br />,
+        }}
+      >
+        {normalizedContent}
+      </ReactMarkdown>
     </div>
   );
 }
@@ -518,7 +561,13 @@ export function AIAssistant() {
                               <Loader2 className="h-4 w-4 animate-spin" /> Thinking…
                             </div>
                           ) : (
-                            <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                            <>
+                              {isUser ? (
+                                <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                              ) : (
+                                <AssistantMarkdownMessage content={message.content} />
+                              )}
+                            </>
                           )}
                           {!isUser && message.contextUsed && message.deliveryState !== "loading" && (
                             <p className="mt-1.5 border-t border-line/60 pt-1.5 text-[10px] uppercase tracking-wide text-ink-muted">
