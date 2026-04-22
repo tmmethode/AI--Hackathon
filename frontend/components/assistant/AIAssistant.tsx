@@ -111,21 +111,39 @@ function ErrorBanner({ message, onRetry }: { message: string; onRetry?: () => vo
   );
 }
 
+function normalizeAssistantContent(content: string) {
+  return content
+    .replace(/\r\n/g, "\n")
+    .replace(/\\([*_`])/g, "$1")
+    .trim();
+}
+
 function AssistantMarkdownMessage({ content }: { content: string }) {
+  const normalizedContent = normalizeAssistantContent(content);
+
   return (
-    <div className="space-y-2 break-words text-sm leading-relaxed">
+    <div className="break-words text-sm leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
       <ReactMarkdown
         remarkPlugins={[remarkBreaks]}
         components={{
-          p: ({ children }) => <p className="whitespace-normal">{children}</p>,
-          ul: ({ children }) => <ul className="list-disc space-y-1 pl-5">{children}</ul>,
-          ol: ({ children }) => <ol className="list-decimal space-y-1 pl-5">{children}</ol>,
-          li: ({ children }) => <li className="whitespace-normal">{children}</li>,
+          p: ({ children }) => <p className="mb-2 whitespace-pre-wrap">{children}</p>,
+          ul: ({ children }) => <ul className="mb-2 list-disc space-y-1 pl-5">{children}</ul>,
+          ol: ({ children }) => <ol className="mb-2 list-decimal space-y-1 pl-5">{children}</ol>,
+          li: ({ children }) => <li className="whitespace-pre-wrap">{children}</li>,
+          h1: ({ children }) => <h1 className="mb-2 text-base font-semibold">{children}</h1>,
+          h2: ({ children }) => <h2 className="mb-2 text-sm font-semibold">{children}</h2>,
+          h3: ({ children }) => <h3 className="mb-1.5 text-sm font-semibold">{children}</h3>,
           strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
           em: ({ children }) => <em className="italic">{children}</em>,
+          blockquote: ({ children }) => (
+            <blockquote className="mb-2 border-l-2 border-line pl-3 text-ink-muted">{children}</blockquote>
+          ),
+          code: ({ children }) => (
+            <code className="rounded bg-surface px-1 py-0.5 font-mono text-[0.92em]">{children}</code>
+          ),
         }}
       >
-        {content}
+        {normalizedContent}
       </ReactMarkdown>
     </div>
   );
@@ -262,7 +280,7 @@ export function AIAssistant() {
 
   const selectedJob = useMemo(() => {
     const fromShortlist = shortlists.find((item) => item._id === scope.shortlistId)?.job;
-    const effectiveJobId = scope.jobId || fromShortlist;
+    const effectiveJobId = fromShortlist || scope.jobId;
     return jobs.find((job) => job._id === effectiveJobId);
   }, [jobs, scope.jobId, scope.shortlistId, shortlists]);
 
@@ -292,6 +310,20 @@ export function AIAssistant() {
       }));
     },
     [startNewChatSession]
+  );
+
+  const handleShortlistScopeChange = useCallback(
+    (shortlistId: string) => {
+      startNewChatSession();
+      const selectedRun = shortlists.find((entry) => entry._id === shortlistId);
+
+      setScope((prev) => ({
+        ...prev,
+        jobId: selectedRun?.job ?? prev.jobId,
+        shortlistId,
+      }));
+    },
+    [shortlists, startNewChatSession]
   );
 
   const sendMessage = useCallback(
@@ -491,7 +523,7 @@ export function AIAssistant() {
                     aria-label="Assistant shortlist scope"
                     className="w-full rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs text-ink"
                     value={scope.shortlistId}
-                    onChange={(event) => setScope((prev) => ({ ...prev, shortlistId: event.target.value }))}
+                    onChange={(event) => handleShortlistScopeChange(event.target.value)}
                     disabled={scopeLoading}
                   >
                     <option value="">No shortlist run</option>
