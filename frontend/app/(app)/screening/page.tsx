@@ -35,7 +35,7 @@ import {
   getGeminiFrontendConfig,
 } from "@/lib/screening";
 import { startScreeningRun } from "@/lib/screening-progress";
-import { getHiringManagerName, listJobs, splitLinesToList, type JobRecord } from "@/lib/jobs";
+import { listJobs, splitLinesToList, type JobRecord } from "@/lib/jobs";
 import { listShortlistSelectors, type ShortlistSelectorItem } from "@/lib/shortlists";
 
 interface ScreeningAsset {
