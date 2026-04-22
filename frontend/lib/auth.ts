@@ -1,3 +1,5 @@
+import { AUTH_COOKIE_MAX_AGE, AUTH_TOKEN_COOKIE_NAME } from "@/lib/auth-session";
+
 export type UserRole = "recruiter" | "admin" | "applicant";
 export type ThemePreference = "light" | "dark" | "system";
 export type LanguagePreference = "en" | "fr" | "rw";
@@ -147,6 +149,7 @@ export function getStoredAuth(): AuthSession | null {
 
   const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
   if (!raw) {
+    clearAuthTokenCookie();
     return null;
   }
 
@@ -155,17 +158,49 @@ export function getStoredAuth(): AuthSession | null {
 
     if (!session.token || !session.user) {
       window.localStorage.removeItem(AUTH_STORAGE_KEY);
+      clearAuthTokenCookie();
       return null;
     }
 
-    return {
+    const normalizedSession = {
       token: session.token,
       user: session.user as AuthUser,
     };
+
+    ensureAuthTokenCookie(normalizedSession.token);
+    return normalizedSession;
   } catch {
     window.localStorage.removeItem(AUTH_STORAGE_KEY);
+    clearAuthTokenCookie();
     return null;
   }
+}
+
+function ensureAuthTokenCookie(token: string) {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  const encodedToken = encodeURIComponent(token);
+  const expectedPrefix = `${AUTH_TOKEN_COOKIE_NAME}=`;
+  const currentCookie = document.cookie
+    .split("; ")
+    .find((cookiePart) => cookiePart.startsWith(expectedPrefix))
+    ?.slice(expectedPrefix.length);
+
+  if (currentCookie === encodedToken) {
+    return;
+  }
+
+  document.cookie = `${AUTH_TOKEN_COOKIE_NAME}=${encodedToken}; Path=/; Max-Age=${AUTH_COOKIE_MAX_AGE}; SameSite=Lax`;
+}
+
+function clearAuthTokenCookie() {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  document.cookie = `${AUTH_TOKEN_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax`;
 }
 
 export function persistAuth(session: AuthSession) {
@@ -174,6 +209,7 @@ export function persistAuth(session: AuthSession) {
   }
 
   window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+  ensureAuthTokenCookie(session.token);
   window.dispatchEvent(new Event(AUTH_SYNC_EVENT));
 }
 
@@ -183,6 +219,7 @@ export function clearStoredAuth() {
   }
 
   window.localStorage.removeItem(AUTH_STORAGE_KEY);
+  clearAuthTokenCookie();
   window.dispatchEvent(new Event(AUTH_SYNC_EVENT));
 }
 
