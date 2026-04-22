@@ -25,6 +25,31 @@ interface GeminiApiResponse {
   };
 }
 
+const GEMINI_MAX_RETRIES = Math.max(0, Math.floor(Number(process.env.GEMINI_MAX_RETRIES) || 2));
+const GEMINI_RETRY_BASE_DELAY_MS = Math.max(
+  100,
+  Math.floor(Number(process.env.GEMINI_RETRY_BASE_DELAY_MS) || 600)
+);
+const GEMINI_REQUEST_TIMEOUT_MS = Math.max(
+  10_000,
+  Math.floor(Number(process.env.GEMINI_REQUEST_TIMEOUT_MS) || 90_000)
+);
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableNetworkError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return (
+    message.includes("fetch failed") ||
+    message.includes("network") ||
+    message.includes("timeout") ||
+    message.includes("econnreset") ||
+    message.includes("socket hang up")
+  );
+}
+
 export class GeminiClient {
   private readonly apiKey: string;
   private readonly model: string;
@@ -101,27 +126,69 @@ export class GeminiClient {
       contents = [{ role: "user", parts: [{ text: request.prompt }] }];
     }
 
-    const response = await fetch(`${this.baseUrl}/${this.model}:generateContent`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": this.apiKey,
-      },
-      body: JSON.stringify({
-        contents,
-        systemInstruction: request.systemInstruction
-          ? {
-              parts: [{ text: request.systemInstruction }],
-            }
-          : undefined,
-        generationConfig,
-      }),
+    const body = JSON.stringify({
+      contents,
+      systemInstruction: request.systemInstruction
+        ? {
+            parts: [{ text: request.systemInstruction }],
+          }
+        : undefined,
+      generationConfig,
     });
 
-    const data = (await response.json()) as GeminiApiResponse;
+    let data: GeminiApiResponse | null = null;
+    let responseOk = false;
 
-    if (!response.ok) {
-      throw new Error(data.error?.message || "Gemini request failed");
+    for (let attempt = 0; attempt <= GEMINI_MAX_RETRIES; attempt += 1) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), GEMINI_REQUEST_TIMEOUT_MS);
+
+      try {
+        const response = await fetch(`${this.baseUrl}/${this.model}:generateContent`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": this.apiKey,
+          },
+          body,
+          signal: controller.signal,
+        });
+
+        data = (await response.json().catch(() => ({}))) as GeminiApiResponse;
+        responseOk = response.ok;
+
+        if (response.ok) {
+          break;
+        }
+
+        const statusRetryable = response.status === 429 || response.status >= 500;
+        if (statusRetryable && attempt < GEMINI_MAX_RETRIES) {
+          await sleep(GEMINI_RETRY_BASE_DELAY_MS * (attempt + 1));
+          continue;
+        }
+
+        throw new Error(data.error?.message || "Gemini request failed");
+      } catch (error) {
+        const isTimeoutAbort = error instanceof Error && error.name === "AbortError";
+        const retryable = isTimeoutAbort || isRetryableNetworkError(error);
+
+        if (retryable && attempt < GEMINI_MAX_RETRIES) {
+          await sleep(GEMINI_RETRY_BASE_DELAY_MS * (attempt + 1));
+          continue;
+        }
+
+        if (isTimeoutAbort) {
+          throw new Error(`Gemini request timed out after ${GEMINI_REQUEST_TIMEOUT_MS}ms`);
+        }
+
+        throw error;
+      } finally {
+        clearTimeout(timeout);
+      }
+    }
+
+    if (!responseOk || !data) {
+      throw new Error("Gemini request failed");
     }
 
     const text = data.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("").trim() || "";

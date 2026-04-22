@@ -2062,6 +2062,33 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"GeminiBatchScreeningMeta": {
+				"properties": {
+					"requestedApplicants": {
+						"type": "number",
+						"format": "double"
+					},
+					"processedApplicants": {
+						"type": "number",
+						"format": "double"
+					},
+					"maxApplicants": {
+						"type": "number",
+						"format": "double"
+					},
+					"truncatedApplicants": {
+						"type": "boolean"
+					}
+				},
+				"required": [
+					"requestedApplicants",
+					"processedApplicants",
+					"maxApplicants",
+					"truncatedApplicants"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"GeminiBatchScreeningResponse": {
 				"properties": {
 					"jobTitle": {
@@ -2092,6 +2119,9 @@
 					},
 					"model": {
 						"type": "string"
+					},
+					"meta": {
+						"$ref": "#/components/schemas/GeminiBatchScreeningMeta"
 					}
 				},
 				"required": [
@@ -2101,6 +2131,147 @@
 					"totalApplicants",
 					"screeningResults",
 					"shortlist"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiBatchScreeningDbRequest": {
+				"properties": {
+					"jobId": {
+						"type": "string"
+					},
+					"shortlistCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"instructions": {
+						"type": "string"
+					},
+					"temperature": {
+						"type": "number",
+						"format": "double"
+					},
+					"applicantIds": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"applicantEmails": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"filters": {
+						"properties": {
+							"ingestStatus": {
+								"type": "string",
+								"enum": [
+									"parsed",
+									"pending",
+									"failed"
+								]
+							}
+						},
+						"type": "object"
+					}
+				},
+				"required": [
+					"jobId",
+					"shortlistCount"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiRecruiterAssistantContextSummary": {
+				"properties": {
+					"source": {
+						"type": "string",
+						"enum": [
+							"inline",
+							"database",
+							"mixed",
+							"none"
+						]
+					},
+					"jobId": {
+						"type": "string"
+					},
+					"shortlistId": {
+						"type": "string"
+					},
+					"jobTitle": {
+						"type": "string"
+					},
+					"applicantCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"screeningResultCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"shortlistCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"truncatedApplicants": {
+						"type": "boolean"
+					}
+				},
+				"required": [
+					"source",
+					"applicantCount",
+					"screeningResultCount",
+					"shortlistCount",
+					"truncatedApplicants"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiRecruiterAssistantResponse": {
+				"properties": {
+					"reply": {
+						"type": "string"
+					},
+					"model": {
+						"type": "string"
+					},
+					"usage": {
+						"$ref": "#/components/schemas/GeminiUsageMetadata"
+					},
+					"contextUsed": {
+						"$ref": "#/components/schemas/GeminiRecruiterAssistantContextSummary"
+					}
+				},
+				"required": [
+					"reply",
+					"model",
+					"contextUsed"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiRecruiterAssistantRole": {
+				"type": "string",
+				"enum": [
+					"user",
+					"assistant"
+				]
+			},
+			"GeminiRecruiterAssistantMessage": {
+				"properties": {
+					"role": {
+						"$ref": "#/components/schemas/GeminiRecruiterAssistantRole"
+					},
+					"content": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"role",
+					"content"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -2494,129 +2665,6 @@
 				},
 				"required": [
 					"email"
-				],
-				"type": "object",
-				"additionalProperties": false
-			},
-			"GeminiBatchScreeningRequest": {
-				"properties": {
-					"job": {
-						"$ref": "#/components/schemas/GeminiBatchJob"
-					},
-					"applicants": {
-						"items": {
-							"$ref": "#/components/schemas/GeminiBatchApplicant"
-						},
-						"type": "array"
-					},
-					"shortlistCount": {
-						"type": "number",
-						"format": "double"
-					},
-					"instructions": {
-						"type": "string"
-					},
-					"temperature": {
-						"type": "number",
-						"format": "double"
-					}
-				},
-				"required": [
-					"job",
-					"applicants",
-					"shortlistCount"
-				],
-				"type": "object",
-				"additionalProperties": false
-			},
-			"GeminiRecruiterAssistantContextSummary": {
-				"properties": {
-					"source": {
-						"type": "string",
-						"enum": [
-							"inline",
-							"database",
-							"mixed",
-							"none"
-						]
-					},
-					"jobId": {
-						"type": "string"
-					},
-					"shortlistId": {
-						"type": "string"
-					},
-					"jobTitle": {
-						"type": "string"
-					},
-					"applicantCount": {
-						"type": "number",
-						"format": "double"
-					},
-					"screeningResultCount": {
-						"type": "number",
-						"format": "double"
-					},
-					"shortlistCount": {
-						"type": "number",
-						"format": "double"
-					},
-					"truncatedApplicants": {
-						"type": "boolean"
-					}
-				},
-				"required": [
-					"source",
-					"applicantCount",
-					"screeningResultCount",
-					"shortlistCount",
-					"truncatedApplicants"
-				],
-				"type": "object",
-				"additionalProperties": false
-			},
-			"GeminiRecruiterAssistantResponse": {
-				"properties": {
-					"reply": {
-						"type": "string"
-					},
-					"model": {
-						"type": "string"
-					},
-					"usage": {
-						"$ref": "#/components/schemas/GeminiUsageMetadata"
-					},
-					"contextUsed": {
-						"$ref": "#/components/schemas/GeminiRecruiterAssistantContextSummary"
-					}
-				},
-				"required": [
-					"reply",
-					"model",
-					"contextUsed"
-				],
-				"type": "object",
-				"additionalProperties": false
-			},
-			"GeminiRecruiterAssistantRole": {
-				"type": "string",
-				"enum": [
-					"user",
-					"assistant"
-				]
-			},
-			"GeminiRecruiterAssistantMessage": {
-				"properties": {
-					"role": {
-						"$ref": "#/components/schemas/GeminiRecruiterAssistantRole"
-					},
-					"content": {
-						"type": "string"
-					}
-				},
-				"required": [
-					"role",
-					"content"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -4927,7 +4975,7 @@
 					"content": {
 						"application/json": {
 							"schema": {
-								"$ref": "#/components/schemas/GeminiBatchScreeningRequest"
+								"$ref": "#/components/schemas/GeminiBatchScreeningDbRequest"
 							}
 						}
 					}
