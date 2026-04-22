@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { ArrowLeft, Zap, Briefcase, FileDown, AlertCircle, Clock } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import {
   getNotification,
+  markNotificationAsRead,
   toDateTimeLabel,
   toRelativeTime,
   type Notification,
@@ -25,30 +27,82 @@ const typeTone: Record<NotificationType, React.ComponentProps<typeof Badge>["ton
   screening: "brand", job: "success", export: "info", system: "warning",
 };
 
-export default function NotificationDetailPage({ params }: { params: { id: string } }) {
+export default function NotificationDetailPage() {
+  const params = useParams<{ id?: string }>();
+  const notificationId = useMemo(() => {
+    if (!params?.id || typeof params.id !== "string") {
+      return "";
+    }
+
+    return decodeURIComponent(params.id);
+  }, [params]);
+
   const [notif, setNotif] = useState<Notification | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadNotification() {
+      if (!notificationId) {
+        setNotif(null);
+        setError("Notification ID is missing or invalid.");
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
-        const response = await getNotification(decodeURIComponent(params.id));
+        setError("");
+        const response = await getNotification(notificationId);
+
+        if (cancelled) {
+          return;
+        }
+
         setNotif(response.data);
-      } catch {
+
+        if (!response.data.read) {
+          await markNotificationAsRead(notificationId).catch(() => null);
+          window.dispatchEvent(new Event("umurava-notifications-changed"));
+        }
+      } catch (fetchError) {
+        if (cancelled) {
+          return;
+        }
+
         setNotif(null);
+        setError(fetchError instanceof Error ? fetchError.message : "Failed to load notification.");
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     }
 
     void loadNotification();
-  }, [params.id]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [notificationId]);
 
   if (isLoading) {
     return (
       <div className="w-full px-6 py-5">
         <Card className="p-12 text-center text-sm text-ink-muted">Loading notification...</Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full px-6 py-5">
+        <Link href="/notifications" className="mb-6 flex items-center gap-2 text-sm text-ink-muted hover:text-ink">
+          <ArrowLeft className="h-4 w-4" /> Back to Notifications
+        </Link>
+        <Card className="p-12 text-center text-sm text-danger">{error}</Card>
       </div>
     );
   }

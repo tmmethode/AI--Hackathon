@@ -27,6 +27,7 @@ import {
   type ShortlistRecord,
   type ShortlistSummary,
 } from "@/lib/shortlists";
+import { createPdfFromLines } from "@/lib/pdf";
 
 type ExportFormat = "csv" | "pdf" | "json";
 type ExportStatus = "ready" | "generating" | "expired";
@@ -104,6 +105,33 @@ function buildPreviewRows(record: ShortlistRecord): string[][] {
   return [headers, ...rows];
 }
 
+
+function buildPdfLines(record: ShortlistRecord) {
+  const candidates = (record.shortlist?.length ? record.shortlist : record.screeningResults).slice(0, 25);
+
+  return [
+    "Candidate Screening Report",
+    `Selected Position: ${record.jobTitle || "—"}`,
+    `Screening Run: ${record.runName || "—"}`,
+    `Department: ${record.department || "—"}`,
+    `Generated On: ${formatDateTime(new Date().toISOString())}`,
+    `Total Applicants Evaluated: ${record.totalApplicants}`,
+    `Candidates In Shortlist: ${record.shortlistCount}`,
+    "",
+    "Candidate Profiles",
+    ...candidates.flatMap((candidate, index) => [
+      `${index + 1}. ${candidate.fullName || "Unknown Candidate"}`,
+      `Email: ${candidate.applicantEmail || "—"}`,
+      `Recommendation: ${candidate.finalRecommendation || "Review"}`,
+      `Scores: Match ${candidate.matchScore ?? 0}% | Skills ${candidate.skillsScore ?? 0}% | Experience ${candidate.experienceScore ?? 0}% | Education ${candidate.educationScore ?? 0}% | Relevance ${candidate.relevanceScore ?? 0}%`,
+      `Key Strengths: ${(candidate.strengths || []).join(", ") || "No strengths captured."}`,
+      `Potential Gaps: ${(candidate.gapsOrRisks || []).join(", ") || "No gaps captured."}`,
+      `Summary: ${candidate.summaryExplanation || "No summary available."}`,
+      "",
+    ]),
+  ];
+}
+
 function downloadBlob(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -118,39 +146,6 @@ function downloadTextAsFile(content: string, mime: string, filename: string) {
 }
 
 
-function createSimplePdf(lines: string[]): Blob {
-  const escaped = lines.map((line) =>
-    line.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)")
-  );
-  const content = escaped
-    .map((line, index) => `BT /F1 10 Tf 50 ${780 - index * 14} Td (${line.slice(0, 110)}) Tj ET`)
-    .join("\n");
-
-  const objects = [
-    "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
-    "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj",
-    "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj",
-    "4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj",
-    `5 0 obj << /Length ${content.length} >> stream\n${content}\nendstream endobj`,
-  ];
-
-  let pdf = "%PDF-1.4\n";
-  const offsets = [0];
-
-  for (const obj of objects) {
-    offsets.push(pdf.length);
-    pdf += `${obj}\n`;
-  }
-
-  const xrefOffset = pdf.length;
-  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
-  for (const offset of offsets.slice(1)) {
-    pdf += `${String(offset).padStart(10, "0")} 00000 n \n`;
-  }
-  pdf += `trailer << /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
-
-  return new Blob([pdf], { type: "application/pdf" });
-}
 
 export default function ExportsPage() {
   const [showNewExport, setShowNewExport] = useState(false);
@@ -264,14 +259,7 @@ export default function ExportsPage() {
         );
         downloadTextAsFile(JSON.stringify(data, null, 2), "application/json", `${safeBase}.json`);
       } else {
-        const lines = [
-          `Job: ${shortlist.jobTitle}`,
-          `Run: ${shortlist.runName}`,
-          `Created: ${formatDateTime(shortlist.createdAt)}`,
-          "",
-          ...rows.map((row) => row.join(" | ")),
-        ];
-        downloadBlob(createSimplePdf(lines), `${safeBase}.pdf`);
+        downloadBlob(createPdfFromLines(buildPdfLines(shortlist)), `${safeBase}.pdf`);
       }
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Failed to export shortlist data.");

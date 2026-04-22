@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { listNotifications, toRelativeTime, type Notification, type NotificationType } from "@/lib/notifications";
+import { listNotifications, markAllNotificationsAsRead, markNotificationAsRead, toRelativeTime, type Notification, type NotificationType } from "@/lib/notifications";
 
 const typeIcon: Record<NotificationType, React.ReactNode> = {
   screening: <Zap className="h-4 w-4 text-brand" />,
@@ -62,12 +62,32 @@ export default function NotificationsPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  function markRead(id: string) {
+  async function markRead(id: string) {
     setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
+
+    try {
+      await markNotificationAsRead(id);
+      window.dispatchEvent(new Event("umurava-notifications-changed"));
+    } catch {
+      const response = await listNotifications(120).catch(() => null);
+      if (response?.data) {
+        setNotifs(response.data);
+      }
+    }
   }
 
-  function markAllRead() {
+  async function markAllRead() {
     setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+
+    try {
+      await markAllNotificationsAsRead();
+      window.dispatchEvent(new Event("umurava-notifications-changed"));
+    } catch {
+      const response = await listNotifications(120).catch(() => null);
+      if (response?.data) {
+        setNotifs(response.data);
+      }
+    }
   }
 
   function dismiss(id: string) {
@@ -91,7 +111,7 @@ export default function NotificationsPage() {
         description="Stay up to date with your screening pipeline activity."
         actions={
           unreadCount > 0 ? (
-            <Button variant="secondary" leftIcon={<Check className="h-4 w-4" />} onClick={markAllRead}>
+            <Button variant="secondary" leftIcon={<Check className="h-4 w-4" />} onClick={() => void markAllRead()}>
               Mark all as read
             </Button>
           ) : undefined
@@ -146,7 +166,7 @@ export default function NotificationsPage() {
                     <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-soft">
                       {typeIcon[n.type]}
                     </div>
-                    <Link href={`/notifications/${encodeURIComponent(n.id)}`} onClick={() => markRead(n.id)} className="flex-1 min-w-0 cursor-pointer text-inherit no-underline">
+                    <Link href={`/notifications/${encodeURIComponent(n.id)}`} onClick={() => void markRead(n.id)} className="flex-1 min-w-0 cursor-pointer text-inherit no-underline">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className={`text-sm ${!n.read ? "font-semibold text-ink" : "font-medium text-ink"}`}>{n.title}</p>
                         <Badge tone={typeTone[n.type]} pill className="capitalize">{n.type}</Badge>
@@ -157,7 +177,7 @@ export default function NotificationsPage() {
                     </Link>
                     <div className="flex shrink-0 items-center gap-1">
                       {!n.read && (
-                        <button onClick={() => markRead(n.id)} title="Mark as read"
+                        <button onClick={() => void markRead(n.id)} title="Mark as read"
                           className="rounded p-1 text-ink-muted hover:bg-surface-soft hover:text-brand">
                           <Check className="h-3.5 w-3.5" />
                         </button>

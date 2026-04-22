@@ -23,6 +23,7 @@ export interface IUser extends Document {
     export: boolean;
     system: boolean;
   };
+  readNotificationIds: string[];
   themePreference: 'light' | 'dark' | 'system';
   languagePreference: 'en' | 'fr' | 'rw';
   createdAt: Date;
@@ -117,6 +118,10 @@ const UserSchema: Schema = new Schema({
     type: String,
     enum: ['en', 'fr', 'rw'],
     default: 'en'
+  },
+  readNotificationIds: {
+    type: [String],
+    default: []
   }
 }, {
   timestamps: true,

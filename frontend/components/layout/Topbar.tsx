@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Activity, Bell, CircleHelp, Search, Check, Settings, LogOut, User, Shield, X, Menu } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { clearStoredAuth, getStoredAuth } from "@/lib/auth";
-import { listNotifications, toRelativeTime, type Notification } from "@/lib/notifications";
+import { listNotifications, markAllNotificationsAsRead, markNotificationAsRead, toRelativeTime, type Notification } from "@/lib/notifications";
 
 export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const router = useRouter();
@@ -55,17 +55,39 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
     }
 
     window.addEventListener("umurava-auth-changed", syncNotifications);
+    window.addEventListener("umurava-notifications-changed", syncNotifications);
     return () => {
       window.removeEventListener("umurava-auth-changed", syncNotifications);
+      window.removeEventListener("umurava-notifications-changed", syncNotifications);
     };
   }, []);
 
-  function markAllRead() {
+  async function markAllRead() {
     setNotifs((prev) => prev.map((n) => ({ ...n, read: true })));
+
+    try {
+      await markAllNotificationsAsRead();
+      window.dispatchEvent(new Event("umurava-notifications-changed"));
+    } catch {
+      const response = await listNotifications(30).catch(() => null);
+      if (response?.data) {
+        setNotifs(response.data);
+      }
+    }
   }
 
-  function markRead(id: string) {
+  async function markRead(id: string) {
     setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, read: true } : n));
+
+    try {
+      await markNotificationAsRead(id);
+      window.dispatchEvent(new Event("umurava-notifications-changed"));
+    } catch {
+      const response = await listNotifications(30).catch(() => null);
+      if (response?.data) {
+        setNotifs(response.data);
+      }
+    }
   }
 
   function dismiss(id: string) {
@@ -131,7 +153,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
                 <div className="flex items-center justify-between border-b border-line px-4 py-3">
                   <h3 className="text-sm font-semibold text-ink">Notifications</h3>
                   {unread > 0 && (
-                    <button onClick={markAllRead} className="flex items-center gap-1 text-xs text-brand hover:underline">
+                    <button onClick={() => void markAllRead()} className="flex items-center gap-1 text-xs text-brand hover:underline">
                       <Check className="h-3 w-3" /> Mark all read
                     </button>
                   )}
@@ -159,7 +181,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
                     return list.map((n) => (
                       <li key={n.id}
                         className={`flex items-start gap-3 px-4 py-3 transition-colors hover:bg-surface-soft/50 ${!n.read ? "bg-brand-soft/20" : ""}`}>
-                        <Link href={`/notifications/${encodeURIComponent(n.id)}`} onClick={() => { markRead(n.id); closeAll(); }} className="mt-0.5 flex-1 min-w-0">
+                        <Link href={`/notifications/${encodeURIComponent(n.id)}`} onClick={() => { void markRead(n.id); closeAll(); }} className="mt-0.5 flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             {!n.read && <span className="h-2 w-2 shrink-0 rounded-full bg-brand" />}
                             <p className={`text-sm ${!n.read ? "font-semibold text-ink" : "font-medium text-ink"}`}>{n.title}</p>
