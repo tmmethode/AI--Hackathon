@@ -17,6 +17,8 @@ import Applicant, { IApplicant } from '../models/Applicant';
 import Job from '../models/Job';
 import { IUser } from '../models/User';
 import { HttpError } from '../utils/HttpError';
+import { GeminiClient } from '../gemini/client';
+import { GeminiApplicantImportService } from '../gemini/applicant-import';
 import {
   ApplicantProfileInput,
   ApplicantListResponse,
@@ -28,6 +30,7 @@ import {
   IngestLinksRequest,
   IngestPlatformRequest,
   IngestSummary,
+  IngestItemResult,
   ApplicantSource,
   UpdateApplicantRequest,
 } from '../interfaces/applicant';
@@ -35,6 +38,8 @@ import {
 @Tags('Applicants')
 @Route('jobs/{jobId}/applicants')
 export class ApplicantController {
+  private readonly applicantImportService = new GeminiApplicantImportService(new GeminiClient());
+
   private assertJobId(jobId: string) {
     if (!mongoose.Types.ObjectId.isValid(jobId)) {
       throw new HttpError(400, 'Invalid job id');
@@ -250,6 +255,48 @@ export class ApplicantController {
     return summary;
   }
 
+  private normalizeUrl(value?: string): string | undefined {
+    if (!value) return undefined;
+    const trimmed = String(value).trim();
+    if (!trimmed) return undefined;
+    try {
+      const parsed = new URL(trimmed);
+      return parsed.toString().replace(/\/+$/, '');
+    } catch {
+      return undefined;
+    }
+  }
+
+  private async findDuplicateApplicant(jobId: string, profile: ApplicantProfileInput): Promise<IApplicant | null> {
+    const normalizedEmail = profile.email?.trim().toLowerCase();
+    if (normalizedEmail) {
+      const byEmail = await Applicant.findOne({ job: jobId, email: normalizedEmail });
+      if (byEmail) return byEmail;
+    }
+
+    const linkedin = this.normalizeUrl(profile.socialLinks?.linkedin);
+    const github = this.normalizeUrl(profile.socialLinks?.github);
+    const portfolio = this.normalizeUrl(profile.socialLinks?.portfolio);
+    const socialCandidates = [linkedin, github, portfolio].filter((item): item is string => Boolean(item));
+    if (socialCandidates.length) {
+      const bySocial = await Applicant.findOne({
+        job: jobId,
+        $or: [
+          { 'socialLinks.linkedin': { $in: socialCandidates } },
+          { 'socialLinks.github': { $in: socialCandidates } },
+          { 'socialLinks.portfolio': { $in: socialCandidates } },
+        ],
+      });
+      if (bySocial) return bySocial;
+    }
+
+    return null;
+  }
+
+  private buildPlaceholderEmail(prefix: string, index: number) {
+    return `${prefix}+${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}@ingest.local`;
+  }
+
   /** Minimal CSV parser: handles quoted fields and commas inside quotes. */
   private parseCsv(text: string): Record<string, string>[] {
     const lines = text
@@ -448,6 +495,7 @@ export class ApplicantController {
       failed: 0,
       errors: [],
       applicants: [],
+      itemResults: [],
       message: '',
     };
 
@@ -457,40 +505,123 @@ export class ApplicantController {
         if (!file?.filename) {
           throw new Error('filename is required');
         }
+        if (!file.dataBase64 || !this.applicantImportService.isConfigured()) {
+          const placeholderEmail = (
+            file.email?.toLowerCase() ||
+            this.buildPlaceholderEmail('pending-file', i)
+          ).toLowerCase();
 
-        // Placeholder emails keep MongoDB uniqueness constraints intact until parsing resolves a real email.
-        const placeholderEmail = (
-          file.email?.toLowerCase() ||
-          `pending+${Date.now()}-${i}@ingest.local`
-        ).toLowerCase();
+          const existing = await Applicant.findOne({ job: jobId, email: placeholderEmail });
+          if (existing) {
+            summary.skipped += 1;
+            summary.itemResults?.push({
+              index: i,
+              source: 'pdf-upload',
+              state: 'duplicate-detected',
+              sourceFileName: file.filename,
+              email: placeholderEmail,
+              message: 'File payload already queued.',
+            });
+            continue;
+          }
 
-        const existing = await Applicant.findOne({
-          job: jobId,
-          email: placeholderEmail,
-        });
-        if (existing) {
-          summary.skipped += 1;
+          const queued = await Applicant.create({
+            job: jobId,
+            firstName: 'Pending',
+            lastName: 'Parse',
+            email: placeholderEmail,
+            source: 'pdf-upload',
+            ingestStatus: 'pending',
+            sourceFileName: file.filename,
+            rawPayload: { mimeType: file.mimeType, dataBase64: file.dataBase64 },
+            createdBy: actingUser._id,
+          });
+
+          summary.created += 1;
+          summary.applicants.push(this.toResponse(queued));
+          summary.itemResults?.push({
+            index: i,
+            source: 'pdf-upload',
+            state: 'parsed-successfully',
+            sourceFileName: file.filename,
+            email: placeholderEmail,
+            message: this.applicantImportService.isConfigured()
+              ? 'File queued for deferred parsing (missing binary payload).'
+              : 'Gemini unavailable. File queued for deferred parsing.',
+          });
           continue;
         }
 
-        const created = await Applicant.create({
-          job: jobId,
-          firstName: 'Pending',
-          lastName: 'Parse',
-          email: placeholderEmail,
-          source: 'pdf-upload',
-          ingestStatus: 'pending',
-          sourceFileName: file.filename,
-          rawPayload: { mimeType: file.mimeType, dataBase64: file.dataBase64 },
-          createdBy: actingUser._id,
+        const parsed = await this.applicantImportService.parseFromFile({
+          fileName: file.filename,
+          mimeType: file.mimeType,
+          base64Data: file.dataBase64,
         });
 
-        summary.created += 1;
-        summary.applicants.push(this.toResponse(created));
+        let createdForFile = 0;
+        for (const parsedApplicant of parsed.applicants) {
+          const normalized = this.normalizeProfile(parsedApplicant);
+          const duplicate = await this.findDuplicateApplicant(jobId, normalized);
+          if (duplicate) {
+            summary.skipped += 1;
+            summary.itemResults?.push({
+              index: i,
+              source: 'pdf-upload',
+              state: 'duplicate-detected',
+              sourceFileName: file.filename,
+              email: normalized.email,
+              message: 'Duplicate applicant detected from existing email/social profile.',
+            });
+            continue;
+          }
+
+          const created = await Applicant.create({
+            ...normalized,
+            email: normalized.email.toLowerCase(),
+            job: jobId,
+            source: 'pdf-upload',
+            ingestStatus: 'parsed',
+            sourceFileName: file.filename,
+            rawPayload: { extractionWarnings: parsed.warnings, extracted: parsed.rawResponse },
+            createdBy: actingUser._id,
+          });
+
+          summary.created += 1;
+          createdForFile += 1;
+          summary.applicants.push(this.toResponse(created));
+          summary.itemResults?.push({
+            index: i,
+            source: 'pdf-upload',
+            state: 'saved-successfully',
+            sourceFileName: file.filename,
+            email: normalized.email,
+            message: parsed.warnings.length ? parsed.warnings.join(' ') : 'Applicant parsed and saved.',
+          });
+        }
+
+        if (createdForFile === 0) {
+          summary.itemResults?.push({
+            index: i,
+            source: 'pdf-upload',
+            state: 'partially-parsed',
+            sourceFileName: file.filename,
+            message: 'File was parsed but no new applicants were saved.',
+          });
+        }
       } catch (err: any) {
         summary.failed += 1;
         summary.errors.push({
           index: i,
+          message: err?.message || 'Unknown error',
+        });
+        const state = String(err?.message || '').toLowerCase().includes('unsupported file type')
+          ? 'unsupported-file'
+          : 'parse-failed';
+        summary.itemResults?.push({
+          index: i,
+          source: 'pdf-upload',
+          state: state as IngestItemResult['state'],
+          sourceFileName: file?.filename,
           message: err?.message || 'Unknown error',
         });
       }
@@ -502,7 +633,9 @@ export class ApplicantController {
       });
     }
 
-    summary.message = `Queued ${summary.created}/${summary.received} files for AI parsing.`;
+    summary.message = this.applicantImportService.isConfigured()
+      ? `Processed ${summary.received} files: saved ${summary.created}, skipped ${summary.skipped}, failed ${summary.failed}.`
+      : `Queued ${summary.created}/${summary.received} files for deferred AI parsing (Gemini not configured).`;
     return summary;
   }
 
@@ -533,6 +666,7 @@ export class ApplicantController {
       failed: 0,
       errors: [],
       applicants: [],
+      itemResults: [],
       message: '',
     };
 
@@ -544,28 +678,103 @@ export class ApplicantController {
         const existing = await Applicant.findOne({ job: jobId, sourceUrl: link });
         if (existing) {
           summary.skipped += 1;
+          summary.itemResults?.push({
+            index: i,
+            source: 'paste-links',
+            state: 'duplicate-detected',
+            sourceUrl: link,
+            message: 'This source URL was already ingested.',
+          });
           continue;
         }
 
-        const placeholderEmail = `pending+link-${Date.now()}-${i}@ingest.local`;
+        if (!this.applicantImportService.isConfigured()) {
+          const placeholderEmail = this.buildPlaceholderEmail('pending-link', i);
+          const created = await Applicant.create({
+            job: jobId,
+            firstName: 'Pending',
+            lastName: 'Parse',
+            email: placeholderEmail,
+            source: 'paste-links',
+            ingestStatus: 'pending',
+            sourceUrl: link,
+            createdBy: actingUser._id,
+          });
 
-        const created = await Applicant.create({
-          job: jobId,
-          firstName: 'Pending',
-          lastName: 'Parse',
-          email: placeholderEmail,
-          source: 'paste-links',
-          ingestStatus: 'pending',
-          sourceUrl: link,
-          createdBy: actingUser._id,
-        });
+          summary.created += 1;
+          summary.applicants.push(this.toResponse(created));
+          summary.itemResults?.push({
+            index: i,
+            source: 'paste-links',
+            state: 'parsed-successfully',
+            sourceUrl: link,
+            email: placeholderEmail,
+            message: 'Gemini unavailable. Link queued for deferred parsing.',
+          });
+          continue;
+        }
 
-        summary.created += 1;
-        summary.applicants.push(this.toResponse(created));
+        const parsed = await this.applicantImportService.parseFromLink({ url: link });
+        let createdForLink = 0;
+        for (const parsedApplicant of parsed.applicants) {
+          const normalized = this.normalizeProfile(parsedApplicant);
+          const duplicate = await this.findDuplicateApplicant(jobId, normalized);
+          if (duplicate) {
+            summary.skipped += 1;
+            summary.itemResults?.push({
+              index: i,
+              source: 'paste-links',
+              state: 'duplicate-detected',
+              sourceUrl: link,
+              email: normalized.email,
+              message: 'Duplicate applicant detected from existing email/social profile.',
+            });
+            continue;
+          }
+
+          const created = await Applicant.create({
+            ...normalized,
+            email: normalized.email.toLowerCase(),
+            job: jobId,
+            source: 'paste-links',
+            ingestStatus: 'parsed',
+            sourceUrl: link,
+            rawPayload: { extractionWarnings: parsed.warnings, extracted: parsed.rawResponse },
+            createdBy: actingUser._id,
+          });
+          createdForLink += 1;
+          summary.created += 1;
+          summary.applicants.push(this.toResponse(created));
+          summary.itemResults?.push({
+            index: i,
+            source: 'paste-links',
+            state: 'saved-successfully',
+            sourceUrl: link,
+            email: normalized.email,
+            message: parsed.warnings.length ? parsed.warnings.join(' ') : 'Applicant parsed and saved.',
+          });
+        }
+
+        if (createdForLink === 0) {
+          summary.itemResults?.push({
+            index: i,
+            source: 'paste-links',
+            state: 'partially-parsed',
+            sourceUrl: link,
+            message: 'Link parsed but no new applicants were saved.',
+          });
+        }
       } catch (err: any) {
         summary.failed += 1;
         summary.errors.push({
           index: i,
+          message: err?.message || 'Unknown error',
+        });
+        summary.itemResults?.push({
+          index: i,
+          source: 'paste-links',
+          state: 'parse-failed',
+          sourceUrl: link,
           message: err?.message || 'Unknown error',
         });
       }
@@ -577,7 +786,9 @@ export class ApplicantController {
       });
     }
 
-    summary.message = `Queued ${summary.created}/${summary.received} links for AI parsing.`;
+    summary.message = this.applicantImportService.isConfigured()
+      ? `Processed ${summary.received} links: saved ${summary.created}, skipped ${summary.skipped}, failed ${summary.failed}.`
+      : `Queued ${summary.created}/${summary.received} links for deferred AI parsing (Gemini not configured).`;
     return summary;
   }
 
