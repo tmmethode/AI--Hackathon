@@ -1,10 +1,6 @@
 "use client";
 
-import type {
-  GeminiBatchApplicant,
-  GeminiBatchJob,
-  GeminiBatchScreeningResponse,
-} from "@/lib/screening";
+import type { GeminiBatchScreeningResponse } from "@/lib/screening";
 import { screenBatchApplicants } from "@/lib/screening";
 import { buildCreatePayload, createShortlist } from "@/lib/shortlists";
 
@@ -23,8 +19,11 @@ export interface ScreeningRunRequest {
   estimatedMaxSeconds: number;
   instructions: string;
   temperature?: number;
-  job: GeminiBatchJob;
-  applicants: GeminiBatchApplicant[];
+  applicantIds?: string[];
+  applicantEmails?: string[];
+  filters?: {
+    ingestStatus?: "parsed" | "pending" | "failed";
+  };
 }
 
 export interface ScreeningRunSnapshot {
@@ -55,11 +54,13 @@ function setCurrentRun(snapshot: ScreeningRunSnapshot | null) {
 async function executeRun(snapshot: ScreeningRunSnapshot) {
   try {
     const response = await screenBatchApplicants({
-      job: snapshot.request.job,
-      applicants: snapshot.request.applicants,
+      jobId: snapshot.request.jobId,
       shortlistCount: snapshot.request.shortlistSize,
       instructions: snapshot.request.instructions,
       temperature: snapshot.request.temperature,
+      applicantIds: snapshot.request.applicantIds,
+      applicantEmails: snapshot.request.applicantEmails,
+      filters: snapshot.request.filters,
     });
 
     let savedShortlistId: string | undefined;

@@ -201,11 +201,22 @@ export interface GeminiBatchApplicant {
 }
 
 export interface GeminiBatchScreeningRequest {
-  job: GeminiBatchJob;
-  applicants: GeminiBatchApplicant[];
+  jobId: string;
   shortlistCount: number;
   instructions?: string;
   temperature?: number;
+  applicantIds?: string[];
+  applicantEmails?: string[];
+  filters?: {
+    ingestStatus?: "parsed" | "pending" | "failed";
+  };
+}
+
+export interface GeminiBatchScreeningMeta {
+  requestedApplicants: number;
+  processedApplicants: number;
+  maxApplicants: number;
+  truncatedApplicants: boolean;
 }
 
 export interface GeminiBatchScreeningResultEntry {
@@ -250,6 +261,7 @@ export interface GeminiBatchScreeningResponse {
   screeningResults: GeminiBatchScreeningResultEntry[];
   shortlist: GeminiBatchShortlistEntry[];
   model?: string;
+  meta?: GeminiBatchScreeningMeta;
 }
 
 function getAuthHeader() {

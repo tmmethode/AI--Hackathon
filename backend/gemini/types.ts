@@ -275,6 +275,25 @@ export interface GeminiBatchScreeningRequest {
   temperature?: number;
 }
 
+export interface GeminiBatchScreeningDbRequest {
+  jobId: string;
+  shortlistCount: number;
+  instructions?: string;
+  temperature?: number;
+  applicantIds?: string[];
+  applicantEmails?: string[];
+  filters?: {
+    ingestStatus?: "parsed" | "pending" | "failed";
+  };
+}
+
+export interface GeminiBatchScreeningMeta {
+  requestedApplicants: number;
+  processedApplicants: number;
+  maxApplicants: number;
+  truncatedApplicants: boolean;
+}
+
 export interface GeminiBatchNarrativeTarget {
   candidateRank: number;
   applicantEmail: string;
@@ -338,6 +357,7 @@ export interface GeminiBatchScreeningResponse {
   screeningResults: GeminiBatchScreeningResultEntry[];
   shortlist: GeminiBatchShortlistEntry[];
   model?: string;
+  meta?: GeminiBatchScreeningMeta;
 }
 
 export type GeminiRecruiterAssistantRole = "user" | "assistant";
