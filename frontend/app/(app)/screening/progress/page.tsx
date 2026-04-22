@@ -330,6 +330,12 @@ export default function ScreeningProgressPage() {
                 </div>
               )}
 
+              {run.response.meta?.truncatedApplicants && (
+                <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-700">
+                  Processed {run.response.meta.processedApplicants} of {run.response.meta.requestedApplicants} matched applicants due to the backend cap of {run.response.meta.maxApplicants}. Refine filters or run additional batches for full coverage.
+                </div>
+              )}
+
               {run.response.shortlist.length > 0 ? (
                 <ul className="mt-5 space-y-3">
                   {run.response.shortlist.slice(0, 5).map((candidate) => (

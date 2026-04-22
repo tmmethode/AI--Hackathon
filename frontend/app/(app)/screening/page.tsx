@@ -28,8 +28,6 @@ import {
   listAllApplicants,
 } from "@/lib/applicants";
 import {
-  type GeminiBatchApplicant,
-  type GeminiBatchJob,
   type GeminiFrontendConfigResponse,
   GEMINI_RECOMMENDATION_BANDS,
   GEMINI_SCORING_PILLARS,
@@ -123,49 +121,6 @@ function buildScreeningAssets(applicants: ApplicantRecord[]): ScreeningAsset[] {
     }));
 }
 
-function buildScreeningJob(job: JobRecord): GeminiBatchJob {
-  return {
-    id: job._id,
-    title: job.title,
-    department: job.department,
-    hiringManager: getHiringManagerName(job.hiringManager),
-    location: job.location,
-    locationPolicy: job.locationPolicy,
-    employmentType: job.employmentType,
-    salaryBand: job.salaryBand,
-    summary: job.summary,
-    responsibilities: job.responsibilities,
-    mustHaveQualifications: job.mustHaveQualifications,
-    niceToHaveQualifications: job.niceToHaveQualifications,
-    coreHardSkills: job.coreHardSkills,
-    preferredSkills: job.preferredSkills,
-    coreSoftSkills: job.coreSoftSkills,
-    experienceYears: job.experienceYears,
-    seniorityLevel: job.seniorityLevel,
-    educationLevel: job.educationLevel,
-    weightCriteria: job.weightCriteria,
-    status: job.status,
-  };
-}
-
-function buildScreeningApplicant(applicant: ApplicantRecord): GeminiBatchApplicant {
-  return {
-    firstName: applicant.firstName,
-    lastName: applicant.lastName,
-    email: applicant.email,
-    headline: applicant.headline,
-    bio: applicant.bio,
-    location: applicant.location,
-    skills: applicant.skills,
-    languages: applicant.languages,
-    experience: applicant.experience,
-    education: applicant.education,
-    certifications: applicant.certifications,
-    projects: applicant.projects,
-    availability: applicant.availability,
-    socialLinks: applicant.socialLinks,
-  };
-}
 
 function extractRunSequence(runName?: string): number {
   const match = (runName || "").trim().match(/^RUN-(\d+)$/i);
@@ -478,8 +433,8 @@ export default function ScreeningPage() {
         estimatedMaxSeconds,
         instructions: screeningInstructions,
         temperature: 0,
-        job: buildScreeningJob(selectedJob),
-        applicants: parsedApplicants.map(buildScreeningApplicant),
+        applicantIds: parsedApplicants.map((applicant) => applicant._id),
+        filters: { ingestStatus: "parsed" },
       });
       setShortlistSize(normalizedShortlistSize);
       router.push("/screening/progress");
