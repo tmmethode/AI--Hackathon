@@ -3045,6 +3045,12 @@
 					"failed"
 				]
 			},
+			"Record_string.unknown_": {
+				"properties": {},
+				"additionalProperties": {},
+				"type": "object",
+				"description": "Construct a type with a set of properties K of type T"
+			},
 			"SkillDTO": {
 				"properties": {
 					"name": {
@@ -3302,6 +3308,9 @@
 					},
 					"sourceUrl": {
 						"type": "string"
+					},
+					"rawPayload": {
+						"$ref": "#/components/schemas/Record_string.unknown_"
 					},
 					"createdBy": {
 						"type": "string"

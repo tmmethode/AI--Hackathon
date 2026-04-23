@@ -87,6 +87,7 @@ export interface ApplicantRecord {
   ingestError?: string;
   sourceFileName?: string;
   sourceUrl?: string;
+  rawPayload?: Record<string, unknown>;
   createdBy: string;
   createdAt: string;
   updatedAt: string;

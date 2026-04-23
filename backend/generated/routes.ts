@@ -1119,6 +1119,11 @@ const models: TsoaRoute.Models = {
         "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["parsed"]},{"dataType":"enum","enums":["pending"]},{"dataType":"enum","enums":["failed"]}],"validators":{}},
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "Record_string.unknown_": {
+        "dataType": "refAlias",
+        "type": {"dataType":"nestedObjectLiteral","nestedProperties":{},"additionalProperties":{"dataType":"any"},"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "SkillDTO": {
         "dataType": "refObject",
         "properties": {
@@ -1232,6 +1237,7 @@ const models: TsoaRoute.Models = {
             "ingestError": {"dataType":"string"},
             "sourceFileName": {"dataType":"string"},
             "sourceUrl": {"dataType":"string"},
+            "rawPayload": {"ref":"Record_string.unknown_"},
             "createdBy": {"dataType":"string","required":true},
             "createdAt": {"dataType":"string","required":true},
             "updatedAt": {"dataType":"string","required":true},

@@ -28,11 +28,134 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Field, Input, Textarea, Select } from "@/components/ui/Input";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
 import { loadCandidateRecords, type CandidateRecord } from "@/lib/candidates";
+import type { ApplicantCertification, ApplicantEducation, ApplicantExperience } from "@/lib/applicants";
 import { createPdfFromLines } from "@/lib/pdf";
 import { downloadBlob, sanitizeFilename } from "@/lib/download";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+}
+
+function readArray(source: Record<string, unknown> | null, keys: string[]): unknown[] {
+  if (!source) {
+    return [];
+  }
+
+  for (const key of keys) {
+    const value = source[key];
+    if (Array.isArray(value)) {
+      return value;
+    }
+  }
+
+  return [];
+}
+
+function normalizeExperienceEntries(values: unknown[]): ApplicantExperience[] {
+  return values
+    .map((value) => asRecord(value))
+    .filter((value): value is Record<string, unknown> => Boolean(value))
+    .map((entry) => {
+      const company = String(entry.company ?? entry.Company ?? "").trim();
+      const role = String(entry.role ?? entry.title ?? entry.Role ?? entry.Title ?? "").trim();
+
+      return {
+        company,
+        role,
+        startDate: String(entry.startDate ?? entry["Start Date"] ?? "").trim() || undefined,
+        endDate: String(entry.endDate ?? entry["End Date"] ?? "").trim() || undefined,
+        description: String(entry.description ?? entry.Description ?? "").trim() || undefined,
+        technologies: Array.isArray(entry.technologies)
+          ? entry.technologies.map((item) => String(item).trim()).filter(Boolean)
+          : undefined,
+        isCurrent: typeof entry.isCurrent === "boolean"
+          ? entry.isCurrent
+          : String(entry["Is Current"] ?? "").toLowerCase() === "true",
+      };
+    })
+    .filter((entry) => entry.company || entry.role);
+}
+
+function normalizeEducationEntries(values: unknown[]): ApplicantEducation[] {
+  return values
+    .map((value) => asRecord(value))
+    .filter((value): value is Record<string, unknown> => Boolean(value))
+    .map((entry) => ({
+      institution: String(entry.institution ?? entry.school ?? entry.Institution ?? entry.School ?? "").trim(),
+      degree: String(entry.degree ?? entry.Degree ?? "").trim() || undefined,
+      fieldOfStudy: String(entry.fieldOfStudy ?? entry["Field of Study"] ?? "").trim() || undefined,
+      startYear:
+        Number.isFinite(Number(entry.startYear ?? entry["Start Year"]))
+          ? Number(entry.startYear ?? entry["Start Year"])
+          : undefined,
+      endYear:
+        Number.isFinite(Number(entry.endYear ?? entry["End Year"]))
+          ? Number(entry.endYear ?? entry["End Year"])
+          : undefined,
+    }))
+    .filter((entry) => entry.institution || entry.degree || entry.fieldOfStudy);
+}
+
+function normalizeCertificationEntries(values: unknown[]): ApplicantCertification[] {
+  return values
+    .map((value) => asRecord(value))
+    .filter((value): value is Record<string, unknown> => Boolean(value))
+    .map((entry) => ({
+      name: String(entry.name ?? entry.certification ?? entry.title ?? entry.Name ?? "").trim(),
+      issuer: String(entry.issuer ?? entry.organization ?? entry.Issuer ?? "").trim() || undefined,
+      issueDate: String(entry.issueDate ?? entry["Issue Date"] ?? "").trim() || undefined,
+    }))
+    .filter((entry) => Boolean(entry.name));
+}
+
+function resolveParsedResumeHighlights(candidate: CandidateRecord): {
+  experience: ApplicantExperience[];
+  education: ApplicantEducation[];
+  certifications: ApplicantCertification[];
+} {
+  const applicant = candidate.applicant;
+  const rawPayload = applicant?.rawPayload as Record<string, unknown> | undefined;
+  const extracted = asRecord(rawPayload?.extracted) ?? rawPayload ?? null;
+  const firstExtractedApplicant = Array.isArray(extracted?.applicants)
+    ? asRecord(extracted?.applicants[0])
+    : null;
+  const extractedCandidate = asRecord(extracted?.candidate);
+  const extractedProfile = asRecord(extracted?.profile);
+  const extractedResume = asRecord(extracted?.resume);
+
+  const sources = [
+    asRecord(applicant as unknown),
+    firstExtractedApplicant,
+    extractedCandidate,
+    extractedProfile,
+    extractedResume,
+    extracted,
+    rawPayload ?? null,
+  ];
+
+  const experienceRaw = sources.flatMap((source) =>
+    readArray(source, ["experience", "workExperience", "work_history", "Work Experience", "Recent Experience"])
+  );
+  const educationRaw = sources.flatMap((source) =>
+    readArray(source, ["education", "academicHistory", "Education"])
+  );
+  const certificationsRaw = sources.flatMap((source) =>
+    readArray(source, ["certifications", "licenses", "Certifications"])
+  );
+
+  const experience = normalizeExperienceEntries(experienceRaw);
+  const education = normalizeEducationEntries(educationRaw);
+  const certifications = normalizeCertificationEntries(certificationsRaw);
+
+  return { experience, education, certifications };
 }
 
 function formatMatchTone(score: number) {
@@ -156,9 +279,8 @@ export default function CandidateDetailPage({ params }: PageProps) {
   function handleExportAiReport() {
     if (!candidate) return;
 
-    const experienceEntries = candidate.applicant?.experience ?? [];
-    const educationEntries = candidate.applicant?.education ?? [];
-    const certifications = candidate.applicant?.certifications ?? [];
+    const { experience: experienceEntries, education: educationEntries, certifications } =
+      resolveParsedResumeHighlights(candidate);
     const formatTimeline = (start?: string, end?: string, isCurrent?: boolean) => {
       const s = start ? new Date(start) : null;
       const e = isCurrent ? null : end ? new Date(end) : null;
@@ -261,9 +383,8 @@ export default function CandidateDetailPage({ params }: PageProps) {
     );
   }
 
-  const experienceEntries = candidate.applicant?.experience ?? [];
-  const educationEntries = candidate.applicant?.education ?? [];
-  const certifications = candidate.applicant?.certifications ?? [];
+  const { experience: experienceEntries, education: educationEntries, certifications } =
+    resolveParsedResumeHighlights(candidate);
   const strengths = candidate.strengths.length > 0 ? candidate.strengths : candidate.skills;
   const risks = candidate.gapsOrRisks;
   const hasAiExplanation =
