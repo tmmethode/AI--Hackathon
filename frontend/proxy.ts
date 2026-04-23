@@ -41,12 +41,18 @@ export function proxy(request: NextRequest) {
 
   if (pathname === "/login") {
     const authError = nextUrl.searchParams.get("error");
+    const nextParam = nextUrl.searchParams.get("next");
 
     if (!token || authError) {
+      if (!nextParam && !authError) {
+        const loginUrl = new URL("/login", request.url);
+        loginUrl.searchParams.set("next", DEFAULT_APP_PATH);
+        return withNoStore(NextResponse.redirect(loginUrl));
+      }
       return withNoStore(NextResponse.next());
     }
 
-    const nextPath = resolveSafeNextPath(nextUrl.searchParams.get("next"));
+    const nextPath = resolveSafeNextPath(nextParam);
     return withNoStore(NextResponse.redirect(new URL(nextPath, request.url)));
   }
 
