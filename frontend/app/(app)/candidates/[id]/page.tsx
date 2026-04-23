@@ -28,11 +28,65 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Field, Input, Textarea, Select } from "@/components/ui/Input";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
 import { loadCandidateRecords, type CandidateRecord } from "@/lib/candidates";
+import type { ApplicantCertification, ApplicantEducation, ApplicantExperience } from "@/lib/applicants";
 import { createPdfFromLines } from "@/lib/pdf";
 import { downloadBlob, sanitizeFilename } from "@/lib/download";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+}
+
+function pickArray<T>(...candidates: unknown[]): T[] {
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      return candidate as T[];
+    }
+  }
+
+  return [];
+}
+
+function resolveParsedResumeHighlights(candidate: CandidateRecord): {
+  experience: ApplicantExperience[];
+  education: ApplicantEducation[];
+  certifications: ApplicantCertification[];
+} {
+  const applicant = candidate.applicant;
+  const rawPayload = applicant?.rawPayload as Record<string, unknown> | undefined;
+  const extracted = (rawPayload?.extracted || rawPayload) as Record<string, unknown> | undefined;
+  const firstExtractedApplicant = Array.isArray(extracted?.applicants)
+    ? (extracted?.applicants[0] as Record<string, unknown> | undefined)
+    : undefined;
+
+  const experience = pickArray<ApplicantExperience>(
+    applicant?.experience,
+    firstExtractedApplicant?.experience,
+    firstExtractedApplicant?.workExperience,
+    firstExtractedApplicant?.["Work Experience"],
+    firstExtractedApplicant?.["Recent Experience"],
+    rawPayload?.experience,
+    rawPayload?.workExperience,
+    rawPayload?.["Work Experience"],
+    rawPayload?.["Recent Experience"]
+  );
+
+  const education = pickArray<ApplicantEducation>(
+    applicant?.education,
+    firstExtractedApplicant?.education,
+    firstExtractedApplicant?.["Education"],
+    rawPayload?.education,
+    rawPayload?.["Education"]
+  );
+
+  const certifications = pickArray<ApplicantCertification>(
+    applicant?.certifications,
+    firstExtractedApplicant?.certifications,
+    firstExtractedApplicant?.["Certifications"],
+    rawPayload?.certifications,
+    rawPayload?.["Certifications"]
+  );
+
+  return { experience, education, certifications };
 }
 
 function formatMatchTone(score: number) {
@@ -156,9 +210,8 @@ export default function CandidateDetailPage({ params }: PageProps) {
   function handleExportAiReport() {
     if (!candidate) return;
 
-    const experienceEntries = candidate.applicant?.experience ?? [];
-    const educationEntries = candidate.applicant?.education ?? [];
-    const certifications = candidate.applicant?.certifications ?? [];
+    const { experience: experienceEntries, education: educationEntries, certifications } =
+      resolveParsedResumeHighlights(candidate);
     const formatTimeline = (start?: string, end?: string, isCurrent?: boolean) => {
       const s = start ? new Date(start) : null;
       const e = isCurrent ? null : end ? new Date(end) : null;
@@ -261,9 +314,8 @@ export default function CandidateDetailPage({ params }: PageProps) {
     );
   }
 
-  const experienceEntries = candidate.applicant?.experience ?? [];
-  const educationEntries = candidate.applicant?.education ?? [];
-  const certifications = candidate.applicant?.certifications ?? [];
+  const { experience: experienceEntries, education: educationEntries, certifications } =
+    resolveParsedResumeHighlights(candidate);
   const strengths = candidate.strengths.length > 0 ? candidate.strengths : candidate.skills;
   const risks = candidate.gapsOrRisks;
   const hasAiExplanation =

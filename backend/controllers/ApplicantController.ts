@@ -186,6 +186,7 @@ export class ApplicantController {
       ingestError: a.ingestError,
       sourceFileName: a.sourceFileName,
       sourceUrl: a.sourceUrl,
+      rawPayload: a.rawPayload,
       createdBy: a.createdBy.toString(),
       createdAt: a.createdAt.toISOString(),
       updatedAt: a.updatedAt.toISOString(),
