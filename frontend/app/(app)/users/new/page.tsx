@@ -13,12 +13,12 @@ import {
   Users,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { UserManagementListSkeleton } from "@/components/page-skeletons";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, Input, Select, Textarea } from "@/components/ui/Input";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "@/components/ui/Modal";
-import { Skeleton } from "@/components/ui/Skeleton";
 import {
   fetchProfile,
   getStoredAuth,
@@ -85,31 +85,6 @@ function getRoleTone(role: UserRole) {
   if (role === "admin") return "brand" as const;
   if (role === "recruiter") return "info" as const;
   return "neutral" as const;
-}
-
-function UserListSkeleton() {
-  return (
-    <div className="space-y-4 p-6">
-      {Array.from({ length: 4 }, (_, index) => (
-        <div key={index} className="rounded-2xl border border-line bg-surface-soft/40 p-5">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="space-y-2">
-              <Skeleton className="h-5 w-44" delayIndex={index} />
-              <Skeleton className="h-4 w-56" delayIndex={index + 1} />
-              <div className="flex flex-wrap gap-2 pt-1">
-                <Skeleton shape="pill" className="h-6 w-20" delayIndex={index + 2} />
-                <Skeleton shape="pill" className="h-6 w-24" delayIndex={index + 3} />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Skeleton className="h-10 w-28" delayIndex={index + 4} />
-              <Skeleton className="h-10 w-36" delayIndex={index + 5} />
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
 }
 
 export default function AdminRegisterUserPage() {
@@ -647,7 +622,7 @@ export default function AdminRegisterUserPage() {
                 Sign in with an admin account to load the workspace user directory.
               </div>
             ) : isLoadingUsers && users.length === 0 ? (
-              <UserListSkeleton />
+              <UserManagementListSkeleton />
             ) : filteredUsers.length === 0 ? (
               <div className="px-6 py-10 text-sm text-ink-muted">
                 {users.length === 0

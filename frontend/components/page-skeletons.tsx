@@ -561,3 +561,120 @@ export function RegisterUserPageSkeleton() {
     </div>
   );
 }
+
+export function UserManagementListSkeleton() {
+  return (
+    <div className="space-y-4 p-6">
+      {Array.from({ length: 4 }, (_, index) => (
+        <div key={index} className="rounded-2xl border border-line bg-surface-soft/40 p-5">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-44" delayIndex={index} />
+              <Skeleton className="h-4 w-56" delayIndex={index + 1} />
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Skeleton shape="pill" className="h-6 w-20" delayIndex={index + 2} />
+                <Skeleton shape="pill" className="h-6 w-24" delayIndex={index + 3} />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-28" delayIndex={index + 4} />
+              <Skeleton className="h-10 w-36" delayIndex={index + 5} />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function ExportsPageSkeleton() {
+  return (
+    <div className="w-full px-4 py-4 sm:px-6 sm:py-5">
+      <HeaderSkeleton actionWidths={[130]} />
+
+      <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        {Array.from({ length: 3 }, (_, index) => (
+          <MetricCardSkeleton key={index} index={index + 2} />
+        ))}
+      </section>
+
+      <Card className="mt-6">
+        <ToolbarSkeleton />
+        <div className="hidden grid-cols-[1.4fr_1fr_0.8fr_1fr_110px] gap-4 bg-surface-soft/40 px-6 py-3 md:grid">
+          {Array.from({ length: 5 }, (_, index) => (
+            <Skeleton key={index} className="h-3 w-full max-w-[120px]" delayIndex={index + 12} />
+          ))}
+        </div>
+        <div className="divide-y divide-line">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div
+              key={index}
+              className="grid grid-cols-2 gap-3 px-6 py-4 md:grid-cols-[1.4fr_1fr_0.8fr_1fr_110px] md:items-center md:gap-4"
+            >
+              <Skeleton className="h-4 w-44" delayIndex={index + 20} />
+              <Skeleton className="h-4 w-20" delayIndex={index + 21} />
+              <Skeleton className="h-4 w-14" delayIndex={index + 22} />
+              <Skeleton className="h-4 w-24" delayIndex={index + 23} />
+              <Skeleton className="h-8 w-24" delayIndex={index + 24} />
+            </div>
+          ))}
+        </div>
+        <PaginationSkeleton />
+      </Card>
+    </div>
+  );
+}
+
+export function ScreeningHistoryPageSkeleton() {
+  return (
+    <div className="w-full px-4 py-4 sm:px-6 sm:py-5">
+      <HeaderSkeleton actionWidths={[116, 104, 140]} />
+
+      <Card className="mt-6 overflow-hidden">
+        <div className="flex items-center justify-between border-b border-line px-6 py-5">
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-52" />
+            <Skeleton className="h-4 w-32" delayIndex={1} />
+          </div>
+        </div>
+        <div className="hidden grid-cols-[2fr_0.9fr_0.9fr_1fr_0.9fr] gap-4 bg-surface-soft/40 px-6 py-3 md:grid">
+          {Array.from({ length: 5 }, (_, index) => (
+            <Skeleton key={index} className="h-3 w-20" delayIndex={index + 3} />
+          ))}
+        </div>
+        <div className="divide-y divide-line">
+          {Array.from({ length: 5 }, (_, index) => (
+            <div
+              key={index}
+              className="grid grid-cols-2 gap-3 px-6 py-4 md:grid-cols-[2fr_0.9fr_0.9fr_1fr_0.9fr] md:items-center md:gap-4"
+            >
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-40" delayIndex={index + 8} />
+                <Skeleton className="h-3 w-24" delayIndex={index + 9} />
+              </div>
+              <Skeleton className="h-4 w-16" delayIndex={index + 10} />
+              <Skeleton className="h-4 w-16" delayIndex={index + 11} />
+              <Skeleton className="h-4 w-24" delayIndex={index + 12} />
+              <Skeleton shape="pill" className="h-6 w-20" delayIndex={index + 13} />
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="mt-6 p-6">
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-44" delayIndex={18} />
+            <Skeleton className="h-4 w-72 max-w-full" delayIndex={19} />
+          </div>
+          <Skeleton className="h-8 w-28" delayIndex={20} />
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-4 md:grid-cols-4">
+          {Array.from({ length: 4 }, (_, index) => (
+            <Skeleton key={index} className="h-20 w-full" delayIndex={index + 21} />
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+}
