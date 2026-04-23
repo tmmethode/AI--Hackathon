@@ -582,7 +582,14 @@ export async function resetManagedUserPassword(id: string, newPassword: string):
 function decodeBase64Url(value: string) {
   const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
   const padding = normalized.length % 4 === 0 ? "" : "=".repeat(4 - (normalized.length % 4));
-  const binary = window.atob(`${normalized}${padding}`);
+
+  const atobFn = typeof globalThis.atob === "function" ? globalThis.atob : null;
+
+  if (!atobFn) {
+    throw new Error("Google login failed. Unable to decode the user profile.");
+  }
+
+  const binary = atobFn(`${normalized}${padding}`);
 
   return decodeURIComponent(
     Array.from(binary)
