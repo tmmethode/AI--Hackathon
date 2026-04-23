@@ -7,6 +7,8 @@ export const metadata: Metadata = {
   description: "Sign in to access the Umurava Screening recruiter workspace.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default function LoginPage() {
   return (
     <Suspense
