@@ -214,7 +214,7 @@ export async function listShortlistSelectors(params: { jobId?: string; limit?: n
   const suffix = query.toString() ? `?${query.toString()}` : "";
   const response = await fetch(`${getApiBaseUrl()}/shortlists/select${suffix}`, {
     headers: { ...getAuthHeader() },
-    cache: "force-cache",
+    cache: "no-store",
   });
 
   return handleApiResponse<ShortlistSelectorResponse>(
@@ -247,7 +247,7 @@ export async function fetchHistorySummary(params: { page?: number; pageSize?: nu
 
   const response = await fetch(`${getApiBaseUrl()}/history/summary${suffix}`, {
     headers: { ...getAuthHeader() },
-    cache: "force-cache",
+    cache: "no-store",
   });
 
   return handleApiResponse<HistorySummaryResponse>(response, "Failed to load screening history.");

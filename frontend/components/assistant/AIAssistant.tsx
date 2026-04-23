@@ -87,8 +87,8 @@ type WindowWithIdleCallback = Window & {
   cancelIdleCallback?: (handle: IdleCallbackHandle) => void;
 };
 
-async function fetchAssistantScopeData(): Promise<AssistantScopeData> {
-  if (hasFreshScopeCache() && cachedScopeData) {
+async function fetchAssistantScopeData(forceRefresh = false): Promise<AssistantScopeData> {
+  if (!forceRefresh && hasFreshScopeCache() && cachedScopeData) {
     return cachedScopeData;
   }
 
@@ -285,11 +285,11 @@ export function AIAssistant() {
     setIsVisible(Boolean(auth?.token) && (role === "admin" || role === "recruiter"));
   }, []);
 
-  const loadScope = useCallback(async () => {
+  const loadScope = useCallback(async (forceRefresh = false) => {
     if (scopeLoadInFlightRef.current) return;
 
     scopeLoadInFlightRef.current = true;
-    const canUseCache = hasFreshScopeCache() && cachedScopeData;
+    const canUseCache = !forceRefresh && hasFreshScopeCache() && cachedScopeData;
 
     if (canUseCache && cachedScopeData) {
       setJobs(cachedScopeData.jobs);
@@ -299,7 +299,7 @@ export function AIAssistant() {
     }
 
     try {
-      const { jobs: jobRows, shortlists: shortlistRows } = await fetchAssistantScopeData();
+      const { jobs: jobRows, shortlists: shortlistRows } = await fetchAssistantScopeData(forceRefresh);
       setJobs(jobRows);
       setShortlists(shortlistRows);
 
@@ -372,6 +372,11 @@ export function AIAssistant() {
 
     return () => window.clearTimeout(timer);
   }, [isVisible, warmScopeData]);
+
+  useEffect(() => {
+    if (!panelOpen) return;
+    void loadScope(true);
+  }, [loadScope, panelOpen]);
 
   useEffect(() => {
     if (!panelOpen) return;
