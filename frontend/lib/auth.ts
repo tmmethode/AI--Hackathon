@@ -1,4 +1,9 @@
-import { AUTH_COOKIE_MAX_AGE, AUTH_TOKEN_COOKIE_NAME } from "@/lib/auth-session";
+import {
+  AUTH_COOKIE_MAX_AGE,
+  AUTH_TOKEN_COOKIE_NAME,
+  clearAuthRuntimeState,
+  initializeAuthRuntimeState,
+} from "@/lib/auth-session";
 
 export type UserRole = "recruiter" | "admin" | "applicant";
 export type ThemePreference = "light" | "dark" | "system";
@@ -103,7 +108,7 @@ export interface AdminUpdateUserPayload {
 }
 
 const AUTH_STORAGE_KEY = "umurava.auth";
-const AUTH_SYNC_EVENT = "umurava-auth-changed";
+export const AUTH_SYNC_EVENT = "umurava-auth-changed";
 const DEFAULT_APP_PATH = "/dashboard";
 
 function normalizeApiUrl(url: string) {
@@ -176,6 +181,7 @@ export function getStoredAuth(): AuthSession | null {
     };
 
     ensureAuthTokenCookie(normalizedSession.token);
+    initializeAuthRuntimeState();
     return normalizedSession;
   } catch {
     window.localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -230,6 +236,7 @@ export function persistAuth(session: AuthSession) {
     // Ignore storage-write failures and still keep in-memory session flow alive.
   }
   ensureAuthTokenCookie(session.token);
+  initializeAuthRuntimeState();
   try {
     window.dispatchEvent(new Event(AUTH_SYNC_EVENT));
   } catch {
@@ -248,11 +255,52 @@ export function clearStoredAuth() {
     // Ignore storage-write failures.
   }
   clearAuthTokenCookie();
+  clearAuthRuntimeState();
   try {
     window.dispatchEvent(new Event(AUTH_SYNC_EVENT));
   } catch {
     // Ignore event-dispatch failures.
   }
+}
+
+export async function refreshAuthToken(): Promise<AuthSession> {
+  const session = getStoredAuth();
+
+  if (!session?.token) {
+    throw new Error("No active session available to refresh.");
+  }
+
+  const response = await fetch(`${getApiBaseUrl()}/auth/refresh`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.token}`,
+    },
+    body: JSON.stringify({ userId: session.user._id }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | { token?: string; user?: AuthUser; message?: string; error?: string }
+    | null;
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      clearStoredAuth();
+    }
+    throw new Error(payload?.message || payload?.error || "Session refresh failed.");
+  }
+
+  if (!payload?.token || !payload.user) {
+    throw new Error("Session refresh failed. The server response was incomplete.");
+  }
+
+  const refreshed = {
+    token: payload.token,
+    user: payload.user,
+  };
+
+  persistAuth(refreshed);
+  return refreshed;
 }
 
 export async function login(credentials: LoginPayload): Promise<AuthSession> {

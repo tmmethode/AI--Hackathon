@@ -36,11 +36,12 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleRedirecting, setIsGoogleRedirecting] = useState(false);
   const nextPath = resolveSafeNextPath(searchParams.get("next"));
   const serverError = searchParams.get("error");
+  const logoutReason = searchParams.get("reason");
 
   useEffect(() => {
     if (!serverError && getStoredAuth()?.token) {
@@ -48,15 +49,18 @@ export function LoginForm() {
     }
   }, [nextPath, router, serverError]);
 
-  useEffect(() => {
-    if (serverError) {
-      setError(serverError);
-    }
-  }, [serverError]);
+  const routeError =
+    serverError ||
+    (logoutReason === "idle"
+      ? "Your session expired after inactivity. Please sign in again."
+      : logoutReason === "absolute"
+        ? "For security, your session reached its maximum lifetime. Please sign in again."
+        : "");
+  const error = submitError || routeError;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError("");
+    setSubmitError("");
     setIsSubmitting(true);
 
     try {
@@ -64,14 +68,14 @@ export function LoginForm() {
       persistAuth(session);
       router.replace(nextPath);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed. Please try again.");
+      setSubmitError(err instanceof Error ? err.message : "Login failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   }
 
   function handleGoogleSignIn() {
-    setError("");
+    setSubmitError("");
     setIsGoogleRedirecting(true);
     window.location.assign(getGoogleLoginUrl(nextPath));
   }
