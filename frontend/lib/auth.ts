@@ -152,7 +152,6 @@ export function getStoredAuth(): AuthSession | null {
   try {
     raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
   } catch {
-    clearAuthTokenCookie();
     return null;
   }
 
