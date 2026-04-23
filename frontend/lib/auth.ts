@@ -147,7 +147,15 @@ export function getStoredAuth(): AuthSession | null {
     return null;
   }
 
-  const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
+  let raw: string | null = null;
+
+  try {
+    raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
+  } catch {
+    clearAuthTokenCookie();
+    return null;
+  }
+
   if (!raw) {
     clearAuthTokenCookie();
     return null;
@@ -181,18 +189,22 @@ function ensureAuthTokenCookie(token: string) {
     return;
   }
 
-  const encodedToken = encodeURIComponent(token);
-  const expectedPrefix = `${AUTH_TOKEN_COOKIE_NAME}=`;
-  const currentCookie = document.cookie
-    .split("; ")
-    .find((cookiePart) => cookiePart.startsWith(expectedPrefix))
-    ?.slice(expectedPrefix.length);
+  try {
+    const encodedToken = encodeURIComponent(token);
+    const expectedPrefix = `${AUTH_TOKEN_COOKIE_NAME}=`;
+    const currentCookie = document.cookie
+      .split("; ")
+      .find((cookiePart) => cookiePart.startsWith(expectedPrefix))
+      ?.slice(expectedPrefix.length);
 
-  if (currentCookie === encodedToken) {
-    return;
+    if (currentCookie === encodedToken) {
+      return;
+    }
+
+    document.cookie = `${AUTH_TOKEN_COOKIE_NAME}=${encodedToken}; Path=/; Max-Age=${AUTH_COOKIE_MAX_AGE}; SameSite=Lax`;
+  } catch {
+    // Ignore cookie-write failures (for strict privacy/browser policies).
   }
-
-  document.cookie = `${AUTH_TOKEN_COOKIE_NAME}=${encodedToken}; Path=/; Max-Age=${AUTH_COOKIE_MAX_AGE}; SameSite=Lax`;
 }
 
 function clearAuthTokenCookie() {
@@ -200,7 +212,11 @@ function clearAuthTokenCookie() {
     return;
   }
 
-  document.cookie = `${AUTH_TOKEN_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax`;
+  try {
+    document.cookie = `${AUTH_TOKEN_COOKIE_NAME}=; Path=/; Max-Age=0; SameSite=Lax`;
+  } catch {
+    // Ignore cookie-write failures (for strict privacy/browser policies).
+  }
 }
 
 export function persistAuth(session: AuthSession) {
@@ -208,9 +224,17 @@ export function persistAuth(session: AuthSession) {
     return;
   }
 
-  window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+  try {
+    window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+  } catch {
+    // Ignore storage-write failures and still keep in-memory session flow alive.
+  }
   ensureAuthTokenCookie(session.token);
-  window.dispatchEvent(new Event(AUTH_SYNC_EVENT));
+  try {
+    window.dispatchEvent(new Event(AUTH_SYNC_EVENT));
+  } catch {
+    // Ignore event-dispatch failures.
+  }
 }
 
 export function clearStoredAuth() {
@@ -218,9 +242,17 @@ export function clearStoredAuth() {
     return;
   }
 
-  window.localStorage.removeItem(AUTH_STORAGE_KEY);
+  try {
+    window.localStorage.removeItem(AUTH_STORAGE_KEY);
+  } catch {
+    // Ignore storage-write failures.
+  }
   clearAuthTokenCookie();
-  window.dispatchEvent(new Event(AUTH_SYNC_EVENT));
+  try {
+    window.dispatchEvent(new Event(AUTH_SYNC_EVENT));
+  } catch {
+    // Ignore event-dispatch failures.
+  }
 }
 
 export async function login(credentials: LoginPayload): Promise<AuthSession> {
