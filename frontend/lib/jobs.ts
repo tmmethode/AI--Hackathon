@@ -47,6 +47,38 @@ export interface JobRecord {
   updatedAt: string;
 }
 
+const DEFAULT_HIRING_MANAGER: HiringManagerSummary = {
+  _id: "",
+  firstName: "",
+  lastName: "",
+  email: "",
+};
+
+function normalizeJobRecord(job: JobRecord): JobRecord {
+  return {
+    ...job,
+    hiringManager: job.hiringManager ?? DEFAULT_HIRING_MANAGER,
+    coreHardSkills: Array.isArray(job.coreHardSkills) ? job.coreHardSkills : [],
+    preferredSkills: Array.isArray(job.preferredSkills) ? job.preferredSkills : [],
+    coreSoftSkills: Array.isArray(job.coreSoftSkills) ? job.coreSoftSkills : [],
+    weightCriteria: Array.isArray(job.weightCriteria) ? job.weightCriteria : [],
+  };
+}
+
+function normalizeJobsResponse(response: JobsResponse): JobsResponse {
+  return {
+    ...response,
+    data: Array.isArray(response.data) ? response.data.map(normalizeJobRecord) : [],
+  };
+}
+
+function normalizeJobResponse(response: JobResponse): JobResponse {
+  return {
+    ...response,
+    data: normalizeJobRecord(response.data),
+  };
+}
+
 export interface JobsResponse {
   data: JobRecord[];
   total: number;
@@ -147,7 +179,9 @@ export async function listJobs(params: {
     cache: "no-store",
   });
 
-  return handleApiResponse<JobsResponse>(response, "Failed to load jobs.");
+  return normalizeJobsResponse(
+    await handleApiResponse<JobsResponse>(response, "Failed to load jobs.")
+  );
 }
 
 export async function listAllJobs(params: {
@@ -219,7 +253,9 @@ export async function createJob(payload: CreateJobPayload) {
     body: JSON.stringify(payload),
   });
 
-  return handleApiResponse<JobResponse>(response, "Failed to create the job.");
+  return normalizeJobResponse(
+    await handleApiResponse<JobResponse>(response, "Failed to create the job.")
+  );
 }
 
 export async function archiveJob(id: string) {
@@ -230,7 +266,9 @@ export async function archiveJob(id: string) {
     },
   });
 
-  return handleApiResponse<JobResponse>(response, "Failed to archive the job.");
+  return normalizeJobResponse(
+    await handleApiResponse<JobResponse>(response, "Failed to archive the job.")
+  );
 }
 
 export async function deleteJob(id: string) {
@@ -244,7 +282,11 @@ export async function deleteJob(id: string) {
   return handleApiResponse<{ id: string; message: string }>(response, "Failed to delete the job.");
 }
 
-export function getHiringManagerName(manager: HiringManagerSummary) {
+export function getHiringManagerName(manager?: HiringManagerSummary | null) {
+  if (!manager) {
+    return "Unassigned";
+  }
+
   const fullName = `${manager.firstName} ${manager.lastName}`.trim();
   return fullName || manager.email || "Unassigned";
 }
