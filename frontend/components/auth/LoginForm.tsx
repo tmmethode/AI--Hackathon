@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ArrowRight, LoaderCircle, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -31,28 +31,26 @@ function GoogleIcon() {
   );
 }
 
-export function LoginForm() {
+interface LoginFormProps {
+  nextPathParam?: string | null;
+  serverErrorParam?: string | null;
+}
+
+export function LoginForm({ nextPathParam, serverErrorParam }: LoginFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(serverErrorParam ?? "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleRedirecting, setIsGoogleRedirecting] = useState(false);
-  const nextPath = resolveSafeNextPath(searchParams.get("next"));
-  const serverError = searchParams.get("error");
+  const nextPath = resolveSafeNextPath(nextPathParam);
+  const serverError = serverErrorParam ?? "";
 
   useEffect(() => {
     if (!serverError && getStoredAuth()?.token) {
       router.replace(nextPath);
     }
   }, [nextPath, router, serverError]);
-
-  useEffect(() => {
-    if (serverError) {
-      setError(serverError);
-    }
-  }, [serverError]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
