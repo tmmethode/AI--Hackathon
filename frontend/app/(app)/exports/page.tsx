@@ -497,7 +497,7 @@ export default function ExportsPage() {
                 exp.status === "ready" ? "success" : exp.status === "generating" ? "brand" : "neutral";
 
               return (
-                <Card key={exp.id} className="p-5">
+                <Card key={`${exp.shortlistId}-${exp.format}`} className="p-5">
                   <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                     <div className="flex items-start gap-4">
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand/10">
