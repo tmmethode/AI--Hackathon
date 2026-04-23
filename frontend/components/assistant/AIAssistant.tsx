@@ -379,6 +379,7 @@ export function AIAssistant() {
 
   useEffect(() => {
     if (!panelOpen) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadScope(true);
   }, [loadScope, panelOpen]);
 
