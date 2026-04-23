@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   Search, Filter, ArrowDownUp, Check, Users, Eye,
@@ -38,6 +39,116 @@ const advanceOptions = [
 ];
 
 type AdvanceKey = typeof advanceOptions[number]["key"];
+
+interface AdvanceDropdownProps {
+  candidate: Candidate;
+  isOpen: boolean;
+  onToggle: () => void;
+  onAdvance: (id: string, status: AdvanceKey | "rejected") => void;
+}
+
+function AdvanceDropdown({ candidate, isOpen, onToggle, onAdvance }: AdvanceDropdownProps) {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; width: number; maxHeight: number; placement: "top" | "bottom" } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    function update() {
+      const btn = buttonRef.current;
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      const vh = window.innerHeight;
+      const vw = window.innerWidth;
+      const margin = 8;
+      const desiredWidth = 240;
+      const spaceBelow = vh - rect.bottom - margin;
+      const spaceAbove = rect.top - margin;
+      const placement: "top" | "bottom" = spaceBelow >= 280 || spaceBelow >= spaceAbove ? "bottom" : "top";
+      const maxHeight = Math.max(160, Math.min(360, placement === "bottom" ? spaceBelow : spaceAbove));
+      const width = Math.min(desiredWidth, vw - margin * 2);
+      let left = rect.right - width;
+      if (left < margin) left = margin;
+      if (left + width > vw - margin) left = vw - margin - width;
+      const top = placement === "bottom" ? rect.bottom + 4 : rect.top - 4 - maxHeight;
+      setPos({ top, left, width, maxHeight, placement });
+    }
+
+    update();
+    const onScroll = () => update();
+    const onResize = () => update();
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [isOpen]);
+
+  return (
+    <>
+      <Button
+        ref={buttonRef as unknown as React.Ref<HTMLButtonElement>}
+        size="sm"
+        leftIcon={<ChevronRight className="h-3.5 w-3.5" />}
+        onClick={onToggle}
+        disabled={candidate.status === "rejected"}
+      >
+        Advance ▾
+      </Button>
+      {isOpen && pos && createPortal(
+        <div
+          role="menu"
+          style={{
+            position: "fixed",
+            top: pos.top,
+            left: pos.left,
+            width: pos.width,
+            maxHeight: pos.maxHeight,
+            zIndex: 60,
+          }}
+          className="overflow-y-auto rounded-lg border border-line bg-surface shadow-xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <p className="sticky top-0 bg-surface px-3 pt-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+            Advance to
+          </p>
+          {advanceOptions.map((opt) => (
+            <button
+              key={opt.key}
+              onClick={() => onAdvance(candidate.id, opt.key)}
+              className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-surface-soft transition-colors ${
+                candidate.status === opt.key ? "bg-brand-soft/20" : ""
+              }`}
+            >
+              <opt.icon className={`h-4 w-4 shrink-0 ${candidate.status === opt.key ? "text-success" : "text-brand"}`} />
+              <div>
+                <p className="text-sm font-medium text-ink">{opt.label}</p>
+                <p className="text-[10px] text-ink-muted">{opt.desc}</p>
+              </div>
+              {candidate.status === opt.key && <Check className="h-3.5 w-3.5 ml-auto text-success" />}
+            </button>
+          ))}
+          <div className="border-t border-line">
+            <button
+              onClick={() => onAdvance(candidate.id, "rejected")}
+              className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-danger/5 transition-colors"
+            >
+              <X className="h-4 w-4 shrink-0 text-danger" />
+              <div>
+                <p className="text-sm font-medium text-danger">Reject</p>
+                <p className="text-[10px] text-ink-muted">Remove from pipeline</p>
+              </div>
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
+  );
+}
 
 const statusTone: Record<CandidateStatus, React.ComponentProps<typeof Badge>["tone"]> = {
   shortlisted: "brand",
@@ -638,43 +749,12 @@ export default function CandidatesPage() {
                       </Button>
                     </Link>
 
-                    <div className="relative">
-                      <Button size="sm" leftIcon={<ChevronRight className="h-3.5 w-3.5" />}
-                        onClick={() => setAdvanceDropdownId(advanceDropdownId === c.id ? null : c.id)}
-                        disabled={c.status === "rejected"}>
-                        Advance ▾
-                      </Button>
-                      {advanceDropdownId === c.id && (
-                        <div className="absolute right-0 bottom-10 z-20 w-60 max-w-[calc(100vw-2rem)] rounded-lg border border-line bg-surface shadow-xl">
-                          <p className="px-3 pt-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Advance to</p>
-                          {advanceOptions.map((opt) => (
-                            <button key={opt.key}
-                              onClick={() => handleAdvance(c.id, opt.key)}
-                              className={`flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-surface-soft transition-colors ${
-                                c.status === opt.key ? "bg-brand-soft/20" : ""
-                              }`}>
-                              <opt.icon className={`h-4 w-4 shrink-0 ${c.status === opt.key ? "text-success" : "text-brand"}`} />
-                              <div>
-                                <p className="text-sm font-medium text-ink">{opt.label}</p>
-                                <p className="text-[10px] text-ink-muted">{opt.desc}</p>
-                              </div>
-                              {c.status === opt.key && <Check className="h-3.5 w-3.5 ml-auto text-success" />}
-                            </button>
-                          ))}
-                          <div className="border-t border-line">
-                            <button
-                              onClick={() => handleAdvance(c.id, "rejected")}
-                              className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-danger/5 transition-colors">
-                              <X className="h-4 w-4 shrink-0 text-danger" />
-                              <div>
-                                <p className="text-sm font-medium text-danger">Reject</p>
-                                <p className="text-[10px] text-ink-muted">Remove from pipeline</p>
-                              </div>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <AdvanceDropdown
+                      candidate={c}
+                      isOpen={advanceDropdownId === c.id}
+                      onToggle={() => setAdvanceDropdownId(advanceDropdownId === c.id ? null : c.id)}
+                      onAdvance={handleAdvance}
+                    />
 
                     <button
                       onClick={() => setEmailTarget(c)}

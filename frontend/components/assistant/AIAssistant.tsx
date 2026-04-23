@@ -3,12 +3,14 @@
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Bot,
+  Expand,
   Loader2,
   Maximize2,
   MessageCircle,
   Minimize2,
   RefreshCw,
   Send,
+  Shrink,
   Sparkles,
   X,
 } from "lucide-react";
@@ -255,6 +257,7 @@ function AssistantMarkdownMessage({ content }: { content: string }) {
 export function AIAssistant() {
   const [isVisible, setIsVisible] = useState(false);
   const [panelState, setPanelState] = useState<PanelState>("closed");
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -282,6 +285,7 @@ export function AIAssistant() {
   useEffect(() => {
     const auth = getStoredAuth();
     const role = auth?.user?.role;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsVisible(Boolean(auth?.token) && (role === "admin" || role === "recruiter"));
   }, []);
 
@@ -381,6 +385,7 @@ export function AIAssistant() {
   useEffect(() => {
     if (!panelOpen) return;
     if (!health) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       void loadHealth();
     }
   }, [health, loadHealth, panelOpen]);
@@ -416,6 +421,7 @@ export function AIAssistant() {
   useEffect(() => {
     if (!scope.shortlistId) return;
     if (filteredShortlists.some((entry) => entry._id === scope.shortlistId)) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setScope((prev) => ({ ...prev, shortlistId: "" }));
   }, [filteredShortlists, scope.shortlistId]);
 
@@ -596,9 +602,14 @@ export function AIAssistant() {
           aria-label="AI recruiter assistant"
           aria-modal="false"
           className={cn(
-            "fixed bottom-0 right-0 z-[60] flex w-full flex-col overflow-hidden border border-line bg-surface shadow-soft",
-            "sm:bottom-6 sm:right-6 sm:w-[430px] sm:rounded-2xl",
-            panelState === "open" ? "h-[min(90vh,680px)] sm:h-[660px]" : "h-[70px] sm:h-[72px]"
+            "fixed z-[60] flex flex-col overflow-hidden border border-line bg-surface shadow-soft",
+            isFullscreen && panelOpen
+              ? "inset-0 h-full w-full sm:inset-0 sm:rounded-none"
+              : cn(
+                  "bottom-0 right-0 w-full",
+                  "sm:bottom-6 sm:right-6 sm:w-[430px] sm:rounded-2xl",
+                  panelState === "open" ? "h-[min(90vh,680px)] sm:h-[660px]" : "h-[70px] sm:h-[72px]"
+                )
           )}
         >
           <header className="flex items-center justify-between gap-3 border-b border-line bg-surface-soft px-4 py-3">
@@ -620,10 +631,21 @@ export function AIAssistant() {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              {panelState === "open" && (
+                <button
+                  type="button"
+                  onClick={() => setIsFullscreen((v) => !v)}
+                  className="rounded-md p-1.5 text-ink-muted hover:bg-surface"
+                  aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                  title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+                >
+                  {isFullscreen ? <Shrink className="h-4 w-4" /> : <Expand className="h-4 w-4" />}
+                </button>
+              )}
               {panelState === "open" ? (
                 <button
                   type="button"
-                  onClick={() => setPanelState("minimized")}
+                  onClick={() => { setIsFullscreen(false); setPanelState("minimized"); }}
                   className="rounded-md p-1.5 text-ink-muted hover:bg-surface"
                   aria-label="Minimize assistant"
                 >
@@ -641,7 +663,7 @@ export function AIAssistant() {
               )}
               <button
                 type="button"
-                onClick={() => setPanelState("closed")}
+                onClick={() => { setIsFullscreen(false); setPanelState("closed"); }}
                 className="rounded-md p-1.5 text-ink-muted hover:bg-surface"
                 aria-label="Close assistant"
               >
