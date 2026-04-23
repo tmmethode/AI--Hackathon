@@ -152,7 +152,8 @@ export function getStoredAuth(): AuthSession | null {
   try {
     raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
   } catch {
-    clearAuthTokenCookie();
+    // Storage reads can be blocked while cookies are still available.
+    // Preserve cookie-based auth state in this case.
     return null;
   }
 
