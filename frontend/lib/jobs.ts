@@ -234,7 +234,7 @@ export async function listJobSelectors(params: {
     headers: {
       ...getAuthHeader(),
     },
-    cache: "force-cache",
+    cache: "no-store",
   });
 
   return handleApiResponse<{ data: JobSelectorItem[]; message: string }>(
