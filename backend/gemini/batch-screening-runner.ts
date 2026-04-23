@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Applicant, { IApplicant } from "../models/Applicant";
 import Job, { IJob } from "../models/Job";
 import { HttpError } from "../utils/HttpError";
+import { resolveApplicantStructuredSections } from "../utils/applicant-profile";
 import { GeminiScreeningService } from "./screening";
 import {
   GeminiBatchApplicant,
@@ -45,6 +46,18 @@ function toBatchJobFromModel(job: IJob): GeminiBatchJob {
 }
 
 function toBatchApplicantFromModel(applicant: IApplicant): GeminiBatchApplicant {
+  const structured = resolveApplicantStructuredSections({
+    skills: applicant.skills,
+    languages: applicant.languages,
+    experience: applicant.experience,
+    education: applicant.education,
+    certifications: applicant.certifications,
+    projects: applicant.projects,
+    availability: applicant.availability,
+    socialLinks: applicant.socialLinks,
+    rawPayload: applicant.rawPayload,
+  });
+
   return {
     firstName: applicant.firstName,
     lastName: applicant.lastName,
@@ -52,16 +65,16 @@ function toBatchApplicantFromModel(applicant: IApplicant): GeminiBatchApplicant 
     headline: applicant.headline,
     bio: applicant.bio,
     location: applicant.location,
-    skills: applicant.skills?.map((skill) => ({
+    skills: structured.skills.map((skill) => ({
       name: skill.name,
       level: skill.level,
       yearsOfExperience: skill.yearsOfExperience,
     })),
-    languages: applicant.languages?.map((language) => ({
+    languages: structured.languages.map((language) => ({
       name: language.name,
       proficiency: language.proficiency,
     })),
-    experience: applicant.experience?.map((entry) => ({
+    experience: structured.experience.map((entry) => ({
       company: entry.company,
       role: entry.role,
       startDate: entry.startDate,
@@ -70,19 +83,19 @@ function toBatchApplicantFromModel(applicant: IApplicant): GeminiBatchApplicant 
       technologies: entry.technologies,
       isCurrent: entry.isCurrent,
     })),
-    education: applicant.education?.map((entry) => ({
+    education: structured.education.map((entry) => ({
       institution: entry.institution,
       degree: entry.degree,
       fieldOfStudy: entry.fieldOfStudy,
       startYear: entry.startYear,
       endYear: entry.endYear,
     })),
-    certifications: applicant.certifications?.map((entry) => ({
+    certifications: structured.certifications.map((entry) => ({
       name: entry.name,
       issuer: entry.issuer,
       issueDate: entry.issueDate,
     })),
-    projects: applicant.projects?.map((project) => ({
+    projects: structured.projects.map((project) => ({
       name: project.name,
       description: project.description,
       technologies: project.technologies,
@@ -91,18 +104,18 @@ function toBatchApplicantFromModel(applicant: IApplicant): GeminiBatchApplicant 
       startDate: project.startDate,
       endDate: project.endDate,
     })),
-    availability: applicant.availability
+    availability: structured.availability
       ? {
-          status: applicant.availability.status,
-          type: applicant.availability.type,
-          startDate: applicant.availability.startDate,
+          status: structured.availability.status,
+          type: structured.availability.type,
+          startDate: structured.availability.startDate,
         }
       : undefined,
-    socialLinks: applicant.socialLinks
+    socialLinks: structured.socialLinks
       ? {
-          linkedin: applicant.socialLinks.linkedin,
-          github: applicant.socialLinks.github,
-          portfolio: applicant.socialLinks.portfolio,
+          linkedin: structured.socialLinks.linkedin,
+          github: structured.socialLinks.github,
+          portfolio: structured.socialLinks.portfolio,
         }
       : undefined,
   };

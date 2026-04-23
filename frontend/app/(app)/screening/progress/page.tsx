@@ -125,21 +125,48 @@ export default function ScreeningProgressPage() {
 
     return Math.max(0, run.request.estimatedMaxSeconds - elapsedSeconds);
   }, [elapsedSeconds, hasFailed, isComplete, run]);
-  const visibleCandidates = useMemo(() => {
-    if (!run?.response?.shortlist?.length) {
+  const liveFeedCandidates = useMemo(() => {
+    if (!run?.response) {
+      return [];
+    }
+
+    const shortlist = run.response.shortlist || [];
+    const rankedCandidates =
+      shortlist.length > 0 ? shortlist : isComplete ? run.response.screeningResults || [] : [];
+
+    if (!rankedCandidates.length) {
       return [];
     }
 
     const candidateCount = isComplete
-      ? Math.min(run.response.shortlist.length, 6)
-      : Math.min(Math.floor((progress / 100) * run.response.shortlist.length), run.response.shortlist.length);
+      ? Math.min(rankedCandidates.length, 6)
+      : Math.min(Math.floor((progress / 100) * rankedCandidates.length), rankedCandidates.length);
 
-    return run.response.shortlist.slice(0, candidateCount).map((candidate) => ({
+    return rankedCandidates.slice(0, candidateCount).map((candidate) => ({
       name: candidate.fullName,
       score: candidate.matchScore,
       status: getRecommendationStatus(candidate.matchScore),
     }));
   }, [isComplete, progress, run]);
+  const liveFeedDescription = useMemo(() => {
+    if (hasFailed) {
+      return "Candidates will appear here when results are ready";
+    }
+
+    if (!isComplete) {
+      return "Candidates will appear here when results are ready";
+    }
+
+    if (run?.response?.shortlist?.length) {
+      return "Top shortlisted candidates from this run";
+    }
+
+    if (run?.response?.screeningResults?.length) {
+      return "No candidates reached the shortlist cutoff. Showing top ranked candidates from this run";
+    }
+
+    return "No candidates were returned for this run";
+  }, [hasFailed, isComplete, run]);
 
   if (!run) {
     return (
@@ -399,21 +426,27 @@ export default function ScreeningProgressPage() {
               </Badge>
             </div>
             <p className="mt-1 text-xs text-ink-muted">
-              {isComplete ? "Top shortlisted candidates from this run" : "Candidates will appear here when results are ready"}
+              {liveFeedDescription}
             </p>
 
-            {visibleCandidates.length === 0 ? (
+            {liveFeedCandidates.length === 0 ? (
               <div className="mt-4 rounded-md border border-dashed border-line p-6 text-center text-xs text-ink-muted">
                 {hasFailed ? (
                   <XCircle className="mx-auto mb-2 h-5 w-5 text-danger/60" />
+                ) : isComplete ? (
+                  <CheckCircle2 className="mx-auto mb-2 h-5 w-5 text-success/60" />
                 ) : (
                   <Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin text-brand/40" />
                 )}
-                {hasFailed ? "No shortlist was produced for this run." : "Waiting for results…"}
+                {hasFailed
+                  ? "No shortlist was produced for this run."
+                  : isComplete
+                  ? "Screening finished, but there are no candidate results to display."
+                  : "Waiting for results…"}
               </div>
             ) : (
               <ul className="mt-3 space-y-2">
-                {visibleCandidates.map((c) => (
+                {liveFeedCandidates.map((c) => (
                   <li
                     key={c.name}
                     className="flex items-center justify-between rounded-md border border-line p-2.5 transition-all"

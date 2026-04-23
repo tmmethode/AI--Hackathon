@@ -19,6 +19,7 @@ import { IUser } from '../models/User';
 import { HttpError } from '../utils/HttpError';
 import { GeminiClient } from '../gemini/client';
 import { GeminiApplicantImportService } from '../gemini/applicant-import';
+import { buildApplicantProfileInput, resolveApplicantStructuredSections } from '../utils/applicant-profile';
 import {
   ApplicantProfileInput,
   ApplicantListResponse,
@@ -72,49 +73,6 @@ export class ApplicantController {
       return undefined;
     };
 
-    const normalizeExperience = (e: any) => ({
-      company: pick(e, 'company'),
-      role: pick(e, 'role', 'title'),
-      startDate: pick(e, 'startDate', 'Start Date'),
-      endDate: pick(e, 'endDate', 'End Date'),
-      description: pick(e, 'description'),
-      technologies: Array.isArray(e?.technologies) ? e.technologies : [],
-      isCurrent: Boolean(pick(e, 'isCurrent', 'Is Current')),
-    });
-
-    const normalizeEducation = (e: any) => ({
-      institution: pick(e, 'institution'),
-      degree: pick(e, 'degree'),
-      fieldOfStudy: pick(e, 'fieldOfStudy', 'Field of Study'),
-      startYear: pick(e, 'startYear', 'Start Year'),
-      endYear: pick(e, 'endYear', 'End Year'),
-    });
-
-    const normalizeCert = (c: any) => ({
-      name: pick(c, 'name'),
-      issuer: pick(c, 'issuer'),
-      issueDate: pick(c, 'issueDate', 'Issue Date'),
-    });
-
-    const normalizeProject = (p: any) => ({
-      name: pick(p, 'name'),
-      description: pick(p, 'description'),
-      technologies: Array.isArray(p?.technologies) ? p.technologies : [],
-      role: pick(p, 'role'),
-      link: pick(p, 'link'),
-      startDate: pick(p, 'startDate', 'Start Date'),
-      endDate: pick(p, 'endDate', 'End Date'),
-    });
-
-    const normalizeAvailability = (a: any) =>
-      a
-        ? {
-            status: pick(a, 'status'),
-            type: pick(a, 'type'),
-            startDate: pick(a, 'startDate', 'Start Date'),
-          }
-        : undefined;
-
     const firstName = pick(raw, 'firstName', 'first_name');
     const lastName = pick(raw, 'lastName', 'last_name');
     const email = pick(raw, 'email');
@@ -123,33 +81,30 @@ export class ApplicantController {
       throw new HttpError(400, 'firstName, lastName and email are required');
     }
 
-    return {
+    return buildApplicantProfileInput({
+      ...raw,
       firstName: String(firstName).trim(),
       lastName: String(lastName).trim(),
       email: String(email).trim().toLowerCase(),
       headline: pick(raw, 'headline'),
       bio: pick(raw, 'bio'),
       location: pick(raw, 'location'),
-      skills: Array.isArray(raw.skills) ? raw.skills : [],
-      languages: Array.isArray(raw.languages) ? raw.languages : [],
-      experience: Array.isArray(raw.experience)
-        ? raw.experience.map(normalizeExperience)
-        : [],
-      education: Array.isArray(raw.education)
-        ? raw.education.map(normalizeEducation)
-        : [],
-      certifications: Array.isArray(raw.certifications)
-        ? raw.certifications.map(normalizeCert)
-        : [],
-      projects: Array.isArray(raw.projects)
-        ? raw.projects.map(normalizeProject)
-        : [],
-      availability: normalizeAvailability(raw.availability),
-      socialLinks: raw.socialLinks,
-    };
+    });
   }
 
   private toResponse(a: IApplicant): IApplicantResponse {
+    const structured = resolveApplicantStructuredSections({
+      skills: a.skills,
+      languages: a.languages,
+      experience: a.experience,
+      education: a.education,
+      certifications: a.certifications,
+      projects: a.projects,
+      availability: a.availability,
+      socialLinks: a.socialLinks,
+      rawPayload: a.rawPayload,
+    });
+
     return {
       _id: a._id.toString(),
       job: a.job.toString(),
@@ -159,9 +114,9 @@ export class ApplicantController {
       headline: a.headline,
       bio: a.bio,
       location: a.location,
-      skills: a.skills || [],
-      languages: a.languages || [],
-      experience: (a.experience || []).map((e) => ({
+      skills: structured.skills,
+      languages: structured.languages,
+      experience: structured.experience.map((e) => ({
         company: e.company,
         role: e.role,
         startDate: e.startDate,
@@ -170,17 +125,17 @@ export class ApplicantController {
         technologies: e.technologies || [],
         isCurrent: e.isCurrent,
       })),
-      education: (a.education || []).map((e) => ({
+      education: structured.education.map((e) => ({
         institution: e.institution,
         degree: e.degree,
         fieldOfStudy: e.fieldOfStudy,
         startYear: e.startYear,
         endYear: e.endYear,
       })),
-      certifications: a.certifications || [],
-      projects: a.projects || [],
-      availability: a.availability,
-      socialLinks: a.socialLinks,
+      certifications: structured.certifications,
+      projects: structured.projects,
+      availability: structured.availability,
+      socialLinks: structured.socialLinks,
       source: a.source,
       ingestStatus: a.ingestStatus,
       ingestError: a.ingestError,

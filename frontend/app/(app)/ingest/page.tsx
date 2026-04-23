@@ -364,6 +364,41 @@ function normalizeSkills(value: unknown): ApplicantSkill[] {
 }
 
 function normalizeLanguages(value: unknown) {
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => {
+        if (typeof entry === "string") {
+          const [name, proficiency] = entry.split(":").map((item) => item.trim());
+          if (!name) {
+            return null;
+          }
+
+          return {
+            name,
+            proficiency: proficiency || undefined,
+          };
+        }
+
+        if (entry && typeof entry === "object" && "name" in entry && typeof entry.name === "string") {
+          const trimmed = entry.name.trim();
+          if (!trimmed) {
+            return null;
+          }
+
+          return {
+            name: trimmed,
+            proficiency:
+              "proficiency" in entry && typeof entry.proficiency === "string" && entry.proficiency.trim()
+                ? entry.proficiency.trim()
+                : undefined,
+          };
+        }
+
+        return null;
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+  }
+
   if (typeof value !== "string" || !value.trim()) {
     return [];
   }
@@ -401,12 +436,181 @@ function normalizeBoolean(value: unknown) {
 }
 
 function normalizeNumber(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
   if (typeof value !== "string" || !value.trim()) {
     return undefined;
   }
 
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function normalizeExperienceEntries(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") {
+        return null;
+      }
+
+      const record = entry as Record<string, unknown>;
+      const company = pickValue(record, "company", "employer", "organization");
+      const role = pickValue(record, "role", "title", "position", "jobTitle");
+
+      if (typeof company !== "string" || !company.trim() || typeof role !== "string" || !role.trim()) {
+        return null;
+      }
+
+      return {
+        company: company.trim(),
+        role: role.trim(),
+        startDate:
+          (typeof pickValue(record, "startDate", "Start Date", "start") === "string" &&
+            String(pickValue(record, "startDate", "Start Date", "start")).trim()) ||
+          undefined,
+        endDate:
+          (typeof pickValue(record, "endDate", "End Date", "end") === "string" &&
+            String(pickValue(record, "endDate", "End Date", "end")).trim()) ||
+          undefined,
+        description:
+          (typeof pickValue(record, "description", "summary", "details") === "string" &&
+            String(pickValue(record, "description", "summary", "details")).trim()) ||
+          undefined,
+        technologies: Array.isArray(record.technologies)
+          ? record.technologies.map((item) => String(item).trim()).filter(Boolean)
+          : splitDelimitedText(String(pickValue(record, "technologies", "skills", "stack") || "")),
+        isCurrent:
+          typeof record.isCurrent === "boolean"
+            ? record.isCurrent
+            : normalizeBoolean(pickValue(record, "isCurrent", "Is Current", "current")),
+      };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+}
+
+function normalizeEducationEntries(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") {
+        return null;
+      }
+
+      const record = entry as Record<string, unknown>;
+      const institution = pickValue(record, "institution", "school", "university", "college");
+
+      if (typeof institution !== "string" || !institution.trim()) {
+        return null;
+      }
+
+      return {
+        institution: institution.trim(),
+        degree:
+          (typeof pickValue(record, "degree", "qualification", "program") === "string" &&
+            String(pickValue(record, "degree", "qualification", "program")).trim()) ||
+          undefined,
+        fieldOfStudy:
+          (typeof pickValue(record, "fieldOfStudy", "field", "major", "Field of Study") === "string" &&
+            String(pickValue(record, "fieldOfStudy", "field", "major", "Field of Study")).trim()) ||
+          undefined,
+        startYear: normalizeNumber(pickValue(record, "startYear", "Start Year")),
+        endYear: normalizeNumber(pickValue(record, "endYear", "End Year", "graduationYear")),
+      };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+}
+
+function normalizeCertificationEntries(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      if (typeof entry === "string") {
+        const trimmed = entry.trim();
+        return trimmed ? { name: trimmed } : null;
+      }
+
+      if (!entry || typeof entry !== "object") {
+        return null;
+      }
+
+      const record = entry as Record<string, unknown>;
+      const name = pickValue(record, "name", "title", "certification", "certificate");
+      if (typeof name !== "string" || !name.trim()) {
+        return null;
+      }
+
+      return {
+        name: name.trim(),
+        issuer:
+          (typeof pickValue(record, "issuer", "organization") === "string" &&
+            String(pickValue(record, "issuer", "organization")).trim()) ||
+          undefined,
+        issueDate:
+          (typeof pickValue(record, "issueDate", "Issue Date", "date") === "string" &&
+            String(pickValue(record, "issueDate", "Issue Date", "date")).trim()) ||
+          undefined,
+      };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+}
+
+function normalizeProjectEntries(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      if (!entry || typeof entry !== "object") {
+        return null;
+      }
+
+      const record = entry as Record<string, unknown>;
+      const name = pickValue(record, "name", "title", "project");
+      if (typeof name !== "string" || !name.trim()) {
+        return null;
+      }
+
+      return {
+        name: name.trim(),
+        description:
+          (typeof pickValue(record, "description", "summary", "details") === "string" &&
+            String(pickValue(record, "description", "summary", "details")).trim()) ||
+          undefined,
+        technologies: Array.isArray(record.technologies)
+          ? record.technologies.map((item) => String(item).trim()).filter(Boolean)
+          : splitDelimitedText(String(pickValue(record, "technologies", "skills", "stack") || "")),
+        role:
+          (typeof pickValue(record, "role", "position") === "string" &&
+            String(pickValue(record, "role", "position")).trim()) ||
+          undefined,
+        link:
+          (typeof pickValue(record, "link", "url") === "string" &&
+            String(pickValue(record, "link", "url")).trim()) ||
+          undefined,
+        startDate:
+          (typeof pickValue(record, "startDate", "Start Date") === "string" &&
+            String(pickValue(record, "startDate", "Start Date")).trim()) ||
+          undefined,
+        endDate:
+          (typeof pickValue(record, "endDate", "End Date") === "string" &&
+            String(pickValue(record, "endDate", "End Date")).trim()) ||
+          undefined,
+      };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
 }
 
 function normalizeApplicantInput(raw: unknown): ApplicantProfileInput {
@@ -434,12 +638,20 @@ function normalizeApplicantInput(raw: unknown): ApplicantProfileInput {
     record.socialLinks && typeof record.socialLinks === "object"
       ? (record.socialLinks as Record<string, unknown>)
       : {};
+  const availabilityRaw =
+    record.availability && typeof record.availability === "object"
+      ? (record.availability as Record<string, unknown>)
+      : {};
 
   const experienceCompany = pickValue(record, "experienceCompany");
   const experienceRole = pickValue(record, "experienceRole");
   const educationInstitution = pickValue(record, "educationInstitution");
   const certificationName = pickValue(record, "certificationName");
   const projectName = pickValue(record, "projectName");
+  const nestedExperience = normalizeExperienceEntries(pickValue(record, "experience", "workExperience", "workHistory"));
+  const nestedEducation = normalizeEducationEntries(pickValue(record, "education", "educationHistory"));
+  const nestedCertifications = normalizeCertificationEntries(pickValue(record, "certifications"));
+  const nestedProjects = normalizeProjectEntries(pickValue(record, "projects"));
 
   return {
     firstName,
@@ -458,8 +670,9 @@ function normalizeApplicantInput(raw: unknown): ApplicantProfileInput {
       undefined,
     skills: normalizeSkills(pickValue(record, "skills")),
     languages: normalizeLanguages(pickValue(record, "languages")),
-    experience:
-      typeof experienceCompany === "string" && experienceCompany.trim() && typeof experienceRole === "string" && experienceRole.trim()
+    experience: nestedExperience.length > 0
+      ? nestedExperience
+      : typeof experienceCompany === "string" && experienceCompany.trim() && typeof experienceRole === "string" && experienceRole.trim()
         ? [
             {
               company: experienceCompany.trim(),
@@ -481,8 +694,9 @@ function normalizeApplicantInput(raw: unknown): ApplicantProfileInput {
             },
           ]
         : [],
-    education:
-      typeof educationInstitution === "string" && educationInstitution.trim()
+    education: nestedEducation.length > 0
+      ? nestedEducation
+      : typeof educationInstitution === "string" && educationInstitution.trim()
         ? [
             {
               institution: educationInstitution.trim(),
@@ -499,8 +713,9 @@ function normalizeApplicantInput(raw: unknown): ApplicantProfileInput {
             },
           ]
         : [],
-    certifications:
-      typeof certificationName === "string" && certificationName.trim()
+    certifications: nestedCertifications.length > 0
+      ? nestedCertifications
+      : typeof certificationName === "string" && certificationName.trim()
         ? [
             {
               name: certificationName.trim(),
@@ -511,12 +726,13 @@ function normalizeApplicantInput(raw: unknown): ApplicantProfileInput {
               issueDate:
                 (typeof pickValue(record, "certificationIssueDate") === "string" &&
                   String(pickValue(record, "certificationIssueDate")).trim()) ||
-                undefined,
+              undefined,
             },
           ]
         : [],
-    projects:
-      typeof projectName === "string" && projectName.trim()
+    projects: nestedProjects.length > 0
+      ? nestedProjects
+      : typeof projectName === "string" && projectName.trim()
         ? [
             {
               name: projectName.trim(),
@@ -540,22 +756,29 @@ function normalizeApplicantInput(raw: unknown): ApplicantProfileInput {
               endDate:
                 (typeof pickValue(record, "projectEndDate") === "string" &&
                   String(pickValue(record, "projectEndDate")).trim()) ||
-                undefined,
+              undefined,
             },
           ]
         : [],
     availability:
-      pickValue(record, "availabilityStatus", "availabilityType", "availabilityStartDate") !== undefined
+      pickValue(record, "availabilityStatus", "availabilityType", "availabilityStartDate") !== undefined ||
+      Object.keys(availabilityRaw).length > 0
         ? {
             status:
+              (typeof pickValue(availabilityRaw, "status") === "string" &&
+                String(pickValue(availabilityRaw, "status")).trim()) ||
               (typeof pickValue(record, "availabilityStatus") === "string" &&
                 String(pickValue(record, "availabilityStatus")).trim()) ||
               undefined,
             type:
+              (typeof pickValue(availabilityRaw, "type") === "string" &&
+                String(pickValue(availabilityRaw, "type")).trim()) ||
               (typeof pickValue(record, "availabilityType") === "string" &&
                 String(pickValue(record, "availabilityType")).trim()) ||
               undefined,
             startDate:
+              (typeof pickValue(availabilityRaw, "startDate", "Start Date") === "string" &&
+                String(pickValue(availabilityRaw, "startDate", "Start Date")).trim()) ||
               (typeof pickValue(record, "availabilityStartDate") === "string" &&
                 String(pickValue(record, "availabilityStartDate")).trim()) ||
               undefined,
@@ -633,6 +856,30 @@ function parseCsvText(text: string) {
 
     return row;
   });
+}
+
+function extractApplicantRecordsFromJsonPayload(payload: unknown): unknown[] | null {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (payload && typeof payload === "object") {
+    const record = payload as Record<string, unknown>;
+
+    if (Array.isArray(record.applicants)) {
+      return record.applicants;
+    }
+
+    if (record.applicant && typeof record.applicant === "object") {
+      return [record.applicant];
+    }
+
+    if ("firstName" in record && "lastName" in record && "email" in record) {
+      return [record];
+    }
+  }
+
+  return null;
 }
 
 function readFileAsText(file: File) {
@@ -771,8 +1018,8 @@ function JsonTab({
           <div>
             <p className="text-sm font-medium text-ink">Expected payload</p>
             <p className="mt-1 text-xs text-ink-muted">
-              Match the backend contract by sending an object with an `applicants` array. Each applicant should include
-              `firstName`, `lastName`, and `email`.
+              Supported JSON formats: a single applicant object, an array of applicants, or an object with an
+              `applicants` array. Each applicant should include `firstName`, `lastName`, and `email`.
             </p>
           </div>
         </div>
@@ -1161,14 +1408,12 @@ export default function IngestPage() {
 
           const text = await readFileAsText(file);
           const payload = JSON.parse(text);
-          const records: unknown[] | null = Array.isArray(payload)
-            ? payload
-            : Array.isArray(payload?.applicants)
-              ? payload.applicants
-              : null;
+          const records = extractApplicantRecordsFromJsonPayload(payload);
 
           if (!records) {
-            throw new Error(`${file.name} must contain an array of applicants.`);
+            throw new Error(
+              `${file.name} must contain a single applicant object, an applicants array, or an object with applicants[].`
+            );
           }
 
           applicantGroups.push(records.map((entry) => normalizeApplicantInput(entry)));
@@ -1660,8 +1905,8 @@ export default function IngestPage() {
           <div className="rounded-md border border-line bg-surface-soft/30 p-4">
             <p className="text-sm font-medium text-ink">Recommended fields</p>
             <p className="mt-1 text-xs text-ink-muted">
-              This example matches the backend-supported payload shape, including the top-level `applicants` array and
-              nested profile sections.
+              This example matches the backend-supported applicant shape. You can upload it directly as one applicant,
+              wrap multiple applicants in an array, or use a top-level `applicants` array.
             </p>
           </div>
           <pre className="overflow-x-auto rounded-lg border border-line bg-ink px-4 py-4 text-xs leading-6 text-white">

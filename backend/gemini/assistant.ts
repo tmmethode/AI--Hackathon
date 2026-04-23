@@ -3,6 +3,7 @@ import Applicant, { IApplicant } from "../models/Applicant";
 import Job, { IJob } from "../models/Job";
 import Shortlist, { IShortlist } from "../models/Shortlist";
 import { HttpError } from "../utils/HttpError";
+import { resolveApplicantStructuredSections } from "../utils/applicant-profile";
 import { GeminiClient } from "./client";
 import {
   buildRecruiterAssistantPrompt,
@@ -249,6 +250,18 @@ function toBatchJobFromModel(job: IJob): GeminiBatchJob {
 }
 
 function toBatchApplicantFromModel(applicant: IApplicant): GeminiBatchApplicant {
+  const structured = resolveApplicantStructuredSections({
+    skills: applicant.skills,
+    languages: applicant.languages,
+    experience: applicant.experience,
+    education: applicant.education,
+    certifications: applicant.certifications,
+    projects: applicant.projects,
+    availability: applicant.availability,
+    socialLinks: applicant.socialLinks,
+    rawPayload: applicant.rawPayload,
+  });
+
   const trimText = (value?: string, max = MAX_TEXT_FIELD_CHARS): string | undefined => {
     if (!value) return undefined;
     const normalized = value.trim();
@@ -267,16 +280,16 @@ function toBatchApplicantFromModel(applicant: IApplicant): GeminiBatchApplicant 
     headline: trimText(applicant.headline, 160),
     bio: trimText(applicant.bio, 450),
     location: trimText(applicant.location, 120),
-    skills: capItems(applicant.skills)?.map((skill) => ({
+    skills: capItems(structured.skills)?.map((skill) => ({
       name: skill.name,
       level: skill.level,
       yearsOfExperience: skill.yearsOfExperience,
     })),
-    languages: capItems(applicant.languages, 8)?.map((language) => ({
+    languages: capItems(structured.languages, 8)?.map((language) => ({
       name: language.name,
       proficiency: language.proficiency,
     })),
-    experience: capItems(applicant.experience, 8)?.map((entry) => ({
+    experience: capItems(structured.experience, 8)?.map((entry) => ({
       company: entry.company,
       role: entry.role,
       startDate: entry.startDate,
@@ -285,19 +298,19 @@ function toBatchApplicantFromModel(applicant: IApplicant): GeminiBatchApplicant 
       technologies: capItems(entry.technologies, 8),
       isCurrent: entry.isCurrent,
     })),
-    education: capItems(applicant.education, 6)?.map((entry) => ({
+    education: capItems(structured.education, 6)?.map((entry) => ({
       institution: entry.institution,
       degree: entry.degree,
       fieldOfStudy: entry.fieldOfStudy,
       startYear: entry.startYear,
       endYear: entry.endYear,
     })),
-    certifications: capItems(applicant.certifications, 8)?.map((entry) => ({
+    certifications: capItems(structured.certifications, 8)?.map((entry) => ({
       name: entry.name,
       issuer: entry.issuer,
       issueDate: entry.issueDate,
     })),
-    projects: capItems(applicant.projects, 6)?.map((project) => ({
+    projects: capItems(structured.projects, 6)?.map((project) => ({
       name: project.name,
       description: trimText(project.description, 320),
       technologies: capItems(project.technologies, 8),
@@ -306,18 +319,18 @@ function toBatchApplicantFromModel(applicant: IApplicant): GeminiBatchApplicant 
       startDate: project.startDate,
       endDate: project.endDate,
     })),
-    availability: applicant.availability
+    availability: structured.availability
       ? {
-          status: applicant.availability.status,
-          type: applicant.availability.type,
-          startDate: applicant.availability.startDate,
+          status: structured.availability.status,
+          type: structured.availability.type,
+          startDate: structured.availability.startDate,
         }
       : undefined,
-    socialLinks: applicant.socialLinks
+    socialLinks: structured.socialLinks
       ? {
-          linkedin: applicant.socialLinks.linkedin,
-          github: applicant.socialLinks.github,
-          portfolio: applicant.socialLinks.portfolio,
+          linkedin: structured.socialLinks.linkedin,
+          github: structured.socialLinks.github,
+          portfolio: structured.socialLinks.portfolio,
         }
       : undefined,
   };

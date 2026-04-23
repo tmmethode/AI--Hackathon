@@ -18,6 +18,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Progress } from "@/components/ui/Progress";
 import { Textarea } from "@/components/ui/Input";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
+import { resolveParsedApplicantHighlights } from "@/lib/applicant-profile";
 import { ShortlistsPageSkeleton } from "@/components/page-skeletons";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { buildCandidateId } from "@/lib/candidates";
@@ -39,6 +40,7 @@ interface Candidate {
   skills: string[]; extras: number; summary: string; years: number;
   strength: string; cultureFit: string; retentionRisk: string;
   location: string; email: string;
+  applicant?: ApplicantRecord;
   matching: { label: string; value: number }[];
   status: "shortlisted" | "interview" | "exam" | "assessment" | "practical" | "rejected";
 }
@@ -95,7 +97,8 @@ function buildCandidateFromResult(
   candidateKey: number,
   pillarLabels: { skills: string; experience: string; education: string; relevance: string },
   shortlistedEmails: Set<string>,
-  experienceYears: number
+  experienceYears: number,
+  applicant?: ApplicantRecord
 ): Candidate {
   const strengths = entry.strengths || [];
   const primaryStrength = strengths[0] || "—";
@@ -119,6 +122,7 @@ function buildCandidateFromResult(
     retentionRisk: retentionRiskFromScore(entry.confidenceScore),
     location: "—",
     email: entry.applicantEmail,
+    applicant,
     matching: [
       { label: pillarLabels.skills, value: entry.skillsScore },
       { label: pillarLabels.experience, value: entry.experienceScore },
@@ -170,9 +174,25 @@ function buildCandidatesFromRecord(record: ShortlistRecord, applicants: Applican
       index + 1,
       labels,
       shortlistedEmails,
-      calculateApplicantExperienceYears(applicant)
+      calculateApplicantExperienceYears(applicant),
+      applicant
     );
   });
+}
+
+function formatExperienceTimeline(startDate?: string, endDate?: string, isCurrent?: boolean) {
+  const start = startDate ? new Date(startDate) : null;
+  const end = isCurrent ? null : endDate ? new Date(endDate) : null;
+
+  const startLabel =
+    start && !Number.isNaN(start.getTime()) ? start.getFullYear().toString() : "Unknown";
+  const endLabel = isCurrent
+    ? "Present"
+    : end && !Number.isNaN(end.getTime())
+      ? end.getFullYear().toString()
+      : "Unknown";
+
+  return `${startLabel} - ${endLabel}`;
 }
 
 type SortKey = "rank" | "match" | "name" | "years";
@@ -408,6 +428,7 @@ function ShortlistsPageInner() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const selected = candidates.find((c) => c.id === selectedId) ?? candidates[0];
+  const selectedHighlights = resolveParsedApplicantHighlights(selected?.applicant);
 
   function handleAction(id: number, action: AdvanceStatus | "rejected") {
     setCandidates((prev) => prev.map((c) => c.id === id ? { ...c, status: action } : c));
@@ -924,6 +945,63 @@ function ShortlistsPageInner() {
                     </li>
                   ))}
                 </ul>
+              </Card>
+
+              <Card className="p-5">
+                <div className="flex items-center gap-2">
+                  <GraduationCap className="h-4 w-4 text-brand" />
+                  <h4 className="text-sm font-semibold text-ink">Profile Evidence</h4>
+                </div>
+
+                <div className="mt-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+                    Experience
+                  </p>
+                  {selectedHighlights.experience.length > 0 ? (
+                    <ul className="mt-2 space-y-2">
+                      {selectedHighlights.experience.slice(0, 3).map((entry, index) => (
+                        <li key={`${entry.company}-${entry.role}-${index}`} className="rounded-md bg-surface-soft/60 p-3">
+                          <p className="text-xs font-semibold text-ink">
+                            {entry.role || "Role"} {entry.company ? `@ ${entry.company}` : ""}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-ink-muted">
+                            {formatExperienceTimeline(entry.startDate, entry.endDate, entry.isCurrent)}
+                          </p>
+                          {entry.description ? (
+                            <p className="mt-1.5 text-xs leading-5 text-ink-muted">{entry.description}</p>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-xs text-ink-muted">No parsed experience details were found.</p>
+                  )}
+                </div>
+
+                <div className="mt-4 border-t border-line pt-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+                    Education
+                  </p>
+                  {selectedHighlights.education.length > 0 ? (
+                    <ul className="mt-2 space-y-2">
+                      {selectedHighlights.education.slice(0, 2).map((entry, index) => (
+                        <li key={`${entry.institution}-${entry.degree}-${index}`} className="rounded-md bg-surface-soft/60 p-3">
+                          <p className="text-xs font-semibold text-ink">
+                            {entry.degree || entry.fieldOfStudy || "Program"}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-ink-muted">
+                            {entry.institution || "Institution unavailable"}
+                          </p>
+                          <p className="mt-0.5 text-[11px] text-ink-muted">
+                            {[entry.startYear, entry.endYear].filter(Boolean).join(" - ") || "Dates unavailable"}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="mt-2 text-xs text-ink-muted">No parsed education details were found.</p>
+                  )}
+                </div>
               </Card>
 
               <Card className="p-5">
