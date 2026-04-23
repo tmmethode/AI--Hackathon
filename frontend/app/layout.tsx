@@ -9,6 +9,10 @@ const openSans = Open_Sans({ subsets: ["latin"], variable: "--font-open-sans", d
 export const metadata: Metadata = {
   title: "Umurava Screening",
   description: "AI-powered recruiting and candidate screening platform",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
