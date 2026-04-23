@@ -25,6 +25,14 @@ function formatDuration(ms: number) {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
+function safeGetAuthRuntimeState() {
+  if (typeof getAuthRuntimeState !== "function") {
+    return null;
+  }
+
+  return getAuthRuntimeState();
+}
+
 export function SessionManager() {
   const router = useRouter();
   const pathname = usePathname();
@@ -34,7 +42,7 @@ export function SessionManager() {
   const refreshInFlightRef = useRef<Promise<void> | null>(null);
 
   const session = getStoredAuth();
-  const runtime = getAuthRuntimeState();
+  const runtime = safeGetAuthRuntimeState();
 
   const timing = useMemo(() => {
     if (!session || !runtime) {
@@ -80,7 +88,7 @@ export function SessionManager() {
       return;
     }
 
-    const current = getAuthRuntimeState();
+    const current = safeGetAuthRuntimeState();
     if (!current) {
       return;
     }
@@ -111,7 +119,7 @@ export function SessionManager() {
     }
 
     refreshInFlightRef.current = (async () => {
-      const current = getAuthRuntimeState();
+      const current = safeGetAuthRuntimeState();
       if (!current) {
         return;
       }
@@ -135,7 +143,7 @@ export function SessionManager() {
   }, []);
 
   const dismissWarning = useCallback(() => {
-    const current = getAuthRuntimeState();
+    const current = safeGetAuthRuntimeState();
     if (!current) {
       return;
     }
@@ -166,7 +174,7 @@ export function SessionManager() {
       const currentNow = Date.now();
       setNow(currentNow);
 
-      const currentRuntime = getAuthRuntimeState();
+      const currentRuntime = safeGetAuthRuntimeState();
       if (!currentRuntime) {
         return;
       }
