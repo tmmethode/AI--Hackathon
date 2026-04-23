@@ -1,6 +1,6 @@
 "use client";
 
-import { type ComponentProps, useEffect, useMemo } from "react";
+import { type ComponentProps, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Archive,
@@ -29,9 +29,11 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
   getHiringManagerName,
+  listAllJobs,
   type JobRecord,
   type JobStatus,
 } from "@/lib/jobs";
+import { downloadCsv, sanitizeFilename } from "@/lib/download";
 import {
   archiveJob,
   deleteJob,
@@ -228,6 +230,63 @@ export default function JobsPage() {
     await dispatch(archiveJob(id));
   }
 
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
+
+  async function handleExportReport() {
+    setExporting(true);
+    setExportError("");
+
+    try {
+      const allJobs = await listAllJobs({
+        search: search.trim() || undefined,
+        status: statusFilter === "All" ? undefined : statusFilter,
+      });
+
+      if (allJobs.length === 0) {
+        setExportError("No jobs match the current filters.");
+        return;
+      }
+
+      const header = [
+        "Job ID",
+        "Title",
+        "Department",
+        "Location",
+        "Status",
+        "Hiring Manager",
+        "Seniority",
+        "Experience (yrs)",
+        "Applicants",
+        "Updated",
+      ];
+      const rows: (readonly unknown[])[] = [header];
+      for (const job of allJobs) {
+        rows.push([
+          formatJobId(job),
+          job.title,
+          job.department,
+          job.location,
+          job.status,
+          getHiringManagerName(job.hiringManager),
+          job.seniorityLevel,
+          job.experienceYears,
+          job.applicantsCount,
+          new Date(job.updatedAt).toISOString().slice(0, 10),
+        ]);
+      }
+
+      const base = sanitizeFilename(
+        `jobs-report_${statusFilter.toLowerCase()}_${new Date().toISOString().slice(0, 10)}`
+      );
+      downloadCsv(rows, `${base}.csv`);
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : "Failed to export jobs report.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="w-full px-4 py-4 sm:px-6 sm:py-5">
       <PageHeader
@@ -235,8 +294,13 @@ export default function JobsPage() {
         description="Manage and ingest applicants for your job requisitions."
         actions={
           <>
-            <Button variant="secondary" leftIcon={<Download className="h-4 w-4" />} disabled>
-              Export Report
+            <Button
+              variant="secondary"
+              leftIcon={<Download className="h-4 w-4" />}
+              onClick={handleExportReport}
+              disabled={exporting || isLoading}
+            >
+              {exporting ? "Exporting…" : "Export Report"}
             </Button>
             <Link href="/jobs/new">
               <Button leftIcon={<Play className="h-4 w-4" />}>Create New Job</Button>
@@ -248,6 +312,11 @@ export default function JobsPage() {
       {error && (
         <div className="mt-6 rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
           {error}
+        </div>
+      )}
+      {exportError && (
+        <div className="mt-4 rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning-deep">
+          {exportError}
         </div>
       )}
 

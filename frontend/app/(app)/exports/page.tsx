@@ -28,6 +28,7 @@ import {
   type ShortlistSummary,
 } from "@/lib/shortlists";
 import { createPdfFromLines } from "@/lib/pdf";
+import { downloadBlob, downloadCsv, downloadJson, sanitizeFilename } from "@/lib/download";
 
 type ExportFormat = "csv" | "pdf" | "json";
 type ExportStatus = "ready" | "generating" | "expired";
@@ -84,14 +85,18 @@ function mapSummaryToExport(summary: ShortlistSummary, format: ExportFormat): Ex
     format,
     candidates: summary.shortlistCount || summary.totalApplicants,
     createdAt: formatDateTime(summary.createdAt),
-    size: "Calculated on download",
+    size: "Generated on download",
     status: "ready",
   };
 }
 
+function selectCandidates(record: ShortlistRecord) {
+  return record.shortlist?.length ? record.shortlist : record.screeningResults;
+}
+
 function buildPreviewRows(record: ShortlistRecord): string[][] {
   const headers = ["Rank", "Name", "Email", "Match %", "Recommendation", "Summary"];
-  const rows = (record.shortlist?.length ? record.shortlist : record.screeningResults)
+  const rows = selectCandidates(record)
     .slice(0, 10)
     .map((entry) => [
       String(entry.candidateRank ?? ""),
@@ -106,8 +111,55 @@ function buildPreviewRows(record: ShortlistRecord): string[][] {
 }
 
 
+function buildCsvRows(record: ShortlistRecord): (readonly unknown[])[] {
+  const header = [
+    "Rank",
+    "Name",
+    "Email",
+    "Match %",
+    "Skills %",
+    "Experience %",
+    "Education %",
+    "Relevance %",
+    "Recommendation",
+    "Strengths",
+    "Gaps",
+    "Summary",
+  ];
+  const rows: (readonly unknown[])[] = [header];
+  for (const entry of selectCandidates(record)) {
+    rows.push([
+      entry.candidateRank ?? "",
+      entry.fullName || "",
+      entry.applicantEmail || "",
+      entry.matchScore ?? 0,
+      entry.skillsScore ?? 0,
+      entry.experienceScore ?? 0,
+      entry.educationScore ?? 0,
+      entry.relevanceScore ?? 0,
+      entry.finalRecommendation || "",
+      (entry.strengths || []).join("; "),
+      (entry.gapsOrRisks || []).join("; "),
+      (entry.summaryExplanation || "").replace(/\s+/g, " ").trim(),
+    ]);
+  }
+  return rows;
+}
+
+function buildJsonData(record: ShortlistRecord) {
+  return {
+    job: record.jobTitle,
+    department: record.department,
+    runName: record.runName,
+    totalApplicants: record.totalApplicants,
+    shortlistCount: record.shortlistCount,
+    generatedAt: new Date().toISOString(),
+    candidates: selectCandidates(record),
+  };
+}
+
 function buildPdfLines(record: ShortlistRecord) {
-  const candidates = (record.shortlist?.length ? record.shortlist : record.screeningResults).slice(0, 25);
+  const candidates = selectCandidates(record);
 
   return [
     "Candidate Screening Report",
@@ -131,21 +183,6 @@ function buildPdfLines(record: ShortlistRecord) {
     ]),
   ];
 }
-
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function downloadTextAsFile(content: string, mime: string, filename: string) {
-  downloadBlob(new Blob([content], { type: mime }), filename);
-}
-
-
 
 export default function ExportsPage() {
   const [showNewExport, setShowNewExport] = useState(false);
@@ -244,20 +281,12 @@ export default function ExportsPage() {
 
     try {
       const shortlist = await fetchRecord(exp.shortlistId);
-      const rows = buildPreviewRows(shortlist);
-      const safeBase = `${shortlist.jobTitle}_${shortlist.runName}`.replace(/\s+/g, "_");
+      const safeBase = sanitizeFilename(`${shortlist.jobTitle}_${shortlist.runName}`);
 
       if (exp.format === "csv") {
-        const csv = rows
-          .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, "\"\"")}"`).join(","))
-          .join("\n");
-        downloadTextAsFile(csv, "text/csv", `${safeBase}.csv`);
+        downloadCsv(buildCsvRows(shortlist), `${safeBase}.csv`);
       } else if (exp.format === "json") {
-        const headers = rows[0];
-        const data = rows.slice(1).map((row) =>
-          Object.fromEntries(headers.map((header, index) => [header, row[index] ?? ""]))
-        );
-        downloadTextAsFile(JSON.stringify(data, null, 2), "application/json", `${safeBase}.json`);
+        downloadJson(buildJsonData(shortlist), `${safeBase}.json`);
       } else {
         downloadBlob(createPdfFromLines(buildPdfLines(shortlist)), `${safeBase}.pdf`);
       }

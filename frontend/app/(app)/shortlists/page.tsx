@@ -24,6 +24,7 @@ import { buildCandidateId } from "@/lib/candidates";
 import { listAllApplicants, type ApplicantRecord } from "@/lib/applicants";
 import { calculateApplicantExperienceYears } from "@/lib/experience";
 import { createPdfFromLines } from "@/lib/pdf";
+import { downloadBlob, downloadCsv, downloadJson, sanitizeFilename } from "@/lib/download";
 import {
   getShortlist,
   listShortlists,
@@ -346,45 +347,41 @@ function ShortlistsPageInner() {
 
   function handleExport() {
     const exportable = candidates.filter((c) => c.status !== "rejected");
+    const baseName = sanitizeFilename(
+      `shortlist_${activeJob?.title || "job"}_${activeJob?.description || "run"}`
+    );
+
     if (exportFormat === "csv") {
-      const header = "Rank,Name,Title,Match %,Skills,Status,Years";
-      const rows = exportable.map((c) =>
-        `${c.rank},"${c.name}","${c.title}",${c.match},"${c.skills.join("; ")}",${c.status},${c.years}`
-      );
-      const blob = new Blob([[header, ...rows].join("\n")], { type: "text/csv" });
-      triggerDownload(blob, "shortlist.csv");
+      const header = ["Rank", "Name", "Title", "Match %", "Skills", "Status", "Years", "Email"] as const;
+      const rows: (readonly unknown[])[] = [header];
+      for (const c of exportable) {
+        rows.push([c.rank, c.name, c.title, c.match, c.skills.join("; "), c.status, c.years, c.email]);
+      }
+      downloadCsv(rows, `${baseName}.csv`);
     } else if (exportFormat === "json") {
-      const blob = new Blob([JSON.stringify(exportable, null, 2)], { type: "application/json" });
-      triggerDownload(blob, "shortlist.json");
+      downloadJson(exportable, `${baseName}.json`);
     } else {
       const lines = [
         "Shortlist Export",
         `Role: ${activeJob?.title || "—"}`,
         `Run: ${activeJob?.description || "—"}`,
         `Generated: ${new Date().toLocaleString()}`,
+        `Candidates: ${exportable.length}`,
         "",
         "Candidates",
         ...exportable.flatMap((candidate) => [
-          `#${candidate.rank} ${candidate.name}` ,
+          `#${candidate.rank} ${candidate.name}`,
           `Title: ${candidate.title}`,
           `Match: ${candidate.match}% | Experience: ${candidate.years} years | Status: ${candidate.status}`,
-          `Skills: ${candidate.skills.join(", ") || "—"}` ,
-          `Summary: ${candidate.summary || "No AI summary available."}` ,
+          `Skills: ${candidate.skills.join(", ") || "—"}`,
+          `Summary: ${candidate.summary || "No AI summary available."}`,
           "",
         ]),
       ];
-      const blob = createPdfFromLines(lines);
-      triggerDownload(blob, "shortlist.pdf");
+      downloadBlob(createPdfFromLines(lines), `${baseName}.pdf`);
     }
     setExportDone(true);
     setTimeout(() => { setExportDone(false); setShowExportModal(false); }, 1500);
-  }
-
-  function triggerDownload(blob: Blob, filename: string) {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = filename; a.click();
-    URL.revokeObjectURL(url);
   }
 
   const filtered = useMemo(() => {
@@ -878,9 +875,16 @@ function ShortlistsPageInner() {
                       Full Profile
                     </Button>
                   </Link>
-                  <Button variant="secondary" size="sm" fullWidth leftIcon={<FileDown className="h-3.5 w-3.5" />}>
-                    Resume
-                  </Button>
+                  <Link href={`/candidates/${encodeURIComponent(selected.candidateRecordId)}#resume`}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      fullWidth
+                      leftIcon={<FileDown className="h-3.5 w-3.5" />}
+                    >
+                      Resume
+                    </Button>
+                  </Link>
                 </div>
               </Card>
 

@@ -28,6 +28,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Field, Input, Textarea, Select } from "@/components/ui/Input";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
 import { loadCandidateRecords, type CandidateRecord } from "@/lib/candidates";
+import { createPdfFromLines } from "@/lib/pdf";
+import { downloadBlob, sanitizeFilename } from "@/lib/download";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -142,6 +144,86 @@ export default function CandidateDetailPage({ params }: PageProps) {
       setEmailSent(false);
       setShowEmail(false);
     }, 1500);
+  }
+
+  function handleOpenResume() {
+    if (!candidate) return;
+    if (candidate.sourceUrl) {
+      window.open(candidate.sourceUrl, "_blank", "noopener,noreferrer");
+    }
+  }
+
+  function handleExportAiReport() {
+    if (!candidate) return;
+
+    const experienceEntries = candidate.applicant?.experience ?? [];
+    const educationEntries = candidate.applicant?.education ?? [];
+    const certifications = candidate.applicant?.certifications ?? [];
+    const formatTimeline = (start?: string, end?: string, isCurrent?: boolean) => {
+      const s = start ? new Date(start) : null;
+      const e = isCurrent ? null : end ? new Date(end) : null;
+      const sLabel = s && !Number.isNaN(s.getTime()) ? s.getFullYear().toString() : "Unknown";
+      const eLabel = isCurrent
+        ? "Present"
+        : e && !Number.isNaN(e.getTime())
+          ? e.getFullYear().toString()
+          : "Unknown";
+      return `${sLabel} - ${eLabel}`;
+    };
+
+    const lines: string[] = [
+      "AI Candidate Report",
+      `Generated: ${new Date().toLocaleString()}`,
+      "",
+      candidate.name,
+      `Email: ${candidate.email || "—"}`,
+      `Role Applied: ${candidate.job || "—"}`,
+      `Location: ${candidate.location || "—"}`,
+      `Source: ${candidate.sourceFileName || candidate.sourceUrl || candidate.source || "—"}`,
+      `Status: ${candidate.status}`,
+      "",
+      "AI Scores",
+      `Overall Match: ${candidate.matchScore}%`,
+      `Skills: ${candidate.scores?.skills ?? "—"}% | Experience: ${candidate.scores?.experience ?? "—"}% | Education: ${candidate.scores?.education ?? "—"}% | Relevance: ${candidate.scores?.relevance ?? "—"}%`,
+      candidate.finalRecommendation ? `Recommendation: ${candidate.finalRecommendation}` : "",
+      "",
+      "AI Summary",
+      candidate.summary || candidate.bio || "No AI summary available.",
+      "",
+      "Key Strengths",
+      ...(candidate.strengths.length
+        ? candidate.strengths.map((item, index) => `${index + 1}. ${item}`)
+        : ["No strengths captured."]),
+      "",
+      "Potential Gaps & Risks",
+      ...(candidate.gapsOrRisks.length
+        ? candidate.gapsOrRisks.map((item, index) => `${index + 1}. ${item}`)
+        : ["No gaps or risks reported."]),
+      "",
+      "Experience",
+      ...(experienceEntries.length
+        ? experienceEntries.flatMap((entry, index) => [
+            `${index + 1}. ${entry.role || "Role"} @ ${entry.company || "—"} (${formatTimeline(entry.startDate, entry.endDate, entry.isCurrent)})`,
+            entry.description ? `   ${entry.description}` : "",
+          ])
+        : ["No experience entries parsed."]),
+      "",
+      "Education",
+      ...(educationEntries.length
+        ? educationEntries.map((entry, index) =>
+            `${index + 1}. ${entry.degree || entry.fieldOfStudy || "Program"} — ${entry.institution || "—"}${entry.endYear ? `, ${entry.endYear}` : ""}`
+          )
+        : ["No education entries parsed."]),
+      "",
+      "Certifications",
+      ...(certifications.length
+        ? certifications.map((cert, index) => `${index + 1}. ${cert.name}`)
+        : ["No certifications extracted."]),
+    ].filter((line) => line !== undefined);
+
+    const blob = createPdfFromLines(lines);
+    const filename = `${sanitizeFilename(`ai-report_${candidate.name}_${candidate.job}`)}.pdf`;
+    downloadBlob(blob, filename);
   }
 
   if (loading) {
@@ -423,15 +505,37 @@ export default function CandidateDetailPage({ params }: PageProps) {
               )}
             </div>
 
-            <Button variant="secondary" size="sm" fullWidth className="mt-5" leftIcon={<Download className="h-4 w-4" />}>
-              {candidate.sourceFileName ? `View ${candidate.sourceFileName}` : "Resume source unavailable"}
+            <Button
+              variant="secondary"
+              size="sm"
+              fullWidth
+              className="mt-5"
+              leftIcon={<Download className="h-4 w-4" />}
+              disabled={!candidate.sourceUrl}
+              onClick={handleOpenResume}
+              title={
+                candidate.sourceUrl
+                  ? "Open resume source in a new tab"
+                  : "No resume source URL is available for this candidate"
+              }
+            >
+              {candidate.sourceFileName
+                ? `View ${candidate.sourceFileName}`
+                : candidate.sourceUrl
+                  ? "View resume source"
+                  : "Resume source unavailable"}
             </Button>
           </Card>
 
           <Card className="p-5">
             <h3 className="text-sm font-semibold text-ink">Quick Actions</h3>
             <div className="mt-3 flex flex-col gap-2">
-              <Button variant="secondary" fullWidth leftIcon={<Download className="h-4 w-4" />}>
+              <Button
+                variant="secondary"
+                fullWidth
+                leftIcon={<Download className="h-4 w-4" />}
+                onClick={handleExportAiReport}
+              >
                 Export Full AI Report
               </Button>
               <Button variant="secondary" fullWidth leftIcon={<Mail className="h-4 w-4" />} onClick={() => setShowEmail(true)}>

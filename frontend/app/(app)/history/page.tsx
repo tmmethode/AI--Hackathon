@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { fetchHistorySummary, type HistoryRunSummary } from "@/lib/shortlists";
+import { downloadCsv, sanitizeFilename } from "@/lib/download";
 
 function formatDateTime(value?: string) {
   if (!value) return "--";
@@ -58,6 +59,41 @@ export default function ScreeningHistoryPage() {
 
   const latestRun = useMemo(() => runs[0] ?? null, [runs]);
 
+  const handleExportLogs = () => {
+    if (runs.length === 0) {
+      return;
+    }
+
+    const header = [
+      "Run Name",
+      "Job Title",
+      "Total Applicants",
+      "Shortlist Size",
+      "Top Match Score",
+      "Top Candidate",
+      "Completed",
+      "Duration (s)",
+      "Status",
+    ];
+    const rows: (readonly unknown[])[] = [header];
+    for (const run of runs) {
+      rows.push([
+        run.runName || "Untitled Run",
+        run.jobTitle || "",
+        run.totalApplicants ?? 0,
+        run.shortlistCount ?? 0,
+        run.topMatchScore ?? 0,
+        run.topCandidateName || "",
+        formatDateTime(run.screeningCompletedAt || run.createdAt),
+        run.screeningDurationSeconds ?? "",
+        getStatusLabel(run),
+      ]);
+    }
+
+    const filename = sanitizeFilename(`screening-runs_${new Date().toISOString().slice(0, 10)}`);
+    downloadCsv(rows, `${filename}.csv`);
+  };
+
   return (
     <div className="w-full px-6 py-5">
       <PageHeader
@@ -65,11 +101,14 @@ export default function ScreeningHistoryPage() {
         description="Live shortlist run history synced from backend records."
         actions={
           <>
-            <Link href="/exports">
-              <Button variant="secondary" leftIcon={<Download className="h-4 w-4" />}>
-                Export Logs
-              </Button>
-            </Link>
+            <Button
+              variant="secondary"
+              leftIcon={<Download className="h-4 w-4" />}
+              onClick={handleExportLogs}
+              disabled={loading || runs.length === 0}
+            >
+              Export Logs
+            </Button>
             <Button variant="secondary" leftIcon={<RefreshCw className="h-4 w-4" />} onClick={() => void loadRuns()}>
               Refresh
             </Button>

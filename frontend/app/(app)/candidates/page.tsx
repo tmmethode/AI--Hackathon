@@ -16,6 +16,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Field, Input, Textarea, Select } from "@/components/ui/Input";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
 import { type CandidateStatus } from "@/lib/candidates";
+import { createPdfFromLines } from "@/lib/pdf";
+import { downloadCsv, downloadJson, downloadBlob, sanitizeFilename } from "@/lib/download";
 import {
   ADVANCED_STATUSES,
   listCandidateDirectory,
@@ -148,6 +150,9 @@ export default function CandidatesPage() {
   const [emailSent, setEmailSent] = useState(false);
   const [scheduleSent, setScheduleSent] = useState(false);
   const [advanceDropdownId, setAdvanceDropdownId] = useState<string | null>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportError, setExportError] = useState("");
   const [localStatusOverrides, setLocalStatusOverrides] = useState<
     Record<string, { previous: CandidateStatus; next: CandidateStatus; job: string }>
   >({});
@@ -229,6 +234,100 @@ export default function CandidatesPage() {
     setShowJobPicker(false);
   }
 
+  async function handleExportAll(format: "csv" | "json" | "pdf") {
+    setShowExportMenu(false);
+    setExportError("");
+    setExportBusy(true);
+
+    try {
+      const response = await listCandidateDirectory({
+        page: 1,
+        pageSize: 1000,
+        search,
+        sortKey,
+        sortDir: sortAsc ? "asc" : "desc",
+        status: filterStatus,
+        job: filterJob,
+      });
+
+      const rows = response.data.map((entry) => ({
+        ...entry,
+        status: localStatusOverrides[entry.id]?.next ?? entry.status,
+      }));
+
+      if (rows.length === 0) {
+        setExportError("There are no candidates matching the current filters to export.");
+        return;
+      }
+
+      const jobLabel = filterJob === "all" ? "all-jobs" : filterJob;
+      const baseName = sanitizeFilename(`candidates_${jobLabel}_${filterStatus}`);
+
+      if (format === "csv") {
+        const header = [
+          "Name",
+          "Email",
+          "Title",
+          "Job",
+          "Status",
+          "Match Score",
+          "Experience (yrs)",
+          "Location",
+          "Top Skills",
+          "Applied Date",
+          "Source",
+        ];
+        const csvRows: (readonly unknown[])[] = [header];
+        for (const c of rows) {
+          csvRows.push([
+            c.name,
+            c.email,
+            c.title,
+            c.job,
+            c.status,
+            c.matchScore,
+            c.experienceYears,
+            c.location,
+            (c.skills || []).join("; "),
+            c.appliedDate,
+            c.source,
+          ]);
+        }
+        downloadCsv(csvRows, `${baseName}.csv`);
+      } else if (format === "json") {
+        downloadJson(rows, `${baseName}.json`);
+      } else {
+        const lines = [
+          "Candidate Pool Report",
+          `Generated: ${new Date().toLocaleString()}`,
+          `Job Filter: ${filterJob === "all" ? "All Jobs" : filterJob}`,
+          `Status Filter: ${filterStatus}`,
+          `Candidates Included: ${rows.length}`,
+          "",
+          ...rows.flatMap((c, index) => {
+            const entry = [
+              `${index + 1}. ${c.name} - ${c.matchScore}% match`,
+              `Email: ${c.email || "—"}`,
+              `Job: ${c.job || "—"} | Status: ${c.status}`,
+              `Experience: ${c.experience || `${c.experienceYears} yrs`} | Location: ${c.location || "—"}`,
+              `Skills: ${(c.skills || []).join(", ") || "—"}`,
+            ];
+            if (c.summary) {
+              entry.push(`Summary: ${c.summary}`);
+            }
+            entry.push("");
+            return entry;
+          }),
+        ];
+        downloadBlob(createPdfFromLines(lines), `${baseName}.pdf`);
+      }
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : "Failed to export candidates.");
+    } finally {
+      setExportBusy(false);
+    }
+  }
+
   const filterLabels: Record<FilterStatus, string> = {
     all: "All",
     shortlisted: "Shortlisted",
@@ -269,11 +368,41 @@ export default function CandidatesPage() {
         description="Browse, search, and manage all candidates across your hiring pipeline."
         actions={
           <>
-            <Button variant="secondary" leftIcon={<Download className="h-4 w-4" />}>Export All</Button>
+            <div className="relative">
+              <Button
+                variant="secondary"
+                leftIcon={<Download className="h-4 w-4" />}
+                onClick={() => setShowExportMenu((open) => !open)}
+                disabled={exportBusy}
+              >
+                {exportBusy ? "Exporting…" : "Export All"}
+              </Button>
+              {showExportMenu && (
+                <div className="absolute right-0 top-[calc(100%+4px)] z-30 w-44 rounded-md border border-line bg-surface shadow-card">
+                  {([["csv", "CSV Spreadsheet"], ["pdf", "PDF Report"], ["json", "JSON Data"]] as const).map(([fmt, label]) => (
+                    <button
+                      key={fmt}
+                      onClick={() => handleExportAll(fmt)}
+                      className="flex w-full items-center justify-between px-3 py-2 text-sm text-ink hover:bg-surface-soft"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <Link href="/ingest"><Button leftIcon={<Users className="h-4 w-4" />}>Ingest Candidates</Button></Link>
           </>
         }
       />
+      {showExportMenu && (
+        <div className="fixed inset-0 z-[25]" onClick={() => setShowExportMenu(false)} />
+      )}
+      {exportError && (
+        <div className="mt-4 rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm text-warning-deep">
+          {exportError}
+        </div>
+      )}
 
       {loadError && (
         <div className="mt-6 rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">

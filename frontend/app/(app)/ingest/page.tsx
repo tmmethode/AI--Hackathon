@@ -35,6 +35,7 @@ import {
   type IngestSummary,
 } from "@/lib/applicants";
 import { listAllJobs, type JobRecord } from "@/lib/jobs";
+import { downloadText } from "@/lib/download";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -885,15 +886,7 @@ function CsvTab({
   }
 
   function handleDownloadTemplate() {
-    const blob = new Blob([CSV_TEMPLATE], { type: "text/csv;charset=utf-8;" });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "applicant-import-template.csv";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
+    downloadText(CSV_TEMPLATE, "text/csv", "applicant-import-template.csv");
   }
 
   return (
