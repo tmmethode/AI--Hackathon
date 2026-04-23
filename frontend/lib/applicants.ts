@@ -110,6 +110,25 @@ export interface ApplicantProfileInput {
   socialLinks?: ApplicantSocialLinks;
 }
 
+export interface UpdateApplicantRequest {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  headline?: string;
+  bio?: string;
+  location?: string;
+  skills?: ApplicantSkill[];
+  languages?: ApplicantLanguage[];
+  experience?: ApplicantExperience[];
+  education?: ApplicantEducation[];
+  certifications?: ApplicantCertification[];
+  projects?: ApplicantProject[];
+  availability?: ApplicantAvailability;
+  socialLinks?: ApplicantSocialLinks;
+  ingestStatus?: IngestStatus;
+  ingestError?: string;
+}
+
 export interface IngestFileItem {
   filename: string;
   mimeType?: string;
@@ -164,6 +183,11 @@ export interface ApplicantListResponse {
 
 interface DeleteApplicantResponse {
   id: string;
+  message: string;
+}
+
+interface ApplicantResponse {
+  data: ApplicantRecord;
   message: string;
 }
 
@@ -406,4 +430,17 @@ export async function deleteApplicant(jobId: string, applicantId: string) {
   });
 
   return handleApiResponse<DeleteApplicantResponse>(response, "Failed to delete the applicant.");
+}
+
+export async function updateApplicant(jobId: string, applicantId: string, payload: UpdateApplicantRequest) {
+  const response = await fetch(`${getApiBaseUrl()}/jobs/${jobId}/applicants/${applicantId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return handleApiResponse<ApplicantResponse>(response, "Failed to update the applicant.");
 }

@@ -15,13 +15,17 @@ import {
   Link as LinkIcon,
   Link2,
   LoaderCircle,
+  Pencil,
   RefreshCw,
+  Search,
   ShieldCheck,
   Sparkles,
   Table as TableIcon,
+  Trash2,
   X,
 } from "lucide-react";
 import {
+  deleteApplicant,
   ingestApplicantsFromCsv,
   ingestApplicantsFromFiles,
   ingestApplicantsFromLinks,
@@ -33,6 +37,8 @@ import {
   type ApplicantSkill,
   type ApplicantSource,
   type IngestSummary,
+  type UpdateApplicantRequest,
+  updateApplicant,
 } from "@/lib/applicants";
 import { listAllJobs, type JobRecord } from "@/lib/jobs";
 import { downloadText } from "@/lib/download";
@@ -40,6 +46,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
+import { Field, Input, Textarea } from "@/components/ui/Input";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "@/components/ui/Modal";
 import { IngestPageSkeleton } from "@/components/page-skeletons";
 import { Progress } from "@/components/ui/Progress";
@@ -60,6 +67,27 @@ interface ImportProgressState {
   percent: number;
   title: string;
   detail: string;
+}
+
+interface ApplicantEditFormState {
+  firstName: string;
+  lastName: string;
+  email: string;
+  headline: string;
+  bio: string;
+  location: string;
+  availabilityStatus: string;
+  availabilityType: string;
+  availabilityStartDate: string;
+  linkedin: string;
+  github: string;
+  portfolio: string;
+  skillsJson: string;
+  languagesJson: string;
+  experienceJson: string;
+  educationJson: string;
+  certificationsJson: string;
+  projectsJson: string;
 }
 
 const tabs = [
@@ -260,6 +288,99 @@ function formatApplicantExperience(applicant: ApplicantRecord) {
 
 function getApplicantSkills(applicant: ApplicantRecord) {
   return applicant.skills.map((skill) => skill.name.trim()).filter(Boolean).slice(0, 4);
+}
+
+function stringifyJson(value: unknown) {
+  return JSON.stringify(value ?? [], null, 2);
+}
+
+function createApplicantEditForm(applicant: ApplicantRecord): ApplicantEditFormState {
+  return {
+    firstName: applicant.firstName || "",
+    lastName: applicant.lastName || "",
+    email: applicant.email || "",
+    headline: applicant.headline || "",
+    bio: applicant.bio || "",
+    location: applicant.location || "",
+    availabilityStatus: applicant.availability?.status || "",
+    availabilityType: applicant.availability?.type || "",
+    availabilityStartDate: applicant.availability?.startDate || "",
+    linkedin: applicant.socialLinks?.linkedin || "",
+    github: applicant.socialLinks?.github || "",
+    portfolio: applicant.socialLinks?.portfolio || "",
+    skillsJson: stringifyJson(applicant.skills || []),
+    languagesJson: stringifyJson(applicant.languages || []),
+    experienceJson: stringifyJson(applicant.experience || []),
+    educationJson: stringifyJson(applicant.education || []),
+    certificationsJson: stringifyJson(applicant.certifications || []),
+    projectsJson: stringifyJson(applicant.projects || []),
+  };
+}
+
+function parseJsonArrayField(fieldLabel: string, value: string) {
+  const trimmed = value.trim();
+
+  if (!trimmed) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (!Array.isArray(parsed)) {
+      throw new Error(`${fieldLabel} must be a JSON array.`);
+    }
+    return parsed;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`${fieldLabel}: ${error.message}`);
+    }
+    throw new Error(`${fieldLabel} contains invalid JSON.`);
+  }
+}
+
+function buildApplicantUpdatePayload(form: ApplicantEditFormState): UpdateApplicantRequest {
+  const firstName = form.firstName.trim();
+  const lastName = form.lastName.trim();
+  const email = form.email.trim().toLowerCase();
+
+  if (!firstName || !lastName || !email) {
+    throw new Error("First name, last name, and email are required.");
+  }
+
+  const availability =
+    form.availabilityStatus.trim() || form.availabilityType.trim() || form.availabilityStartDate.trim()
+      ? {
+          status: form.availabilityStatus.trim() || undefined,
+          type: form.availabilityType.trim() || undefined,
+          startDate: form.availabilityStartDate.trim() || undefined,
+        }
+      : undefined;
+
+  const socialLinks =
+    form.linkedin.trim() || form.github.trim() || form.portfolio.trim()
+      ? {
+          linkedin: form.linkedin.trim() || undefined,
+          github: form.github.trim() || undefined,
+          portfolio: form.portfolio.trim() || undefined,
+        }
+      : undefined;
+
+  return {
+    firstName,
+    lastName,
+    email,
+    headline: form.headline.trim() || undefined,
+    bio: form.bio.trim() || undefined,
+    location: form.location.trim() || undefined,
+    skills: parseJsonArrayField("Skills", form.skillsJson) as UpdateApplicantRequest["skills"],
+    languages: parseJsonArrayField("Languages", form.languagesJson) as UpdateApplicantRequest["languages"],
+    experience: parseJsonArrayField("Experience", form.experienceJson) as UpdateApplicantRequest["experience"],
+    education: parseJsonArrayField("Education", form.educationJson) as UpdateApplicantRequest["education"],
+    certifications: parseJsonArrayField("Certifications", form.certificationsJson) as UpdateApplicantRequest["certifications"],
+    projects: parseJsonArrayField("Projects", form.projectsJson) as UpdateApplicantRequest["projects"],
+    availability,
+    socialLinks,
+  };
 }
 
 function getStatusTone(status: ApplicantRecord["ingestStatus"]) {
@@ -1241,14 +1362,23 @@ export default function IngestPage() {
   const [jobs, setJobs] = useState<JobRecord[]>([]);
   const [applicants, setApplicants] = useState<ApplicantRecord[]>([]);
   const [selectedJob, setSelectedJob] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedApplicantIds, setSelectedApplicantIds] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [showSchemaModal, setShowSchemaModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [applicantToDelete, setApplicantToDelete] = useState<ApplicantRecord | null>(null);
+  const [editingApplicant, setEditingApplicant] = useState<ApplicantRecord | null>(null);
+  const [editForm, setEditForm] = useState<ApplicantEditFormState | null>(null);
   const [isLoadingJobs, setIsLoadingJobs] = useState(true);
   const [isLoadingApplicants, setIsLoadingApplicants] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isSavingApplicant, setIsSavingApplicant] = useState(false);
+  const [isDeletingApplicants, setIsDeletingApplicants] = useState(false);
   const [importProgress, setImportProgress] = useState<ImportProgressState | null>(null);
   const [error, setError] = useState("");
+  const [managementError, setManagementError] = useState("");
   const [lastImportSummary, setLastImportSummary] = useState<IngestSummary | null>(null);
   const [lastImportTab, setLastImportTab] = useState<TabId>("pdf");
 
@@ -1257,11 +1387,42 @@ export default function IngestPage() {
     [jobs, selectedJob]
   );
 
+  const filteredApplicants = useMemo(() => {
+    const needle = searchQuery.trim().toLowerCase();
+
+    if (!needle) {
+      return applicants;
+    }
+
+    return applicants.filter((applicant) => {
+      const haystacks = [
+        getApplicantDisplayName(applicant),
+        applicant.email,
+        applicant.headline,
+        applicant.location,
+        applicant.sourceFileName,
+        applicant.sourceUrl,
+        applicant.skills.map((skill) => skill.name).join(" "),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return haystacks.includes(needle);
+    });
+  }, [applicants, searchQuery]);
+
   const paginatedApplicants = useMemo(
-    () => applicants.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [applicants, page]
+    () => filteredApplicants.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filteredApplicants, page]
   );
-  const totalPages = Math.max(1, Math.ceil(applicants.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filteredApplicants.length / PAGE_SIZE));
+  const selectedApplicants = useMemo(
+    () => applicants.filter((applicant) => selectedApplicantIds.includes(applicant._id)),
+    [applicants, selectedApplicantIds]
+  );
+  const allPaginatedApplicantsSelected = paginatedApplicants.length > 0 &&
+    paginatedApplicants.every((applicant) => selectedApplicantIds.includes(applicant._id));
 
   const parsedCount = useMemo(
     () => applicants.filter((applicant) => applicant.ingestStatus === "parsed").length,
@@ -1306,6 +1467,12 @@ export default function IngestPage() {
   useEffect(() => {
     setPage((previousPage) => Math.min(previousPage, totalPages));
   }, [totalPages]);
+
+  useEffect(() => {
+    setSelectedApplicantIds((previous) =>
+      previous.filter((applicantId) => applicants.some((applicant) => applicant._id === applicantId))
+    );
+  }, [applicants]);
 
   async function loadJobs() {
     setIsLoadingJobs(true);
@@ -1357,6 +1524,118 @@ export default function IngestPage() {
 
   function removeCsvFile(id: string) {
     setCsvFiles((previous) => previous.filter((file) => file.id !== id));
+  }
+
+  function toggleApplicantSelection(applicantId: string) {
+    setSelectedApplicantIds((previous) =>
+      previous.includes(applicantId)
+        ? previous.filter((value) => value !== applicantId)
+        : [...previous, applicantId]
+    );
+  }
+
+  function toggleSelectAllPaginatedApplicants() {
+    setSelectedApplicantIds((previous) => {
+      const paginatedIds = paginatedApplicants.map((applicant) => applicant._id);
+      const hasAll = paginatedIds.every((applicantId) => previous.includes(applicantId));
+
+      if (hasAll) {
+        return previous.filter((applicantId) => !paginatedIds.includes(applicantId));
+      }
+
+      return Array.from(new Set([...previous, ...paginatedIds]));
+    });
+  }
+
+  function openApplicantEditor(applicant: ApplicantRecord) {
+    setManagementError("");
+    setEditingApplicant(applicant);
+    setEditForm(createApplicantEditForm(applicant));
+  }
+
+  function closeApplicantEditor() {
+    setEditingApplicant(null);
+    setEditForm(null);
+    setManagementError("");
+  }
+
+  function openDeleteConfirmation(applicant?: ApplicantRecord | null) {
+    setManagementError("");
+    setApplicantToDelete(applicant || null);
+    setShowDeleteModal(true);
+  }
+
+  function closeDeleteConfirmation() {
+    setApplicantToDelete(null);
+    setShowDeleteModal(false);
+    setManagementError("");
+  }
+
+  async function handleSaveApplicant() {
+    if (!selectedJob || !editingApplicant || !editForm) {
+      return;
+    }
+
+    setIsSavingApplicant(true);
+    setManagementError("");
+
+    try {
+      const payload = buildApplicantUpdatePayload(editForm);
+      const response = await updateApplicant(selectedJob, editingApplicant._id, payload);
+
+      setApplicants((previous) =>
+        previous.map((applicant) => (applicant._id === editingApplicant._id ? response.data : applicant))
+      );
+      closeApplicantEditor();
+    } catch (saveError) {
+      setManagementError(
+        saveError instanceof Error ? saveError.message : "Failed to update the applicant."
+      );
+    } finally {
+      setIsSavingApplicant(false);
+    }
+  }
+
+  async function handleDeleteApplicants() {
+    if (!selectedJob) {
+      return;
+    }
+
+    const targets = applicantToDelete ? [applicantToDelete] : selectedApplicants;
+    if (targets.length === 0) {
+      closeDeleteConfirmation();
+      return;
+    }
+
+    setIsDeletingApplicants(true);
+    setManagementError("");
+
+    try {
+      const results = await Promise.allSettled(
+        targets.map((applicant) => deleteApplicant(selectedJob, applicant._id))
+      );
+
+      const failures = results.filter((result) => result.status === "rejected") as PromiseRejectedResult[];
+      if (failures.length > 0) {
+        throw new Error(
+          failures[0].reason instanceof Error
+            ? failures[0].reason.message
+            : "Failed to delete one or more applicants."
+        );
+      }
+
+      const deletedIds = new Set(targets.map((applicant) => applicant._id));
+      setApplicants((previous) => previous.filter((applicant) => !deletedIds.has(applicant._id)));
+      setSelectedApplicantIds((previous) => previous.filter((applicantId) => !deletedIds.has(applicantId)));
+      await loadJobs();
+      closeDeleteConfirmation();
+    } catch (deleteError) {
+      setManagementError(
+        deleteError instanceof Error ? deleteError.message : "Failed to delete applicants."
+      );
+    } finally {
+      setIsDeletingApplicants(false);
+    }
   }
 
   function updateImportProgress(
@@ -1605,6 +1884,11 @@ export default function IngestPage() {
           {error}
         </div>
       )}
+      {managementError && (
+        <div className="mb-6 rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+          {managementError}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
         <div className="flex flex-col gap-6">
@@ -1652,57 +1936,109 @@ export default function IngestPage() {
                   Existing applicants for the selected job, loaded directly from the backend.
                 </p>
               </div>
-              <Button
-                variant="secondary"
-                size="sm"
-                leftIcon={isLoadingApplicants ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                disabled={!selectedJob || isLoadingApplicants}
-                onClick={() => {
-                  if (selectedJob) {
-                    void loadApplicants(selectedJob);
-                  }
-                }}
-              >
-                Refresh
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                {selectedApplicantIds.length > 0 && (
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    leftIcon={<Trash2 className="h-4 w-4" />}
+                    disabled={isDeletingApplicants}
+                    onClick={() => openDeleteConfirmation()}
+                  >
+                    Delete Selected ({selectedApplicantIds.length})
+                  </Button>
+                )}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  leftIcon={isLoadingApplicants ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                  disabled={!selectedJob || isLoadingApplicants}
+                  onClick={() => {
+                    if (selectedJob) {
+                      void loadApplicants(selectedJob);
+                    }
+                  }}
+                >
+                  Refresh
+                </Button>
+              </div>
+            </div>
+
+            <div className="border-b border-line px-6 py-4">
+              <div className="relative max-w-md">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+                <Input
+                  value={searchQuery}
+                  onChange={(event) => {
+                    setSearchQuery(event.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Search applicants by name, email, skill, location, or source…"
+                  className="pl-9"
+                />
+              </div>
             </div>
 
             <div role="table">
-              <div className="hidden grid-cols-[1.5fr_0.8fr_1.4fr_1fr] gap-4 bg-surface-soft/30 px-6 py-3 text-[11px] uppercase tracking-wider text-ink-muted md:grid">
+              <div className="hidden grid-cols-[auto_1.5fr_0.8fr_1.4fr_1fr_auto] gap-4 bg-surface-soft/30 px-6 py-3 text-[11px] uppercase tracking-wider text-ink-muted md:grid">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={allPaginatedApplicantsSelected}
+                    onChange={toggleSelectAllPaginatedApplicants}
+                    className="h-4 w-4 rounded border-line text-brand"
+                    aria-label="Select applicants on this page"
+                  />
+                </label>
                 <span>Candidate</span>
                 <span>Status</span>
                 <span>Extracted Skills</span>
                 <span>Source</span>
+                <span className="text-right">Actions</span>
               </div>
               <ul className="divide-y divide-line">
                 {isLoadingApplicants && applicants.length === 0 ? (
                   Array.from({ length: 5 }, (_, index) => (
                     <li
                       key={`loading-${index}`}
-                      className="grid grid-cols-1 gap-3 px-6 py-4 text-sm md:grid-cols-[1.5fr_0.8fr_1.4fr_1fr] md:items-center md:gap-4"
+                      className="grid grid-cols-1 gap-3 px-6 py-4 text-sm md:grid-cols-[auto_1.5fr_0.8fr_1.4fr_1fr_auto] md:items-center md:gap-4"
                     >
+                      <Skeleton className="hidden h-4 w-4 md:block" delayIndex={index} />
                       <div className="flex items-center gap-3">
-                        <Skeleton shape="circle" className="h-8 w-8" delayIndex={index} />
+                        <Skeleton shape="circle" className="h-8 w-8" delayIndex={index + 1} />
                         <div className="space-y-2">
-                          <Skeleton className="h-4 w-32" delayIndex={index + 1} />
-                          <Skeleton className="h-3 w-36" delayIndex={index + 2} />
+                          <Skeleton className="h-4 w-32" delayIndex={index + 2} />
+                          <Skeleton className="h-3 w-36" delayIndex={index + 3} />
                         </div>
                       </div>
-                      <Skeleton shape="pill" className="h-6 w-20" delayIndex={index + 3} />
+                      <Skeleton shape="pill" className="h-6 w-20" delayIndex={index + 4} />
                       <div className="flex flex-wrap gap-1.5">
-                        <Skeleton shape="pill" className="h-6 w-16" delayIndex={index + 4} />
-                        <Skeleton shape="pill" className="h-6 w-20" delayIndex={index + 5} />
-                        <Skeleton shape="pill" className="h-6 w-14" delayIndex={index + 6} />
+                        <Skeleton shape="pill" className="h-6 w-16" delayIndex={index + 5} />
+                        <Skeleton shape="pill" className="h-6 w-20" delayIndex={index + 6} />
+                        <Skeleton shape="pill" className="h-6 w-14" delayIndex={index + 7} />
                       </div>
-                      <Skeleton shape="pill" className="h-6 w-24" delayIndex={index + 7} />
+                      <Skeleton shape="pill" className="h-6 w-24" delayIndex={index + 8} />
+                      <div className="hidden justify-end gap-2 md:flex">
+                        <Skeleton shape="pill" className="h-8 w-16" delayIndex={index + 9} />
+                        <Skeleton shape="pill" className="h-8 w-16" delayIndex={index + 10} />
+                      </div>
                     </li>
                   ))
                 ) : paginatedApplicants.length > 0 ? (
                   paginatedApplicants.map((applicant) => (
                     <li
                       key={applicant._id}
-                      className="grid grid-cols-1 gap-3 px-6 py-4 text-sm md:grid-cols-[1.5fr_0.8fr_1.4fr_1fr] md:items-center md:gap-4"
+                      className="grid grid-cols-1 gap-3 px-6 py-4 text-sm md:grid-cols-[auto_1.5fr_0.8fr_1.4fr_1fr_auto] md:items-center md:gap-4"
                     >
+                      <label className="hidden items-center md:flex">
+                        <input
+                          type="checkbox"
+                          checked={selectedApplicantIds.includes(applicant._id)}
+                          onChange={() => toggleApplicantSelection(applicant._id)}
+                          className="h-4 w-4 rounded border-line text-brand"
+                          aria-label={`Select ${getApplicantDisplayName(applicant)}`}
+                        />
+                      </label>
                       <div className="flex items-center gap-3">
                         <Avatar name={getApplicantDisplayName(applicant)} size={32} />
                         <div>
@@ -1736,11 +2072,31 @@ export default function IngestPage() {
                       <Badge tone="info" pill>
                         {humanizeApplicantSource(applicant.source)}
                       </Badge>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          leftIcon={<Pencil className="h-3.5 w-3.5" />}
+                          onClick={() => openApplicantEditor(applicant)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          leftIcon={<Trash2 className="h-3.5 w-3.5" />}
+                          onClick={() => openDeleteConfirmation(applicant)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </li>
                   ))
                 ) : (
                   <li className="px-6 py-10 text-sm text-ink-muted">
-                    No applicants are attached to this job yet. Import a batch to populate the preview.
+                    {searchQuery.trim()
+                      ? "No applicants match the current search."
+                      : "No applicants are attached to this job yet. Import a batch to populate the preview."}
                   </li>
                 )}
               </ul>
@@ -1748,8 +2104,8 @@ export default function IngestPage() {
 
             <div className="flex items-center justify-between border-t border-line px-6 py-3 text-sm text-ink-muted">
               <p>
-                {applicants.length > 0
-                  ? `Showing ${(page - 1) * PAGE_SIZE + 1}-${Math.min(page * PAGE_SIZE, applicants.length)} of ${applicants.length}`
+                {filteredApplicants.length > 0
+                  ? `Showing ${(page - 1) * PAGE_SIZE + 1}-${Math.min(page * PAGE_SIZE, filteredApplicants.length)} of ${filteredApplicants.length}`
                   : "No applicant records yet"}
               </p>
               <nav className="flex gap-1">
@@ -1779,6 +2135,8 @@ export default function IngestPage() {
               value={selectedJob}
               onChange={(event) => {
                 setSelectedJob(event.target.value);
+                setSelectedApplicantIds([]);
+                setSearchQuery("");
                 setPage(1);
               }}
               disabled={isLoadingJobs || jobs.length === 0}
@@ -1916,6 +2274,201 @@ export default function IngestPage() {
         <ModalFooter>
           <Button variant="secondary" onClick={() => setShowSchemaModal(false)}>
             Close
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      <Modal open={Boolean(editingApplicant && editForm)} onClose={closeApplicantEditor} size="xl">
+        <ModalHeader
+          title="Edit Applicant"
+          subtitle={editingApplicant ? `Update ${getApplicantDisplayName(editingApplicant)}` : undefined}
+          onClose={closeApplicantEditor}
+        />
+        <ModalBody className="flex flex-col gap-6">
+          {editForm && (
+            <>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Field label="First Name">
+                  <Input
+                    value={editForm.firstName}
+                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, firstName: event.target.value } : previous)}
+                  />
+                </Field>
+                <Field label="Last Name">
+                  <Input
+                    value={editForm.lastName}
+                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, lastName: event.target.value } : previous)}
+                  />
+                </Field>
+                <Field label="Email" className="md:col-span-2">
+                  <Input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, email: event.target.value } : previous)}
+                  />
+                </Field>
+                <Field label="Headline" className="md:col-span-2">
+                  <Input
+                    value={editForm.headline}
+                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, headline: event.target.value } : previous)}
+                  />
+                </Field>
+                <Field label="Location" className="md:col-span-2">
+                  <Input
+                    value={editForm.location}
+                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, location: event.target.value } : previous)}
+                  />
+                </Field>
+                <Field label="Bio" className="md:col-span-2">
+                  <Textarea
+                    rows={4}
+                    value={editForm.bio}
+                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, bio: event.target.value } : previous)}
+                  />
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <Field label="Availability Status">
+                  <Input
+                    value={editForm.availabilityStatus}
+                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, availabilityStatus: event.target.value } : previous)}
+                  />
+                </Field>
+                <Field label="Availability Type">
+                  <Input
+                    value={editForm.availabilityType}
+                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, availabilityType: event.target.value } : previous)}
+                  />
+                </Field>
+                <Field label="Availability Start Date">
+                  <Input
+                    value={editForm.availabilityStartDate}
+                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, availabilityStartDate: event.target.value } : previous)}
+                    placeholder="YYYY-MM-DD"
+                  />
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <Field label="LinkedIn">
+                  <Input
+                    value={editForm.linkedin}
+                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, linkedin: event.target.value } : previous)}
+                  />
+                </Field>
+                <Field label="GitHub">
+                  <Input
+                    value={editForm.github}
+                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, github: event.target.value } : previous)}
+                  />
+                </Field>
+                <Field label="Portfolio">
+                  <Input
+                    value={editForm.portfolio}
+                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, portfolio: event.target.value } : previous)}
+                  />
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Field label="Skills JSON" hint="Provide a JSON array of skill objects.">
+                  <Textarea
+                    rows={8}
+                    className="font-mono text-xs"
+                    value={editForm.skillsJson}
+                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, skillsJson: event.target.value } : previous)}
+                  />
+                </Field>
+                <Field label="Languages JSON" hint="Provide a JSON array of language objects.">
+                  <Textarea
+                    rows={8}
+                    className="font-mono text-xs"
+                    value={editForm.languagesJson}
+                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, languagesJson: event.target.value } : previous)}
+                  />
+                </Field>
+                <Field label="Experience JSON" hint="Provide a JSON array of experience entries.">
+                  <Textarea
+                    rows={10}
+                    className="font-mono text-xs"
+                    value={editForm.experienceJson}
+                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, experienceJson: event.target.value } : previous)}
+                  />
+                </Field>
+                <Field label="Education JSON" hint="Provide a JSON array of education entries.">
+                  <Textarea
+                    rows={10}
+                    className="font-mono text-xs"
+                    value={editForm.educationJson}
+                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, educationJson: event.target.value } : previous)}
+                  />
+                </Field>
+                <Field label="Certifications JSON" hint="Provide a JSON array of certification entries.">
+                  <Textarea
+                    rows={8}
+                    className="font-mono text-xs"
+                    value={editForm.certificationsJson}
+                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, certificationsJson: event.target.value } : previous)}
+                  />
+                </Field>
+                <Field label="Projects JSON" hint="Provide a JSON array of project entries.">
+                  <Textarea
+                    rows={8}
+                    className="font-mono text-xs"
+                    value={editForm.projectsJson}
+                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, projectsJson: event.target.value } : previous)}
+                  />
+                </Field>
+              </div>
+            </>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={closeApplicantEditor} disabled={isSavingApplicant}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => void handleSaveApplicant()}
+            disabled={isSavingApplicant || !editForm}
+            leftIcon={isSavingApplicant ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
+          >
+            {isSavingApplicant ? "Saving" : "Save Changes"}
+          </Button>
+        </ModalFooter>
+      </Modal>
+
+      <Modal open={showDeleteModal} onClose={closeDeleteConfirmation} size="sm">
+        <ModalHeader
+          title={applicantToDelete ? "Delete Applicant" : "Delete Selected Applicants"}
+          subtitle={
+            applicantToDelete
+              ? `Remove ${getApplicantDisplayName(applicantToDelete)} from this job`
+              : `Remove ${selectedApplicants.length} selected applicant record${selectedApplicants.length === 1 ? "" : "s"}`
+          }
+          onClose={closeDeleteConfirmation}
+        />
+        <ModalBody className="flex flex-col gap-4">
+          <div className="rounded-md border border-danger/20 bg-danger/5 p-4 text-sm text-danger">
+            This action permanently removes the applicant data from the selected job.
+          </div>
+          <p className="text-sm text-ink-muted">
+            {applicantToDelete
+              ? "The applicant record, extracted profile fields, and parsed metadata will be deleted."
+              : "All selected applicant records, including their extracted profile fields and parsed metadata, will be deleted."}
+          </p>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={closeDeleteConfirmation} disabled={isDeletingApplicants}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            onClick={() => void handleDeleteApplicants()}
+            disabled={isDeletingApplicants}
+            leftIcon={isDeletingApplicants ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+          >
+            {isDeletingApplicants ? "Deleting" : applicantToDelete ? "Delete Applicant" : "Delete Selected"}
           </Button>
         </ModalFooter>
       </Modal>
