@@ -823,8 +823,8 @@ export default function AdminRegisterUserPage() {
           subtitle={editingUser ? `${editingUser.firstName} ${editingUser.lastName}` : "Update account details"}
           onClose={() => setEditingUser(null)}
         />
-        <form onSubmit={handleEditSubmit}>
-          <ModalBody className="flex flex-col gap-5">
+        <form onSubmit={handleEditSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <ModalBody className="flex flex-1 flex-col gap-5">
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
               <Field label="First name">
                 <Input
@@ -929,8 +929,8 @@ export default function AdminRegisterUserPage() {
           subtitle={passwordTarget ? `Set a new temporary password for ${passwordTarget.firstName} ${passwordTarget.lastName}` : undefined}
           onClose={() => setPasswordTarget(null)}
         />
-        <form onSubmit={handleResetPassword}>
-          <ModalBody className="flex flex-col gap-4">
+        <form onSubmit={handleResetPassword} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <ModalBody className="flex flex-1 flex-col gap-4">
             <Field
               label="New temporary password"
               hint="This becomes the password the user should use for their next sign-in."
