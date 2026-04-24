@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, type ComponentType, type FormEvent, type ReactNode, useMemo, useState } from "react";
+import { type ChangeEvent, type ComponentType, type FormEvent, type ReactNode, useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -8,10 +8,13 @@ import {
   Brain,
   Briefcase,
   CheckCircle2,
+  ChevronRight,
   FileText,
+  Link2,
   LoaderCircle,
   Play,
   Save,
+  SlidersHorizontal,
   Upload,
   UserRound,
   X,
@@ -28,18 +31,19 @@ import {
   setShowSuccessModal as setShowSuccessModalAction,
   submitJob as submitJobAction,
   updateFormField as updateFormFieldAction,
+  updateWeightValue as updateWeightValueAction,
 } from "@/lib/features/jobs/jobFormSlice";
 
 interface SectionProps {
   icon: ComponentType<{ className?: string }>;
   title: string;
   description: string;
+  step?: number;
   children: ReactNode;
 }
 
 interface JobFormState {
   title: string;
-  department: string;
   location: string;
   locationPolicy: LocationPolicy | "";
   employmentType: EmploymentType | "";
@@ -49,23 +53,27 @@ interface JobFormState {
   mustHaveQualifications: string;
   niceToHaveQualifications: string;
   coreHardSkills: string;
-  preferredSkills: string;
   coreSoftSkills: string;
   experienceYears: string;
   seniorityLevel: SeniorityLevel | "";
   educationLevel: EducationLevel | "";
 }
 
-function Section({ icon: Icon, title, description, children }: SectionProps) {
+function Section({ icon: Icon, title, description, step, children }: SectionProps) {
   return (
-    <Card className="p-6">
+    <Card className="p-6 transition-shadow duration-200 hover:shadow-soft">
       <header className="mb-6 flex items-start gap-3">
-        <span className="flex h-9 w-9 items-center justify-center rounded-md bg-brand/10" aria-hidden>
+        <span className="relative flex h-9 w-9 items-center justify-center rounded-lg bg-brand/10" aria-hidden>
           <Icon className="h-5 w-5 text-brand" />
+          {step != null && (
+            <span className="absolute -right-1.5 -top-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-brand text-[10px] font-bold leading-none text-white shadow-sm">
+              {step}
+            </span>
+          )}
         </span>
-        <div>
-          <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
-          <p className="text-sm text-ink-muted">{description}</p>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-display text-lg font-semibold tracking-tight text-ink">{title}</h2>
+          <p className="text-sm leading-relaxed text-ink-muted">{description}</p>
         </div>
       </header>
       {children}
@@ -76,7 +84,7 @@ function Section({ icon: Icon, title, description, children }: SectionProps) {
 export default function NewJobPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { form, showSuccessModal, createdJobTitle, error, isSubmitting } = useAppSelector(
+  const { form, weightCriteria, showSuccessModal, createdJobTitle, error, isSubmitting } = useAppSelector(
     (state) => state.jobForm
   );
   const [jobUrl, setJobUrl] = useState("");
@@ -98,9 +106,17 @@ export default function NewJobPage() {
     }),
     []
   );
+  const weightTotal = useMemo(
+    () => weightCriteria.reduce((sum, criterion) => sum + criterion.value, 0),
+    [weightCriteria]
+  );
 
   function updateFormField<Key extends keyof JobFormState>(key: Key, value: JobFormState[Key]) {
     dispatch(updateFormFieldAction({ field: key, value }));
+  }
+
+  function updateWeightValue(id: string, value: number) {
+    dispatch(updateWeightValueAction({ id, value }));
   }
 
   function handleSave(event: FormEvent<HTMLFormElement>) {
@@ -189,27 +205,36 @@ export default function NewJobPage() {
 
   return (
     <div className="w-full px-6 py-5">
-      <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+      {/* Breadcrumb */}
+      <nav className="mb-4 flex items-center gap-1.5 text-xs text-ink-muted" aria-label="Breadcrumb">
+        <Link href="/jobs" className="transition-colors hover:text-brand">Jobs</Link>
+        <ChevronRight className="h-3 w-3" />
+        <span className="text-ink">New Requisition</span>
+      </nav>
+
+      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Create New Job Requisition</h1>
           <p className="mt-1 text-sm text-ink-muted">
-            Drafting: {form.title || "Untitled Role"} - {form.department || "Unassigned Team"}
+            Drafting: {form.title || "Untitled Role"}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link href="/jobs">
-            <Button variant="secondary" leftIcon={<X className="h-4 w-4" />}>Cancel</Button>
+            <Button variant="secondary" size="sm" leftIcon={<X className="h-3.5 w-3.5" />}>Cancel</Button>
           </Link>
           <Button
+            size="sm"
             variant="secondary"
-            leftIcon={isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            leftIcon={isSubmitting ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             onClick={() => void dispatch(submitJobAction({ status: "Draft" }))}
             disabled={isSubmitting}
           >
             Save as Draft
           </Button>
           <Button
-            leftIcon={isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+            size="sm"
+            leftIcon={isSubmitting ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
             onClick={() => void dispatch(submitJobAction({ status: "Active" }))}
             disabled={isSubmitting}
           >
@@ -218,22 +243,47 @@ export default function NewJobPage() {
         </div>
       </div>
 
+      {/* Step progress */}
+      <div className="mb-6 flex items-center gap-0" aria-label="Form sections">
+        {[
+          { label: "Import", num: 1 },
+          { label: "Fundamentals", num: 2 },
+          { label: "Description", num: 3 },
+          { label: "Profile", num: 4 },
+          { label: "Weights", num: 5 },
+        ].map((s, i, arr) => (
+          <div key={s.num} className="flex flex-1 items-center">
+            <div className="flex items-center gap-1.5">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand/10 text-[10px] font-bold text-brand">
+                {s.num}
+              </span>
+              <span className="hidden text-xs font-medium text-ink-muted sm:inline">{s.label}</span>
+            </div>
+            {i < arr.length - 1 && <div className="mx-2 h-px flex-1 bg-line" />}
+          </div>
+        ))}
+      </div>
+
       {error && (
-        <div className="mb-6 rounded-2xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+        <div className="mb-6 rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
           {error}
         </div>
       )}
 
-      <form className="flex flex-col gap-6" onSubmit={handleSave}>
+      <form className="flex flex-col gap-5" onSubmit={handleSave}>
         <Section
           icon={Brain}
           title="AI Import (Optional)"
           description="Use Gemini to prefill this job form from a public link or job document."
+          step={1}
         >
           <p className="mb-5 text-sm text-ink-muted">Review all AI-filled fields before saving.</p>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <div className="rounded-xl border border-line p-4">
-              <h3 className="text-sm font-semibold text-ink">Option A: Paste Job Link</h3>
+            <div className="rounded-xl border border-line p-4 transition-colors hover:border-brand/30">
+              <div className="mb-2 flex items-center gap-2">
+                <Link2 className="h-4 w-4 text-brand" />
+                <h3 className="text-sm font-semibold text-ink">Paste Job Link</h3>
+              </div>
               <p className="mt-1 text-xs text-ink-muted">Paste a public job link to extract job details.</p>
               <Input
                 className="mt-3"
@@ -264,8 +314,11 @@ export default function NewJobPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-line p-4">
-              <h3 className="text-sm font-semibold text-ink">Option B: Upload Job File</h3>
+            <div className="rounded-xl border border-line p-4 transition-colors hover:border-brand/30">
+              <div className="mb-2 flex items-center gap-2">
+                <Upload className="h-4 w-4 text-brand" />
+                <h3 className="text-sm font-semibold text-ink">Upload Job File</h3>
+              </div>
               <p className="mt-1 text-xs text-ink-muted">Upload a PDF or Word job description to extract details.</p>
               <Input
                 className="mt-3"
@@ -315,26 +368,16 @@ export default function NewJobPage() {
           icon={Briefcase}
           title="Role Fundamentals"
           description="Basic information about the position and recruitment context."
+          step={2}
         >
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <Field label="Official Job Title" className="md:col-span-2">
+            <Field label="Official Job Title" className="md:col-span-2" required>
               <Input value={form.title} onChange={(event) => updateFormField("title", event.target.value)} required />
             </Field>
-            <Field label="Department / Team">
-              <Select value={form.department} onChange={(event) => updateFormField("department", event.target.value)}>
-                <option value="">Select department</option>
-                <option value="Product & Engineering">Product &amp; Engineering</option>
-                <option value="Design">Design</option>
-                <option value="Operations">Operations</option>
-                <option value="Core Services">Core Services</option>
-                <option value="Platform">Platform</option>
-                <option value="Analytics">Analytics</option>
-              </Select>
-            </Field>
-            <Field label="Primary Location">
+            <Field label="Primary Location" required>
               <Input value={form.location} onChange={(event) => updateFormField("location", event.target.value)} required />
             </Field>
-            <Field label="Location Policy">
+            <Field label="Location Policy" required>
               <Select
                 value={form.locationPolicy}
                 onChange={(event) => updateFormField("locationPolicy", event.target.value as LocationPolicy)}
@@ -345,7 +388,7 @@ export default function NewJobPage() {
                 <option value="onsite">On-site</option>
               </Select>
             </Field>
-            <Field label="Employment Type">
+            <Field label="Employment Type" required>
               <Select
                 value={form.employmentType}
                 onChange={(event) => updateFormField("employmentType", event.target.value as EmploymentType)}
@@ -368,15 +411,16 @@ export default function NewJobPage() {
           icon={FileText}
           title="Job Description & Details"
           description="Provide a comprehensive description of the role, responsibilities, and what the job entails."
+          step={3}
         >
-          <Field label="Job Summary" className="mb-5">
-            <Textarea rows={4} value={form.summary} onChange={(event) => updateFormField("summary", event.target.value)} />
+          <Field label="Job Summary" className="mb-5" required>
+            <Textarea rows={3} value={form.summary} onChange={(event) => updateFormField("summary", event.target.value)} />
             <span className="mt-1 block text-xs text-ink-muted">A brief overview of the role visible to candidates at the top of the job posting.</span>
           </Field>
 
-          <Field label="Key Responsibilities" className="mb-5">
+          <Field label="Key Responsibilities" className="mb-5" required>
             <Textarea
-              rows={8}
+              rows={5}
               value={form.responsibilities}
               onChange={(event) => updateFormField("responsibilities", event.target.value)}
             />
@@ -384,17 +428,17 @@ export default function NewJobPage() {
           </Field>
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <Field label="Must-have Qualifications">
+            <Field label="Must-have Qualifications" required>
               <Textarea
-                rows={8}
+                rows={5}
                 value={form.mustHaveQualifications}
                 onChange={(event) => updateFormField("mustHaveQualifications", event.target.value)}
               />
               <span className="mt-1 block text-xs text-ink-muted">List the non-negotiable requirements candidates must meet.</span>
             </Field>
-            <Field label="Nice-to-have Qualifications">
+            <Field label="Nice-to-have Qualifications" required>
               <Textarea
-                rows={8}
+                rows={5}
                 value={form.niceToHaveQualifications}
                 onChange={(event) => updateFormField("niceToHaveQualifications", event.target.value)}
               />
@@ -407,33 +451,24 @@ export default function NewJobPage() {
           icon={UserRound}
           title="Candidate Profile & Requirements"
           description="Describe the profile you want to target so screening is tailored to this specific role."
+          step={4}
         >
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <Field label="Core Hard Skills">
               <Textarea
-                rows={5}
+                rows={4}
                 value={form.coreHardSkills}
                 onChange={(event) => updateFormField("coreHardSkills", event.target.value)}
               />
               <span className="mt-1 block text-xs text-ink-muted">List the technical skills a strong candidate should already have.</span>
             </Field>
-            <Field label="Preferred / Bonus Skills">
-              <Textarea
-                rows={5}
-                value={form.preferredSkills}
-                onChange={(event) => updateFormField("preferredSkills", event.target.value)}
-              />
-              <span className="mt-1 block text-xs text-ink-muted">Capture tools or experience that would make a candidate stand out.</span>
-            </Field>
-          </div>
-
-          <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
             <Field label="Core Soft Skills">
               <Textarea
                 rows={4}
                 value={form.coreSoftSkills}
                 onChange={(event) => updateFormField("coreSoftSkills", event.target.value)}
               />
+              <span className="mt-1 block text-xs text-ink-muted">List the communication, collaboration, and culture-fit skills a strong candidate should show.</span>
             </Field>
           </div>
 
@@ -455,7 +490,7 @@ export default function NewJobPage() {
                 <option value="15">15+ Years</option>
               </Select>
             </Field>
-            <Field label="Seniority Level">
+            <Field label="Seniority Level" required>
               <Select
                 value={form.seniorityLevel}
                 onChange={(event) => updateFormField("seniorityLevel", event.target.value as SeniorityLevel)}
@@ -469,7 +504,7 @@ export default function NewJobPage() {
                 <option value="principal">Principal</option>
               </Select>
             </Field>
-            <Field label="Education Level">
+            <Field label="Education Level" required>
               <Select
                 value={form.educationLevel}
                 onChange={(event) => updateFormField("educationLevel", event.target.value as EducationLevel)}
@@ -488,12 +523,59 @@ export default function NewJobPage() {
           </div>
         </Section>
 
-        <div className="flex items-center justify-end gap-3">
-          <Button type="button" variant="ghost" onClick={() => router.push("/jobs")}>Discard Changes</Button>
+        <Section
+          icon={SlidersHorizontal}
+          title="AI Scoring Weights"
+          description="Set the percentage weight Gemini applies to each candidate scoring criterion."
+          step={5}
+        >
+          <div className="flex flex-col gap-2">
+            {weightCriteria.map((criterion) => (
+              <div
+                key={criterion.id}
+                className="flex items-center gap-3 rounded-lg border border-line bg-surface px-4 py-2.5"
+              >
+                <span className="w-[200px] shrink-0 text-sm font-medium text-ink">{criterion.label}</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={criterion.value}
+                  onChange={(event) => updateWeightValue(criterion.id, Number(event.target.value))}
+                  className="h-1.5 min-w-0 flex-1 cursor-pointer accent-brand"
+                  aria-label={`${criterion.label} weight slider`}
+                />
+                <span
+                  className={`w-12 shrink-0 rounded-md px-2 py-0.5 text-center text-xs font-bold ${
+                    criterion.value > 0 ? "bg-brand/10 text-brand" : "bg-surface-soft text-ink-muted"
+                  }`}
+                >
+                  {criterion.value}%
+                </span>
+              </div>
+            ))}
+
+            <div className="mt-1 flex items-center justify-end gap-2 text-sm">
+              <span className="text-ink-muted">Total:</span>
+              <span
+                className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                  weightTotal === 100 ? "bg-success/10 text-success" : "bg-danger/10 text-danger"
+                }`}
+              >
+                {weightTotal}%
+              </span>
+            </div>
+          </div>
+        </Section>
+
+        <Card className="mt-2 flex items-center justify-end gap-3 px-6 py-4">
+          <Button type="button" variant="ghost" size="sm" onClick={() => router.push("/jobs")}>Discard Changes</Button>
           <Button
             type="button"
+            size="sm"
             variant="secondary"
-            leftIcon={isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            leftIcon={isSubmitting ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
             onClick={() => void dispatch(submitJobAction({ status: "Draft" }))}
             disabled={isSubmitting}
           >
@@ -501,12 +583,13 @@ export default function NewJobPage() {
           </Button>
           <Button
             type="submit"
-            leftIcon={isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+            size="sm"
+            leftIcon={isSubmitting ? <LoaderCircle className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
             disabled={isSubmitting}
           >
             Save Job
           </Button>
-        </div>
+        </Card>
       </form>
 
       <Modal open={showSuccessModal} onClose={() => dispatch(setShowSuccessModalAction(false))} size="sm">
