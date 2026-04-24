@@ -594,6 +594,22 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"UpdateShortlistCandidateStatusRequest": {
+				"properties": {
+					"status": {
+						"type": "string",
+						"enum": [
+							"shortlisted",
+							"rejected"
+						]
+					}
+				},
+				"required": [
+					"status"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"DeleteShortlistResponse": {
 				"properties": {
 					"id": {
@@ -4075,7 +4091,6 @@
 						}
 					}
 				},
-				"description": "Delete a shortlist permanently.",
 				"tags": [
 					"Shortlists"
 				],
@@ -4097,6 +4112,60 @@
 						}
 					}
 				]
+			}
+		},
+		"/shortlists/{id}/candidates/{email}": {
+			"patch": {
+				"operationId": "UpdateShortlistCandidateStatus",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/ShortlistResponse"
+								}
+							}
+						}
+					}
+				},
+				"description": "Delete a shortlist permanently.",
+				"tags": [
+					"Shortlists"
+				],
+				"security": [
+					{
+						"jwt": []
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"in": "path",
+						"name": "email",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/UpdateShortlistCandidateStatusRequest"
+							}
+						}
+					}
+				}
 			}
 		},
 		"/notifications": {

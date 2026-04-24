@@ -7,7 +7,7 @@ import {
   Download, Filter, ArrowDownUp, Check, X, Trophy,
   Briefcase, ShieldCheck, FileDown, Plus, Search,
   MapPin, Users, Clock, CheckCircle2, FileText, Sheet, FileJson,
-  Eye, TrendingUp, BarChart3, Calendar, Star,
+  Eye, Sparkles, TrendingUp, BarChart3, Calendar, Star,
   MessageSquare, Send, ChevronRight, ChevronDown,
   ClipboardCheck, GraduationCap, Wrench, ArrowRight, LoaderCircle,
 } from "lucide-react";
@@ -29,6 +29,7 @@ import { downloadBlob, downloadCsv, downloadJson, sanitizeFilename } from "@/lib
 import {
   getShortlist,
   listShortlists,
+  updateShortlistCandidateStatus,
   type ShortlistRecord,
   type ShortlistSummary,
 } from "@/lib/shortlists";
@@ -227,18 +228,11 @@ function formatExperienceTimeline(startDate?: string, endDate?: string, isCurren
 }
 
 type SortKey = "rank" | "match" | "name" | "years";
-type FilterStatus = "all" | "shortlisted" | "interview" | "exam" | "assessment" | "practical" | "rejected" | "advanced";
+type FilterStatus = "all" | "shortlisted" | "interview" | "exam" | "assessment" | "practical" | "rejected";
+type MatchTier = "all" | "top" | "strong" | "fair" | "weak";
 
-const advanceOptions = [
-  { key: "interview" as const, label: "Interview", icon: Calendar, desc: "Schedule a screening or panel interview" },
-  { key: "exam" as const, label: "Technical Exam", icon: ClipboardCheck, desc: "Assign a written or online technical test" },
-  { key: "assessment" as const, label: "Assessment", icon: GraduationCap, desc: "Behavioral or competency assessment" },
-  { key: "practical" as const, label: "Practical Test", icon: Wrench, desc: "Hands-on project or take-home assignment" },
-];
-
-type AdvanceStatus = typeof advanceOptions[number]["key"];
 type ExportFormat = "csv" | "pdf" | "json";
-const PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [5, 10, 25, 50] as const;
 
 interface NoteEntry { author: string; text: string; time: string; }
 
@@ -263,7 +257,9 @@ function ShortlistsPageInner() {
   const [sortKey, setSortKey] = useState<SortKey>("rank");
   const [sortAsc, setSortAsc] = useState(true);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
+  const [matchTier, setMatchTier] = useState<MatchTier>("all");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(10);
   const [showSort, setShowSort] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
   const [showJobModal, setShowJobModal] = useState(false);
@@ -271,7 +267,6 @@ function ShortlistsPageInner() {
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showCompare, setShowCompare] = useState(false);
   const [showJobPicker, setShowJobPicker] = useState(false);
-  const [advanceDropdownId, setAdvanceDropdownId] = useState<number | null>(null);
   const [compareIds, setCompareIds] = useState<number[]>([0, 0]);
   const [exportFormat, setExportFormat] = useState<ExportFormat>("csv");
   const [exportDone, setExportDone] = useState(false);
@@ -389,6 +384,7 @@ function ShortlistsPageInner() {
     setSortKey("rank");
     setSortAsc(true);
     setFilterStatus("all");
+    setMatchTier("all");
     setPage(1);
   }
 
@@ -439,11 +435,14 @@ function ShortlistsPageInner() {
     let list = candidates.filter((c) => {
       const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
         c.skills.some((s) => s.toLowerCase().includes(search.toLowerCase()));
-      let matchesStatus: boolean;
-      if (filterStatus === "all") matchesStatus = true;
-      else if (filterStatus === "advanced") matchesStatus = c.status !== "shortlisted" && c.status !== "rejected";
-      else matchesStatus = c.status === filterStatus;
-      return matchesSearch && matchesStatus;
+      const matchesStatus = filterStatus === "all" ? true : c.status === filterStatus;
+      let matchesTier: boolean;
+      if (matchTier === "top") matchesTier = c.match >= 90;
+      else if (matchTier === "strong") matchesTier = c.match >= 80 && c.match < 90;
+      else if (matchTier === "fair") matchesTier = c.match >= 70 && c.match < 80;
+      else if (matchTier === "weak") matchesTier = c.match < 70;
+      else matchesTier = true;
+      return matchesSearch && matchesStatus && matchesTier;
     });
     list = [...list].sort((a, b) => {
       let val: number;
@@ -454,18 +453,33 @@ function ShortlistsPageInner() {
       return sortAsc ? val : -val;
     });
     return list;
-  }, [candidates, search, sortKey, sortAsc, filterStatus]);
+  }, [candidates, search, sortKey, sortAsc, filterStatus, matchTier]);
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
   const selected = candidates.find((c) => c.id === selectedId) ?? candidates[0];
   const selectedHighlights = resolveParsedApplicantHighlights(selected?.applicant);
 
-  function handleAction(id: number, action: AdvanceStatus | "rejected") {
+  async function handleAction(id: number, action: "rejected" | "shortlisted") {
+    const target = candidates.find((c) => c.id === id);
+    if (!target) return;
+
+    const previousStatus = target.status;
     setCandidates((prev) => prev.map((c) => c.id === id ? { ...c, status: action } : c));
     const next = candidates.find((c) => c.id !== id && c.status === "shortlisted");
     if (next) setSelectedId(next.id);
-    setAdvanceDropdownId(null);
+
+    if (!activeJobId) return;
+
+    try {
+      await updateShortlistCandidateStatus(activeJobId, target.email, action);
+    } catch (error) {
+      // Roll back optimistic update on failure
+      setCandidates((prev) => prev.map((c) => c.id === id ? { ...c, status: previousStatus } : c));
+      setLoadActiveJobError(
+        error instanceof Error ? error.message : "Failed to save candidate status."
+      );
+    }
   }
 
   function handleSort(key: SortKey) {
@@ -635,11 +649,11 @@ function ShortlistsPageInner() {
               <span>Screened: <strong className="text-ink">{activeJob.screened} Applicants</strong></span>
               <span className="text-line">|</span>
               <button onClick={() => { setFilterStatus("shortlisted"); setPage(1); }} className="hover:text-brand transition-colors">Shortlisted: <strong className="text-ink">{statusCounts.shortlisted}</strong></button>
-              <button onClick={() => { setFilterStatus("advanced"); setPage(1); }} className="hover:text-brand transition-colors">Advanced: <strong className="text-success">{statusCounts.advanced}</strong></button>
+              <span>Advanced: <strong className="text-success">{statusCounts.advanced}</strong></span>
               <button onClick={() => { setFilterStatus("rejected"); setPage(1); }} className="hover:text-brand transition-colors">Rejected: <strong className="text-danger">{statusCounts.rejected}</strong></button>
-              {filterStatus !== "all" && (
-                <button onClick={() => { setFilterStatus("all"); setPage(1); }} className="flex items-center gap-1 text-brand hover:underline">
-                  <X className="h-3 w-3" /> Clear filter
+              {(filterStatus !== "all" || matchTier !== "all") && (
+                <button onClick={() => { setFilterStatus("all"); setMatchTier("all"); setPage(1); }} className="flex items-center gap-1 text-brand hover:underline">
+                  <X className="h-3 w-3" /> Clear filters
                 </button>
               )}
             </div>
@@ -754,22 +768,68 @@ function ShortlistsPageInner() {
                 <Button variant="secondary" size="sm" leftIcon={<Filter className="h-3.5 w-3.5" />}
                   onClick={() => { setShowFilter((v) => !v); setShowSort(false); }}>
                   Filter
+                  {(filterStatus !== "all" || matchTier !== "all") && (
+                    <span className="ml-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-white">
+                      {(filterStatus !== "all" ? 1 : 0) + (matchTier !== "all" ? 1 : 0)}
+                    </span>
+                  )}
                 </Button>
                 {showFilter && (
-                  <div className="absolute right-0 top-9 z-10 w-44 overflow-hidden rounded-lg border border-line bg-surface shadow-xl">
-                    {(["all", "shortlisted", "advanced", "interview", "exam", "assessment", "practical", "rejected"] as FilterStatus[]).map((s) => {
+                  <div className="absolute right-0 top-9 z-10 w-56 overflow-hidden rounded-lg border border-line bg-surface shadow-xl">
+                    <div className="border-b border-line px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                      Status
+                    </div>
+                    {(["all", "shortlisted", "interview", "exam", "assessment", "practical", "rejected"] as FilterStatus[]).map((s) => {
                       const labels: Record<FilterStatus, string> = {
-                        all: "All", shortlisted: "Shortlisted", advanced: "All Advanced",
+                        all: "All statuses", shortlisted: "Shortlisted",
                         interview: "Interview", exam: "Technical Exam",
                         assessment: "Assessment", practical: "Practical Test", rejected: "Rejected",
                       };
+                      const counts: Record<FilterStatus, number> = {
+                        all: candidates.length,
+                        shortlisted: statusCounts.shortlisted,
+                        interview: statusCounts.interview,
+                        exam: statusCounts.exam,
+                        assessment: statusCounts.assessment,
+                        practical: statusCounts.practical,
+                        rejected: statusCounts.rejected,
+                      };
                       return (
-                      <button key={s} onClick={() => { setFilterStatus(s); setShowFilter(false); setPage(1); }}
-                        className={`flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-surface-soft ${filterStatus === s ? "text-brand font-medium" : "text-ink"} ${s === "advanced" ? "border-b border-line" : ""}`}>
-                        {labels[s]} {filterStatus === s && <Check className="h-3.5 w-3.5" />}
-                      </button>
-                    );
+                        <button key={s} onClick={() => { setFilterStatus(s); setPage(1); }}
+                          className={`flex w-full items-center justify-between px-3 py-2 text-sm transition-colors hover:bg-surface-soft ${filterStatus === s ? "font-medium text-brand" : "text-ink"}`}>
+                          <span className="flex items-center gap-2">
+                            {filterStatus === s ? <Check className="h-3.5 w-3.5" /> : <span className="inline-block h-3.5 w-3.5" />}
+                            {labels[s]}
+                          </span>
+                          <span className="text-xs text-ink-muted">{counts[s]}</span>
+                        </button>
+                      );
                     })}
+                    <div className="border-y border-line px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                      Match Score
+                    </div>
+                    {(["all", "top", "strong", "fair", "weak"] as MatchTier[]).map((tier) => {
+                      const labels: Record<MatchTier, string> = {
+                        all: "Any match", top: "Top (90%+)", strong: "Strong (80-89%)", fair: "Fair (70-79%)", weak: "Weak (<70%)",
+                      };
+                      return (
+                        <button key={tier} onClick={() => { setMatchTier(tier); setPage(1); }}
+                          className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-surface-soft ${matchTier === tier ? "font-medium text-brand" : "text-ink"}`}>
+                          {matchTier === tier ? <Check className="h-3.5 w-3.5" /> : <span className="inline-block h-3.5 w-3.5" />}
+                          {labels[tier]}
+                        </button>
+                      );
+                    })}
+                    {(filterStatus !== "all" || matchTier !== "all") && (
+                      <div className="border-t border-line p-2">
+                        <button
+                          onClick={() => { setFilterStatus("all"); setMatchTier("all"); setPage(1); setShowFilter(false); }}
+                          className="flex w-full items-center justify-center gap-1 rounded-md px-3 py-1.5 text-xs text-brand transition-colors hover:bg-brand-soft/60"
+                        >
+                          <X className="h-3 w-3" /> Clear filters
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -816,6 +876,7 @@ function ShortlistsPageInner() {
                         <h3 className="font-semibold text-ink">{c.name}</h3>
                         {c.rank === 1 && <Badge tone="success" pill><Trophy className="h-3 w-3" /> Top Pick</Badge>}
                         {c.rank === 2 && <Badge tone="brand" pill><Star className="h-3 w-3" /> Runner Up</Badge>}
+                        {c.status === "shortlisted" && <Badge tone="success" pill>Shortlisted</Badge>}
                         {c.status === "interview" && <Badge tone="success" pill>Interview</Badge>}
                         {c.status === "exam" && <Badge tone="brand" pill>Technical Exam</Badge>}
                         {c.status === "assessment" && <Badge tone="brand" pill>Assessment</Badge>}
@@ -845,43 +906,34 @@ function ShortlistsPageInner() {
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-2 md:flex-col md:flex-nowrap md:items-end" onClick={(e) => e.stopPropagation()}>
-                      <Button variant="secondary" size="sm" className="flex-1 sm:flex-none" leftIcon={<X className="h-3.5 w-3.5" />}
-                        onClick={() => handleAction(c.id, "rejected")}
-                        disabled={c.status === "rejected"}>
-                        Reject
-                      </Button>
-
-                      <div className="relative flex-1 sm:flex-none">
-                        <Button size="sm" className="w-full" leftIcon={<Check className="h-3.5 w-3.5" />}
-                          onClick={() => setAdvanceDropdownId(advanceDropdownId === c.id ? null : c.id)}
-                          disabled={c.status !== "shortlisted"}>
-                          Advance ▾
+                      {c.status === "rejected" ? (
+                        <Button size="sm" className="flex-1 sm:flex-none" leftIcon={<Check className="h-3.5 w-3.5" />}
+                          onClick={() => void handleAction(c.id, "shortlisted")}>
+                          Shortlist
                         </Button>
-                        {advanceDropdownId === c.id && (
-                          <div className="absolute right-0 top-9 z-20 w-56 rounded-lg border border-line bg-surface shadow-xl">
-                            <p className="px-3 pt-2.5 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Advance to</p>
-                            {advanceOptions.map((opt) => (
-                              <button key={opt.key}
-                                onClick={() => handleAction(c.id, opt.key)}
-                                className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left hover:bg-surface-soft transition-colors">
-                                <opt.icon className="h-4 w-4 shrink-0 text-brand" />
-                                <div>
-                                  <p className="text-sm font-medium text-ink">{opt.label}</p>
-                                  <p className="text-[10px] text-ink-muted">{opt.desc}</p>
-                                </div>
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      ) : (
+                        <Button variant="secondary" size="sm" className="flex-1 sm:flex-none" leftIcon={<X className="h-3.5 w-3.5" />}
+                          onClick={() => void handleAction(c.id, "rejected")}>
+                          Reject
+                        </Button>
+                      )}
 
                       <Link
                         href={`/candidates/${encodeURIComponent(c.candidateRecordId)}`}
                         onClick={(e) => e.stopPropagation()}
                         className="flex-1 sm:flex-none"
                       >
-                        <Button variant="ghost" size="sm" className="w-full" leftIcon={<Eye className="h-3.5 w-3.5" />}>
-                          Profile
+                        <Button variant="ghost" size="sm" className="w-full" leftIcon={<Sparkles className="h-3.5 w-3.5" />}>
+                          AI Summary
+                        </Button>
+                      </Link>
+                      <Link
+                        href={`/candidates/${encodeURIComponent(c.candidateRecordId)}?view=cv`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 sm:flex-none"
+                      >
+                        <Button variant="ghost" size="sm" className="w-full" leftIcon={<FileText className="h-3.5 w-3.5" />}>
+                          CV
                         </Button>
                       </Link>
                     </div>
@@ -891,8 +943,27 @@ function ShortlistsPageInner() {
             </ul>
           )}
 
-          <div className="flex items-center justify-between border-t border-line px-5 py-4 text-sm text-ink-muted">
-            <p>Showing {Math.min((page - 1) * PAGE_SIZE + 1, filtered.length)}–{Math.min(page * PAGE_SIZE, filtered.length)} of {filtered.length}</p>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-5 py-4 text-sm text-ink-muted">
+            <div className="flex items-center gap-3">
+              <p>Showing {Math.min((page - 1) * pageSize + 1, filtered.length)}–{Math.min(page * pageSize, filtered.length)} of {filtered.length}</p>
+              <label className="flex items-center gap-1.5 text-xs">
+                <span>Rows</span>
+                <select
+                  value={pageSize}
+                  onChange={(event) => {
+                    setPageSize(Number(event.target.value));
+                    setPage(1);
+                  }}
+                  className="h-8 rounded-md border border-line bg-surface px-2 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-brand/40"
+                >
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
             <nav className="flex gap-1">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                 <button key={p} onClick={() => setPage(p)}
@@ -923,18 +994,13 @@ function ShortlistsPageInner() {
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <Link href={`/candidates/${encodeURIComponent(selected.candidateRecordId)}`}>
-                    <Button variant="secondary" size="sm" fullWidth leftIcon={<Eye className="h-3.5 w-3.5" />}>
-                      Full Profile
+                    <Button variant="secondary" size="sm" fullWidth leftIcon={<Sparkles className="h-3.5 w-3.5" />}>
+                      AI Summary
                     </Button>
                   </Link>
-                  <Link href={`/candidates/${encodeURIComponent(selected.candidateRecordId)}#resume`}>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      fullWidth
-                      leftIcon={<FileDown className="h-3.5 w-3.5" />}
-                    >
-                      Resume
+                  <Link href={`/candidates/${encodeURIComponent(selected.candidateRecordId)}?view=cv`}>
+                    <Button variant="secondary" size="sm" fullWidth leftIcon={<FileText className="h-3.5 w-3.5" />}>
+                      CV
                     </Button>
                   </Link>
                 </div>
@@ -1069,8 +1135,8 @@ function ShortlistsPageInner() {
         </aside>
       </div>
 
-      {(showSort || showFilter || advanceDropdownId !== null) && (
-        <div className="fixed inset-0 z-[5]" onClick={() => { setShowSort(false); setShowFilter(false); setAdvanceDropdownId(null); }} />
+      {(showSort || showFilter) && (
+        <div className="fixed inset-0 z-[5]" onClick={() => { setShowSort(false); setShowFilter(false); }} />
       )}
 
       <Modal open={showJobModal} onClose={() => setShowJobModal(false)} size="lg">
@@ -1186,7 +1252,7 @@ function ShortlistsPageInner() {
       <Modal open={showCompare} onClose={() => setShowCompare(false)} size="xl">
         <ModalHeader title="Compare Candidates" subtitle="Side-by-side evaluation" onClose={() => setShowCompare(false)} />
         <ModalBody>
-          <div className="mb-4 flex gap-3">
+          <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {[0, 1].map((slot) => (
               <select
                 key={slot}
@@ -1196,7 +1262,7 @@ function ShortlistsPageInner() {
                   next[slot] = Number(e.target.value);
                   setCompareIds(next);
                 }}
-                className="flex-1 rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand/40"
+                className="rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-brand/40"
               >
                 {candidates.map((c) => (
                   <option key={c.id} value={c.id}>#{c.rank} {c.name} ({c.match}%)</option>
@@ -1209,62 +1275,257 @@ function ShortlistsPageInner() {
             const a = candidates.find((c) => c.id === compareIds[0]);
             const b = candidates.find((c) => c.id === compareIds[1]);
             if (!a || !b) return null;
+
+            const aHighlights = resolveParsedApplicantHighlights(a.applicant);
+            const bHighlights = resolveParsedApplicantHighlights(b.applicant);
+
+            const aWins = a.matching.reduce((total, m) => {
+              const other = b.matching.find((om) => om.label === m.label)?.value ?? 0;
+              return total + (m.value > other ? 1 : 0);
+            }, 0);
+            const bWins = b.matching.reduce((total, m) => {
+              const other = a.matching.find((om) => om.label === m.label)?.value ?? 0;
+              return total + (m.value > other ? 1 : 0);
+            }, 0);
+
+            const statusLabel: Record<Candidate["status"], string> = {
+              shortlisted: "Shortlisted",
+              interview: "Interview",
+              exam: "Technical Exam",
+              assessment: "Assessment",
+              practical: "Practical Test",
+              rejected: "Rejected",
+            };
+            const statusTone: Record<Candidate["status"], "success" | "brand" | "danger" | "neutral"> = {
+              shortlisted: "success",
+              interview: "success",
+              exam: "brand",
+              assessment: "brand",
+              practical: "brand",
+              rejected: "danger",
+            };
+
             return (
-              <div className="grid grid-cols-2 gap-4">
-                {[a, b].map((c) => (
-                  <div key={c.id} className="rounded-lg border border-line p-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar name={c.name} size={40} />
-                      <div>
-                        <p className="font-semibold text-ink">{c.name}</p>
-                        <p className="text-xs text-ink-muted">{c.title}</p>
-                      </div>
-                    </div>
+              <div className="space-y-4">
+                <div className="grid grid-cols-3 items-center gap-3 rounded-xl border border-line bg-surface-soft/40 px-4 py-3 text-center text-xs">
+                  <div>
+                    <p className="text-ink-muted">{a.name.split(" ")[0]} wins</p>
+                    <p className={`font-display text-2xl font-bold ${aWins > bWins ? "text-success" : "text-ink"}`}>{aWins}</p>
+                  </div>
+                  <div className="text-ink-muted">vs</div>
+                  <div>
+                    <p className="text-ink-muted">{b.name.split(" ")[0]} wins</p>
+                    <p className={`font-display text-2xl font-bold ${bWins > aWins ? "text-success" : "text-ink"}`}>{bWins}</p>
+                  </div>
+                </div>
 
-                    <div className="mt-4 text-center">
-                      <p className={`font-display text-4xl font-bold ${c.match >= 90 ? "text-success" : "text-brand"}`}>{c.match}%</p>
-                      <p className="text-[10px] uppercase tracking-wider text-ink-muted">Overall Match</p>
-                    </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {[a, b].map((c, index) => {
+                    const highlights = index === 0 ? aHighlights : bHighlights;
+                    const otherCandidate = index === 0 ? b : a;
+                    const latestExperience = highlights.experience[0];
+                    const latestEducation = highlights.education[0];
+                    const applicant = c.applicant;
+                    const languages = applicant?.languages || [];
+                    const socialLinks = applicant?.socialLinks;
+                    const availability = applicant?.availability;
 
-                    <dl className="mt-4 grid grid-cols-3 gap-2 text-[11px]">
-                      <div className="rounded-md bg-surface-soft/60 p-2 text-center">
-                        <dt className="text-ink-muted">Experience</dt>
-                        <dd className="mt-0.5 font-bold text-ink">{c.years} yrs</dd>
-                      </div>
-                      <div className="rounded-md bg-surface-soft/60 p-2 text-center">
-                        <dt className="text-ink-muted">Culture</dt>
-                        <dd className={`mt-0.5 font-bold ${c.cultureFit === "High" ? "text-success" : "text-ink"}`}>{c.cultureFit}</dd>
-                      </div>
-                      <div className="rounded-md bg-surface-soft/60 p-2 text-center">
-                        <dt className="text-ink-muted">Retention</dt>
-                        <dd className={`mt-0.5 font-bold ${c.retentionRisk === "Low" ? "text-success" : "text-ink"}`}>{c.retentionRisk}</dd>
-                      </div>
-                    </dl>
+                    return (
+                      <div key={c.id} className="flex flex-col rounded-lg border border-line bg-surface">
+                        <div
+                          className="h-1 rounded-t-lg"
+                          style={{
+                            background:
+                              c.match >= 90 ? "var(--color-success, #22c55e)" : c.match >= 80 ? "var(--color-brand)" : "#94a3b8",
+                          }}
+                        />
+                        <div className="flex flex-col gap-4 p-4">
+                          <div className="flex items-start gap-3">
+                            <Avatar name={c.name} size={44} />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="truncate font-semibold text-ink">{c.name}</p>
+                                <Badge tone="neutral" pill>#{c.rank}</Badge>
+                                <Badge tone={statusTone[c.status]} pill>{statusLabel[c.status]}</Badge>
+                              </div>
+                              <p className="truncate text-xs text-ink-muted">{c.title}</p>
+                              <p className="truncate text-[11px] text-ink-muted">
+                                {[c.location, c.email].filter(Boolean).join(" · ")}
+                              </p>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className={`font-display text-3xl font-bold leading-none ${c.match >= 90 ? "text-success" : "text-brand"}`}>
+                                {c.match}%
+                              </p>
+                              <p className="mt-0.5 text-[9px] uppercase tracking-wider text-ink-muted">Overall</p>
+                            </div>
+                          </div>
 
-                    <div className="mt-4 space-y-2">
-                      {c.matching.map((m) => {
-                        const otherCandidate = c.id === a.id ? b : a;
-                        const otherVal = otherCandidate.matching.find((om) => om.label === m.label)?.value ?? 0;
-                        const isHigher = m.value > otherVal;
-                        return (
-                          <div key={m.label}>
-                            <div className="mb-1 flex items-center justify-between text-xs">
-                              <span className="text-ink">{m.label}</span>
-                              <span className={`font-semibold ${isHigher ? "text-success" : m.value === otherVal ? "text-ink" : "text-ink-muted"}`}>
-                                {m.value}% {isHigher && "▲"}
+                          <dl className="grid grid-cols-4 gap-2 text-[11px]">
+                            <div className="rounded-md bg-surface-soft/60 p-2 text-center">
+                              <dt className="text-ink-muted">Experience</dt>
+                              <dd className="mt-0.5 font-bold text-ink">{c.years} yrs</dd>
+                            </div>
+                            <div className="rounded-md bg-surface-soft/60 p-2 text-center">
+                              <dt className="text-ink-muted">Culture</dt>
+                              <dd className={`mt-0.5 font-bold ${c.cultureFit === "High" ? "text-success" : "text-ink"}`}>{c.cultureFit}</dd>
+                            </div>
+                            <div className="rounded-md bg-surface-soft/60 p-2 text-center">
+                              <dt className="text-ink-muted">Retention</dt>
+                              <dd className={`mt-0.5 font-bold ${c.retentionRisk === "Low" ? "text-success" : "text-ink"}`}>{c.retentionRisk}</dd>
+                            </div>
+                            <div className="rounded-md bg-surface-soft/60 p-2 text-center">
+                              <dt className="text-ink-muted">Skills</dt>
+                              <dd className="mt-0.5 font-bold text-ink">{c.skills.length + c.extras}</dd>
+                            </div>
+                          </dl>
+
+                          {c.summary && (
+                            <div className="rounded-md border border-line bg-surface-soft/40 px-3 py-2">
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">AI Summary</p>
+                              <p className="mt-1 text-xs italic leading-5 text-ink-muted">&ldquo;{c.summary}&rdquo;</p>
+                            </div>
+                          )}
+
+                          {c.strength && (
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Top Strength</p>
+                              <p className="mt-1 flex items-start gap-1.5 text-xs text-ink">
+                                <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
+                                {c.strength}
+                              </p>
+                            </div>
+                          )}
+
+                          <div>
+                            <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Criteria Breakdown</p>
+                            <div className="space-y-2">
+                              {c.matching.map((m) => {
+                                const otherVal = otherCandidate.matching.find((om) => om.label === m.label)?.value ?? 0;
+                                const isHigher = m.value > otherVal;
+                                const isEqual = m.value === otherVal;
+                                return (
+                                  <div key={m.label}>
+                                    <div className="mb-1 flex items-center justify-between text-xs">
+                                      <span className="truncate text-ink">{m.label}</span>
+                                      <span className={`shrink-0 font-semibold ${isHigher ? "text-success" : isEqual ? "text-ink" : "text-ink-muted"}`}>
+                                        {m.value}% {isHigher && "▲"}
+                                      </span>
+                                    </div>
+                                    <Progress value={m.value} />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-3">
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Most Recent Experience</p>
+                              {latestExperience ? (
+                                <div className="mt-1 flex items-start gap-2 text-xs">
+                                  <Briefcase className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" />
+                                  <div className="min-w-0">
+                                    <p className="truncate font-medium text-ink">{latestExperience.role || "Role"}</p>
+                                    <p className="truncate text-ink-muted">
+                                      {[latestExperience.company, latestExperience.isCurrent ? "Present" : latestExperience.endDate]
+                                        .filter(Boolean)
+                                        .join(" · ")}
+                                    </p>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="mt-1 text-xs text-ink-muted">No experience parsed.</p>
+                              )}
+                            </div>
+
+                            <div>
+                              <p className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Most Recent Education</p>
+                              {latestEducation ? (
+                                <div className="mt-1 flex items-start gap-2 text-xs">
+                                  <GraduationCap className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand" />
+                                  <div className="min-w-0">
+                                    <p className="truncate font-medium text-ink">
+                                      {latestEducation.degree || latestEducation.fieldOfStudy || "Program"}
+                                    </p>
+                                    <p className="truncate text-ink-muted">
+                                      {[latestEducation.institution, latestEducation.endYear].filter(Boolean).join(" · ")}
+                                    </p>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="mt-1 text-xs text-ink-muted">No education parsed.</p>
+                              )}
+                            </div>
+                          </div>
+
+                          {languages.length > 0 && (
+                            <div>
+                              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Languages</p>
+                              <div className="flex flex-wrap gap-1">
+                                {languages.map((lang, languageIndex) => (
+                                  <Badge key={`${lang.name}-${languageIndex}`} tone="neutral">
+                                    {lang.name}{lang.proficiency ? ` · ${lang.proficiency}` : ""}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div>
+                            <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">Skills</p>
+                            <div className="flex flex-wrap gap-1">
+                              {c.skills.map((s) => <Badge key={s} tone="neutral">{s}</Badge>)}
+                              {c.extras > 0 && <Badge tone="neutral">+{c.extras}</Badge>}
+                            </div>
+                          </div>
+
+                          {availability && (availability.status || availability.type || availability.startDate) && (
+                            <div className="flex flex-wrap items-center gap-2 rounded-md bg-surface-soft/50 px-3 py-2 text-[11px] text-ink-muted">
+                              <Clock className="h-3.5 w-3.5 shrink-0" />
+                              <span>
+                                {[availability.status, availability.type, availability.startDate].filter(Boolean).join(" · ")}
                               </span>
                             </div>
-                            <Progress value={m.value} />
-                          </div>
-                        );
-                      })}
-                    </div>
+                          )}
 
-                    <div className="mt-4 flex flex-wrap gap-1">
-                      {c.skills.map((s) => <Badge key={s} tone="neutral">{s}</Badge>)}
-                    </div>
-                  </div>
-                ))}
+                          {(socialLinks?.linkedin || socialLinks?.github || socialLinks?.portfolio) && (
+                            <div className="flex flex-wrap items-center gap-2 text-[11px]">
+                              {socialLinks?.linkedin && (
+                                <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-brand hover:underline">
+                                  LinkedIn
+                                </a>
+                              )}
+                              {socialLinks?.github && (
+                                <a href={socialLinks.github} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-brand hover:underline">
+                                  GitHub
+                                </a>
+                              )}
+                              {socialLinks?.portfolio && (
+                                <a href={socialLinks.portfolio} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-brand hover:underline">
+                                  Portfolio
+                                </a>
+                              )}
+                            </div>
+                          )}
+
+                          <div className="flex gap-2 border-t border-line pt-3">
+                            <Link href={`/candidates/${encodeURIComponent(c.candidateRecordId)}`} className="flex-1">
+                              <Button variant="secondary" size="sm" fullWidth leftIcon={<Sparkles className="h-3.5 w-3.5" />}>
+                                AI Summary
+                              </Button>
+                            </Link>
+                            <Link href={`/candidates/${encodeURIComponent(c.candidateRecordId)}?view=cv`} className="flex-1">
+                              <Button variant="secondary" size="sm" fullWidth leftIcon={<FileText className="h-3.5 w-3.5" />}>
+                                CV
+                              </Button>
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             );
           })()}

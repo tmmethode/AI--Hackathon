@@ -15,7 +15,9 @@ import {
   Link as LinkIcon,
   Link2,
   LoaderCircle,
+  Filter,
   Pencil,
+  Plus,
   RefreshCw,
   Search,
   ShieldCheck,
@@ -32,10 +34,16 @@ import {
   ingestApplicantsFromPlatform,
   type IngestUploadProgress,
   listAllApplicants,
+  type ApplicantCertification,
+  type ApplicantEducation,
+  type ApplicantExperience,
+  type ApplicantLanguage,
   type ApplicantProfileInput,
+  type ApplicantProject,
   type ApplicantRecord,
   type ApplicantSkill,
   type ApplicantSource,
+  type IngestStatus,
   type IngestSummary,
   type UpdateApplicantRequest,
   updateApplicant,
@@ -82,12 +90,12 @@ interface ApplicantEditFormState {
   linkedin: string;
   github: string;
   portfolio: string;
-  skillsJson: string;
-  languagesJson: string;
-  experienceJson: string;
-  educationJson: string;
-  certificationsJson: string;
-  projectsJson: string;
+  skills: ApplicantSkill[];
+  languages: ApplicantLanguage[];
+  experience: ApplicantExperience[];
+  education: ApplicantEducation[];
+  certifications: ApplicantCertification[];
+  projects: ApplicantProject[];
 }
 
 const tabs = [
@@ -104,7 +112,6 @@ const importStages = [
   { id: "refreshing", label: "Refresh Live Preview", icon: RefreshCw },
 ] as const;
 
-const PAGE_SIZE = 5;
 const EXAMPLE_JSON_SCHEMA = `{
   "applicants": [
     {
@@ -290,8 +297,64 @@ function getApplicantSkills(applicant: ApplicantRecord) {
   return applicant.skills.map((skill) => skill.name.trim()).filter(Boolean).slice(0, 4);
 }
 
-function stringifyJson(value: unknown) {
-  return JSON.stringify(value ?? [], null, 2);
+interface CollectionEditorProps<TItem> {
+  title: string;
+  description?: string;
+  items: TItem[];
+  emptyMessage: string;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+  renderItem: (item: TItem, index: number) => React.ReactNode;
+}
+
+function CollectionEditor<TItem>({
+  title,
+  description,
+  items,
+  emptyMessage,
+  onAdd,
+  onRemove,
+  renderItem,
+}: CollectionEditorProps<TItem>) {
+  return (
+    <section className="rounded-xl border border-line bg-surface-soft/30 p-4">
+      <header className="mb-3 flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <h4 className="text-sm font-semibold text-ink">{title}</h4>
+          {description && <p className="mt-0.5 text-xs text-ink-muted">{description}</p>}
+        </div>
+        <Button type="button" variant="secondary" size="sm" leftIcon={<Plus className="h-3.5 w-3.5" />} onClick={onAdd}>
+          Add {title.replace(/s$/, "").toLowerCase()}
+        </Button>
+      </header>
+      {items.length === 0 ? (
+        <p className="rounded-md border border-dashed border-line bg-surface px-3 py-4 text-center text-xs text-ink-muted">
+          {emptyMessage}
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {items.map((item, index) => (
+            <li key={index} className="rounded-lg border border-line bg-surface p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">
+                  #{index + 1}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onRemove(index)}
+                  className="flex h-7 items-center gap-1 rounded-md px-2 text-xs text-ink-muted transition-colors hover:bg-danger/5 hover:text-danger"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Remove
+                </button>
+              </div>
+              {renderItem(item, index)}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
 }
 
 function createApplicantEditForm(applicant: ApplicantRecord): ApplicantEditFormState {
@@ -308,34 +371,34 @@ function createApplicantEditForm(applicant: ApplicantRecord): ApplicantEditFormS
     linkedin: applicant.socialLinks?.linkedin || "",
     github: applicant.socialLinks?.github || "",
     portfolio: applicant.socialLinks?.portfolio || "",
-    skillsJson: stringifyJson(applicant.skills || []),
-    languagesJson: stringifyJson(applicant.languages || []),
-    experienceJson: stringifyJson(applicant.experience || []),
-    educationJson: stringifyJson(applicant.education || []),
-    certificationsJson: stringifyJson(applicant.certifications || []),
-    projectsJson: stringifyJson(applicant.projects || []),
+    skills: (applicant.skills || []).map((skill) => ({ ...skill })),
+    languages: (applicant.languages || []).map((language) => ({ ...language })),
+    experience: (applicant.experience || []).map((entry) => ({
+      ...entry,
+      technologies: entry.technologies ? [...entry.technologies] : undefined,
+    })),
+    education: (applicant.education || []).map((entry) => ({ ...entry })),
+    certifications: (applicant.certifications || []).map((entry) => ({ ...entry })),
+    projects: (applicant.projects || []).map((entry) => ({
+      ...entry,
+      technologies: entry.technologies ? [...entry.technologies] : undefined,
+    })),
   };
 }
 
-function parseJsonArrayField(fieldLabel: string, value: string) {
+function splitTechnologies(value: string): string[] | undefined {
   const trimmed = value.trim();
-
   if (!trimmed) {
-    return [];
+    return undefined;
   }
+  return trimmed
+    .split(",")
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
 
-  try {
-    const parsed = JSON.parse(trimmed);
-    if (!Array.isArray(parsed)) {
-      throw new Error(`${fieldLabel} must be a JSON array.`);
-    }
-    return parsed;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`${fieldLabel}: ${error.message}`);
-    }
-    throw new Error(`${fieldLabel} contains invalid JSON.`);
-  }
+function joinTechnologies(value?: string[]): string {
+  return (value || []).join(", ");
 }
 
 function buildApplicantUpdatePayload(form: ApplicantEditFormState): UpdateApplicantRequest {
@@ -365,6 +428,72 @@ function buildApplicantUpdatePayload(form: ApplicantEditFormState): UpdateApplic
         }
       : undefined;
 
+  const skills = form.skills
+    .map((skill) => ({
+      name: skill.name.trim(),
+      level: skill.level?.trim() || undefined,
+      yearsOfExperience:
+        skill.yearsOfExperience !== undefined && !Number.isNaN(Number(skill.yearsOfExperience))
+          ? Number(skill.yearsOfExperience)
+          : undefined,
+    }))
+    .filter((skill) => skill.name);
+
+  const languages = form.languages
+    .map((language) => ({
+      name: language.name.trim(),
+      proficiency: language.proficiency?.trim() || undefined,
+    }))
+    .filter((language) => language.name);
+
+  const experience = form.experience
+    .map((entry) => ({
+      company: entry.company.trim(),
+      role: entry.role.trim(),
+      startDate: entry.startDate?.trim() || undefined,
+      endDate: entry.endDate?.trim() || undefined,
+      description: entry.description?.trim() || undefined,
+      technologies: entry.technologies && entry.technologies.length > 0 ? entry.technologies : undefined,
+      isCurrent: entry.isCurrent || undefined,
+    }))
+    .filter((entry) => entry.company || entry.role);
+
+  const education = form.education
+    .map((entry) => ({
+      institution: entry.institution.trim(),
+      degree: entry.degree?.trim() || undefined,
+      fieldOfStudy: entry.fieldOfStudy?.trim() || undefined,
+      startYear:
+        entry.startYear !== undefined && !Number.isNaN(Number(entry.startYear))
+          ? Number(entry.startYear)
+          : undefined,
+      endYear:
+        entry.endYear !== undefined && !Number.isNaN(Number(entry.endYear))
+          ? Number(entry.endYear)
+          : undefined,
+    }))
+    .filter((entry) => entry.institution);
+
+  const certifications = form.certifications
+    .map((entry) => ({
+      name: entry.name.trim(),
+      issuer: entry.issuer?.trim() || undefined,
+      issueDate: entry.issueDate?.trim() || undefined,
+    }))
+    .filter((entry) => entry.name);
+
+  const projects = form.projects
+    .map((entry) => ({
+      name: entry.name.trim(),
+      description: entry.description?.trim() || undefined,
+      technologies: entry.technologies && entry.technologies.length > 0 ? entry.technologies : undefined,
+      role: entry.role?.trim() || undefined,
+      link: entry.link?.trim() || undefined,
+      startDate: entry.startDate?.trim() || undefined,
+      endDate: entry.endDate?.trim() || undefined,
+    }))
+    .filter((entry) => entry.name);
+
   return {
     firstName,
     lastName,
@@ -372,12 +501,12 @@ function buildApplicantUpdatePayload(form: ApplicantEditFormState): UpdateApplic
     headline: form.headline.trim() || undefined,
     bio: form.bio.trim() || undefined,
     location: form.location.trim() || undefined,
-    skills: parseJsonArrayField("Skills", form.skillsJson) as UpdateApplicantRequest["skills"],
-    languages: parseJsonArrayField("Languages", form.languagesJson) as UpdateApplicantRequest["languages"],
-    experience: parseJsonArrayField("Experience", form.experienceJson) as UpdateApplicantRequest["experience"],
-    education: parseJsonArrayField("Education", form.educationJson) as UpdateApplicantRequest["education"],
-    certifications: parseJsonArrayField("Certifications", form.certificationsJson) as UpdateApplicantRequest["certifications"],
-    projects: parseJsonArrayField("Projects", form.projectsJson) as UpdateApplicantRequest["projects"],
+    skills,
+    languages,
+    experience,
+    education,
+    certifications,
+    projects,
     availability,
     socialLinks,
   };
@@ -1365,6 +1494,9 @@ export default function IngestPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedApplicantIds, setSelectedApplicantIds] = useState<string[]>([]);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(5);
+  const [statusFilter, setStatusFilter] = useState<IngestStatus | "all">("all");
+  const [sourceFilter, setSourceFilter] = useState<ApplicantSource | "all">("all");
   const [showSchemaModal, setShowSchemaModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -1390,11 +1522,17 @@ export default function IngestPage() {
   const filteredApplicants = useMemo(() => {
     const needle = searchQuery.trim().toLowerCase();
 
-    if (!needle) {
-      return applicants;
-    }
-
     return applicants.filter((applicant) => {
+      if (statusFilter !== "all" && applicant.ingestStatus !== statusFilter) {
+        return false;
+      }
+      if (sourceFilter !== "all" && applicant.source !== sourceFilter) {
+        return false;
+      }
+      if (!needle) {
+        return true;
+      }
+
       const haystacks = [
         getApplicantDisplayName(applicant),
         applicant.email,
@@ -1410,13 +1548,13 @@ export default function IngestPage() {
 
       return haystacks.includes(needle);
     });
-  }, [applicants, searchQuery]);
+  }, [applicants, searchQuery, statusFilter, sourceFilter]);
 
   const paginatedApplicants = useMemo(
-    () => filteredApplicants.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filteredApplicants, page]
+    () => filteredApplicants.slice((page - 1) * pageSize, page * pageSize),
+    [filteredApplicants, page, pageSize]
   );
-  const totalPages = Math.max(1, Math.ceil(filteredApplicants.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(filteredApplicants.length / pageSize));
   const selectedApplicants = useMemo(
     () => applicants.filter((applicant) => selectedApplicantIds.includes(applicant._id)),
     [applicants, selectedApplicantIds]
@@ -1964,8 +2102,8 @@ export default function IngestPage() {
               </div>
             </div>
 
-            <div className="border-b border-line px-6 py-4">
-              <div className="relative max-w-md">
+            <div className="flex flex-col gap-3 border-b border-line px-6 py-4 md:flex-row md:items-center md:justify-between">
+              <div className="relative w-full md:max-w-md">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
                 <Input
                   value={searchQuery}
@@ -1976,6 +2114,42 @@ export default function IngestPage() {
                   placeholder="Search applicants by name, email, skill, location, or source…"
                   className="pl-9"
                 />
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <label className="flex items-center gap-1.5 text-xs text-ink-muted">
+                  <Filter className="h-3.5 w-3.5" />
+                  <span>Status</span>
+                  <select
+                    value={statusFilter}
+                    onChange={(event) => {
+                      setStatusFilter(event.target.value as IngestStatus | "all");
+                      setPage(1);
+                    }}
+                    className="h-8 rounded-md border border-line bg-surface px-2 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-brand/40"
+                  >
+                    <option value="all">All</option>
+                    <option value="parsed">Parsed</option>
+                    <option value="pending">Pending</option>
+                    <option value="failed">Failed</option>
+                  </select>
+                </label>
+                <label className="flex items-center gap-1.5 text-xs text-ink-muted">
+                  <span>Source</span>
+                  <select
+                    value={sourceFilter}
+                    onChange={(event) => {
+                      setSourceFilter(event.target.value as ApplicantSource | "all");
+                      setPage(1);
+                    }}
+                    className="h-8 rounded-md border border-line bg-surface px-2 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-brand/40"
+                  >
+                    <option value="all">All</option>
+                    <option value="umurava-platform">Umurava Platform</option>
+                    <option value="pdf-upload">Resume Upload</option>
+                    <option value="csv-import">CSV Import</option>
+                    <option value="paste-links">Paste Links</option>
+                  </select>
+                </label>
               </div>
             </div>
 
@@ -2102,12 +2276,31 @@ export default function IngestPage() {
               </ul>
             </div>
 
-            <div className="flex items-center justify-between border-t border-line px-6 py-3 text-sm text-ink-muted">
-              <p>
-                {filteredApplicants.length > 0
-                  ? `Showing ${(page - 1) * PAGE_SIZE + 1}-${Math.min(page * PAGE_SIZE, filteredApplicants.length)} of ${filteredApplicants.length}`
-                  : "No applicant records yet"}
-              </p>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-6 py-3 text-sm text-ink-muted">
+              <div className="flex items-center gap-3">
+                <p>
+                  {filteredApplicants.length > 0
+                    ? `Showing ${(page - 1) * pageSize + 1}-${Math.min(page * pageSize, filteredApplicants.length)} of ${filteredApplicants.length}`
+                    : "No applicant records yet"}
+                </p>
+                <label className="flex items-center gap-1.5 text-xs">
+                  <span>Rows</span>
+                  <select
+                    value={pageSize}
+                    onChange={(event) => {
+                      setPageSize(Number(event.target.value));
+                      setPage(1);
+                    }}
+                    className="h-8 rounded-md border border-line bg-surface px-2 text-xs text-ink focus:outline-none focus:ring-2 focus:ring-brand/40"
+                  >
+                    {[5, 10, 25, 50].map((size) => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
               <nav className="flex gap-1">
                 {Array.from({ length: totalPages }, (_, index) => index + 1).map((nextPage) => (
                   <button
@@ -2371,56 +2564,651 @@ export default function IngestPage() {
                 </Field>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Field label="Skills JSON" hint="Provide a JSON array of skill objects.">
-                  <Textarea
-                    rows={8}
-                    className="font-mono text-xs"
-                    value={editForm.skillsJson}
-                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, skillsJson: event.target.value } : previous)}
-                  />
-                </Field>
-                <Field label="Languages JSON" hint="Provide a JSON array of language objects.">
-                  <Textarea
-                    rows={8}
-                    className="font-mono text-xs"
-                    value={editForm.languagesJson}
-                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, languagesJson: event.target.value } : previous)}
-                  />
-                </Field>
-                <Field label="Experience JSON" hint="Provide a JSON array of experience entries.">
-                  <Textarea
-                    rows={10}
-                    className="font-mono text-xs"
-                    value={editForm.experienceJson}
-                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, experienceJson: event.target.value } : previous)}
-                  />
-                </Field>
-                <Field label="Education JSON" hint="Provide a JSON array of education entries.">
-                  <Textarea
-                    rows={10}
-                    className="font-mono text-xs"
-                    value={editForm.educationJson}
-                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, educationJson: event.target.value } : previous)}
-                  />
-                </Field>
-                <Field label="Certifications JSON" hint="Provide a JSON array of certification entries.">
-                  <Textarea
-                    rows={8}
-                    className="font-mono text-xs"
-                    value={editForm.certificationsJson}
-                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, certificationsJson: event.target.value } : previous)}
-                  />
-                </Field>
-                <Field label="Projects JSON" hint="Provide a JSON array of project entries.">
-                  <Textarea
-                    rows={8}
-                    className="font-mono text-xs"
-                    value={editForm.projectsJson}
-                    onChange={(event) => setEditForm((previous) => previous ? { ...previous, projectsJson: event.target.value } : previous)}
-                  />
-                </Field>
-              </div>
+              <CollectionEditor
+                title="Skills"
+                description="Add each skill the applicant is strong in."
+                items={editForm.skills}
+                emptyMessage="No skills added yet."
+                onAdd={() =>
+                  setEditForm((previous) =>
+                    previous ? { ...previous, skills: [...previous.skills, { name: "", level: "", yearsOfExperience: undefined }] } : previous
+                  )
+                }
+                onRemove={(index) =>
+                  setEditForm((previous) =>
+                    previous ? { ...previous, skills: previous.skills.filter((_, position) => position !== index) } : previous
+                  )
+                }
+                renderItem={(skill, index) => (
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                    <Field label="Name" required>
+                      <Input
+                        value={skill.name}
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  skills: previous.skills.map((item, position) =>
+                                    position === index ? { ...item, name: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Level">
+                      <Input
+                        value={skill.level || ""}
+                        placeholder="Beginner, Intermediate, Advanced…"
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  skills: previous.skills.map((item, position) =>
+                                    position === index ? { ...item, level: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Years of Experience">
+                      <Input
+                        type="number"
+                        min={0}
+                        value={skill.yearsOfExperience ?? ""}
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  skills: previous.skills.map((item, position) =>
+                                    position === index
+                                      ? {
+                                          ...item,
+                                          yearsOfExperience:
+                                            event.target.value === "" ? undefined : Number(event.target.value),
+                                        }
+                                      : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                  </div>
+                )}
+              />
+
+              <CollectionEditor
+                title="Languages"
+                items={editForm.languages}
+                emptyMessage="No languages added yet."
+                onAdd={() =>
+                  setEditForm((previous) =>
+                    previous ? { ...previous, languages: [...previous.languages, { name: "", proficiency: "" }] } : previous
+                  )
+                }
+                onRemove={(index) =>
+                  setEditForm((previous) =>
+                    previous ? { ...previous, languages: previous.languages.filter((_, position) => position !== index) } : previous
+                  )
+                }
+                renderItem={(language, index) => (
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <Field label="Name" required>
+                      <Input
+                        value={language.name}
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  languages: previous.languages.map((item, position) =>
+                                    position === index ? { ...item, name: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Proficiency">
+                      <Input
+                        value={language.proficiency || ""}
+                        placeholder="Native, Fluent, Conversational…"
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  languages: previous.languages.map((item, position) =>
+                                    position === index ? { ...item, proficiency: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                  </div>
+                )}
+              />
+
+              <CollectionEditor
+                title="Experience"
+                items={editForm.experience}
+                emptyMessage="No work experience added yet."
+                onAdd={() =>
+                  setEditForm((previous) =>
+                    previous
+                      ? {
+                          ...previous,
+                          experience: [
+                            ...previous.experience,
+                            { company: "", role: "", startDate: "", endDate: "", description: "", technologies: [], isCurrent: false },
+                          ],
+                        }
+                      : previous
+                  )
+                }
+                onRemove={(index) =>
+                  setEditForm((previous) =>
+                    previous ? { ...previous, experience: previous.experience.filter((_, position) => position !== index) } : previous
+                  )
+                }
+                renderItem={(entry, index) => (
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <Field label="Company" required>
+                      <Input
+                        value={entry.company}
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  experience: previous.experience.map((item, position) =>
+                                    position === index ? { ...item, company: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Role" required>
+                      <Input
+                        value={entry.role}
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  experience: previous.experience.map((item, position) =>
+                                    position === index ? { ...item, role: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Start Date">
+                      <Input
+                        value={entry.startDate || ""}
+                        placeholder="YYYY-MM"
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  experience: previous.experience.map((item, position) =>
+                                    position === index ? { ...item, startDate: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="End Date">
+                      <Input
+                        value={entry.endDate || ""}
+                        placeholder="YYYY-MM or Present"
+                        disabled={entry.isCurrent}
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  experience: previous.experience.map((item, position) =>
+                                    position === index ? { ...item, endDate: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Technologies" className="md:col-span-2" hint="Separate with commas.">
+                      <Input
+                        value={joinTechnologies(entry.technologies)}
+                        placeholder="React, TypeScript, Node.js"
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  experience: previous.experience.map((item, position) =>
+                                    position === index ? { ...item, technologies: splitTechnologies(event.target.value) || [] } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Description" className="md:col-span-2">
+                      <Textarea
+                        rows={3}
+                        value={entry.description || ""}
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  experience: previous.experience.map((item, position) =>
+                                    position === index ? { ...item, description: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <label className="flex items-center gap-2 text-xs text-ink md:col-span-2">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(entry.isCurrent)}
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  experience: previous.experience.map((item, position) =>
+                                    position === index ? { ...item, isCurrent: event.target.checked } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                        className="h-4 w-4 rounded border-line text-brand"
+                      />
+                      Currently working here
+                    </label>
+                  </div>
+                )}
+              />
+
+              <CollectionEditor
+                title="Education"
+                items={editForm.education}
+                emptyMessage="No education added yet."
+                onAdd={() =>
+                  setEditForm((previous) =>
+                    previous
+                      ? {
+                          ...previous,
+                          education: [
+                            ...previous.education,
+                            { institution: "", degree: "", fieldOfStudy: "", startYear: undefined, endYear: undefined },
+                          ],
+                        }
+                      : previous
+                  )
+                }
+                onRemove={(index) =>
+                  setEditForm((previous) =>
+                    previous ? { ...previous, education: previous.education.filter((_, position) => position !== index) } : previous
+                  )
+                }
+                renderItem={(entry, index) => (
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <Field label="Institution" className="md:col-span-2" required>
+                      <Input
+                        value={entry.institution}
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  education: previous.education.map((item, position) =>
+                                    position === index ? { ...item, institution: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Degree">
+                      <Input
+                        value={entry.degree || ""}
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  education: previous.education.map((item, position) =>
+                                    position === index ? { ...item, degree: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Field of Study">
+                      <Input
+                        value={entry.fieldOfStudy || ""}
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  education: previous.education.map((item, position) =>
+                                    position === index ? { ...item, fieldOfStudy: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Start Year">
+                      <Input
+                        type="number"
+                        value={entry.startYear ?? ""}
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  education: previous.education.map((item, position) =>
+                                    position === index
+                                      ? {
+                                          ...item,
+                                          startYear:
+                                            event.target.value === "" ? undefined : Number(event.target.value),
+                                        }
+                                      : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="End Year">
+                      <Input
+                        type="number"
+                        value={entry.endYear ?? ""}
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  education: previous.education.map((item, position) =>
+                                    position === index
+                                      ? {
+                                          ...item,
+                                          endYear:
+                                            event.target.value === "" ? undefined : Number(event.target.value),
+                                        }
+                                      : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                  </div>
+                )}
+              />
+
+              <CollectionEditor
+                title="Certifications"
+                items={editForm.certifications}
+                emptyMessage="No certifications added yet."
+                onAdd={() =>
+                  setEditForm((previous) =>
+                    previous
+                      ? { ...previous, certifications: [...previous.certifications, { name: "", issuer: "", issueDate: "" }] }
+                      : previous
+                  )
+                }
+                onRemove={(index) =>
+                  setEditForm((previous) =>
+                    previous
+                      ? { ...previous, certifications: previous.certifications.filter((_, position) => position !== index) }
+                      : previous
+                  )
+                }
+                renderItem={(entry, index) => (
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                    <Field label="Name" required>
+                      <Input
+                        value={entry.name}
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  certifications: previous.certifications.map((item, position) =>
+                                    position === index ? { ...item, name: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Issuer">
+                      <Input
+                        value={entry.issuer || ""}
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  certifications: previous.certifications.map((item, position) =>
+                                    position === index ? { ...item, issuer: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Issue Date">
+                      <Input
+                        value={entry.issueDate || ""}
+                        placeholder="YYYY-MM"
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  certifications: previous.certifications.map((item, position) =>
+                                    position === index ? { ...item, issueDate: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                  </div>
+                )}
+              />
+
+              <CollectionEditor
+                title="Projects"
+                items={editForm.projects}
+                emptyMessage="No projects added yet."
+                onAdd={() =>
+                  setEditForm((previous) =>
+                    previous
+                      ? {
+                          ...previous,
+                          projects: [
+                            ...previous.projects,
+                            { name: "", description: "", role: "", link: "", startDate: "", endDate: "", technologies: [] },
+                          ],
+                        }
+                      : previous
+                  )
+                }
+                onRemove={(index) =>
+                  setEditForm((previous) =>
+                    previous ? { ...previous, projects: previous.projects.filter((_, position) => position !== index) } : previous
+                  )
+                }
+                renderItem={(entry, index) => (
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <Field label="Name" className="md:col-span-2" required>
+                      <Input
+                        value={entry.name}
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  projects: previous.projects.map((item, position) =>
+                                    position === index ? { ...item, name: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Role">
+                      <Input
+                        value={entry.role || ""}
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  projects: previous.projects.map((item, position) =>
+                                    position === index ? { ...item, role: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Link">
+                      <Input
+                        value={entry.link || ""}
+                        placeholder="https://…"
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  projects: previous.projects.map((item, position) =>
+                                    position === index ? { ...item, link: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Start Date">
+                      <Input
+                        value={entry.startDate || ""}
+                        placeholder="YYYY-MM"
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  projects: previous.projects.map((item, position) =>
+                                    position === index ? { ...item, startDate: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="End Date">
+                      <Input
+                        value={entry.endDate || ""}
+                        placeholder="YYYY-MM"
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  projects: previous.projects.map((item, position) =>
+                                    position === index ? { ...item, endDate: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Technologies" className="md:col-span-2" hint="Separate with commas.">
+                      <Input
+                        value={joinTechnologies(entry.technologies)}
+                        placeholder="React, TypeScript, Node.js"
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  projects: previous.projects.map((item, position) =>
+                                    position === index ? { ...item, technologies: splitTechnologies(event.target.value) || [] } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                    <Field label="Description" className="md:col-span-2">
+                      <Textarea
+                        rows={3}
+                        value={entry.description || ""}
+                        onChange={(event) =>
+                          setEditForm((previous) =>
+                            previous
+                              ? {
+                                  ...previous,
+                                  projects: previous.projects.map((item, position) =>
+                                    position === index ? { ...item, description: event.target.value } : item
+                                  ),
+                                }
+                              : previous
+                          )
+                        }
+                      />
+                    </Field>
+                  </div>
+                )}
+              />
             </>
           )}
         </ModalBody>

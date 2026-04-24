@@ -2,6 +2,7 @@ import {
   Body,
   Delete,
   Get,
+  Patch,
   Path,
   Post,
   Query,
@@ -158,6 +159,10 @@ export interface ShortlistSelectResponse {
 export interface DeleteShortlistResponse {
   id: string;
   message: string;
+}
+
+export interface UpdateShortlistCandidateStatusRequest {
+  status: 'shortlisted' | 'rejected';
 }
 
 @Tags('Shortlists')
@@ -552,6 +557,86 @@ export class ShortlistController {
   /**
    * Delete a shortlist permanently.
    */
+  /**
+   * Mark a candidate as shortlisted or rejected on an existing shortlist.
+   */
+  @Patch('{id}/candidates/{email}')
+  @Security('jwt')
+  public async updateShortlistCandidateStatus(
+    @Path() id: string,
+    @Path() email: string,
+    @Body() body: UpdateShortlistCandidateStatusRequest
+  ): Promise<ShortlistResponse> {
+    try {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new Error('Invalid shortlist id');
+      }
+
+      const normalizedStatus = body?.status;
+      if (normalizedStatus !== 'shortlisted' && normalizedStatus !== 'rejected') {
+        throw new Error('Invalid status; expected "shortlisted" or "rejected".');
+      }
+
+      const normalizedEmail = this.normalizeEmail(decodeURIComponent(email));
+      if (!normalizedEmail) {
+        throw new Error('Applicant email is required.');
+      }
+
+      const shortlist = await Shortlist.findById(id);
+      if (!shortlist) {
+        throw new Error('Shortlist not found');
+      }
+
+      const screeningEntry = shortlist.screeningResults.find(
+        (entry) => this.normalizeEmail(entry.applicantEmail) === normalizedEmail
+      );
+
+      if (!screeningEntry) {
+        throw new Error('Candidate is not part of this screening run.');
+      }
+
+      const alreadyShortlisted = shortlist.shortlist.some(
+        (entry) => this.normalizeEmail(entry.applicantEmail) === normalizedEmail
+      );
+
+      if (normalizedStatus === 'shortlisted') {
+        if (!alreadyShortlisted) {
+          shortlist.shortlist.push({
+            candidateRank: screeningEntry.candidateRank,
+            applicantEmail: screeningEntry.applicantEmail,
+            fullName: screeningEntry.fullName,
+            matchScore: screeningEntry.matchScore,
+            confidenceScore: screeningEntry.confidenceScore,
+            skillsScore: screeningEntry.skillsScore,
+            experienceScore: screeningEntry.experienceScore,
+            educationScore: screeningEntry.educationScore,
+            relevanceScore: screeningEntry.relevanceScore,
+            criterionAssessments: screeningEntry.criterionAssessments,
+            criticalRequirementGap: screeningEntry.criticalRequirementGap,
+            strengths: screeningEntry.strengths,
+            gapsOrRisks: screeningEntry.gapsOrRisks,
+            finalRecommendation: screeningEntry.finalRecommendation,
+            summaryExplanation: screeningEntry.summaryExplanation,
+          } as IShortlistEntry);
+        }
+      } else if (alreadyShortlisted) {
+        shortlist.shortlist = shortlist.shortlist.filter(
+          (entry) => this.normalizeEmail(entry.applicantEmail) !== normalizedEmail
+        ) as typeof shortlist.shortlist;
+      }
+
+      shortlist.shortlistCount = shortlist.shortlist.length;
+      await shortlist.save();
+
+      return {
+        data: this.toShortlistDTO(shortlist),
+        message: 'Candidate status updated successfully',
+      };
+    } catch (error) {
+      throw this.toHttpError(error);
+    }
+  }
+
   @Delete('{id}')
   @Security('jwt', ['recruiter', 'admin'])
   public async deleteShortlist(@Path() id: string): Promise<DeleteShortlistResponse> {

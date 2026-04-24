@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   MapPin,
   Mail,
@@ -20,6 +21,9 @@ import {
   Send,
   LoaderCircle,
   Link as LinkIcon,
+  FileText,
+  Globe,
+  Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -28,6 +32,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Field, Input, Textarea, Select } from "@/components/ui/Input";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
 import { loadCandidateRecords, type CandidateRecord } from "@/lib/candidates";
+import type { ApplicantCertification, ApplicantEducation, ApplicantExperience } from "@/lib/applicants";
 import { resolveParsedApplicantHighlights } from "@/lib/applicant-profile";
 import { createPdfFromLines } from "@/lib/pdf";
 import { downloadBlob, sanitizeFilename } from "@/lib/download";
@@ -81,9 +86,428 @@ Best regards,
 Umurava Hiring Team`;
 }
 
+function formatCvTimeline(start?: string, end?: string, isCurrent?: boolean) {
+  const startLabel = start?.trim() || "Unknown";
+  const endLabel = isCurrent ? "Present" : end?.trim() || "Unknown";
+  return `${startLabel} — ${endLabel}`;
+}
+
+function buildCandidateCvPdfLines(
+  candidate: CandidateRecord,
+  experienceEntries: ApplicantExperience[],
+  educationEntries: ApplicantEducation[],
+  certifications: ApplicantCertification[]
+): string[] {
+  const applicant = candidate.applicant;
+  const skills = applicant?.skills || [];
+  const languages = applicant?.languages || [];
+  const projects = applicant?.projects || [];
+  const socialLinks = applicant?.socialLinks;
+  const availability = applicant?.availability;
+  const bio = applicant?.bio?.trim() || candidate.bio?.trim() || candidate.summary?.trim() || "";
+  const headline = applicant?.headline?.trim() || candidate.headline?.trim() || "";
+
+  const lines: string[] = [
+    candidate.name,
+    headline || candidate.job || "",
+    "",
+    "Contact",
+    `Email: ${candidate.email || "—"}`,
+    `Location: ${candidate.location || "—"}`,
+  ];
+
+  if (socialLinks?.linkedin) lines.push(`LinkedIn: ${socialLinks.linkedin}`);
+  if (socialLinks?.github) lines.push(`GitHub: ${socialLinks.github}`);
+  if (socialLinks?.portfolio) lines.push(`Portfolio: ${socialLinks.portfolio}`);
+
+  if (bio) {
+    lines.push("", "Professional Summary", bio);
+  }
+
+  if (skills.length > 0) {
+    lines.push("", "Skills");
+    skills.forEach((skill) => {
+      const meta = [skill.level, skill.yearsOfExperience ? `${skill.yearsOfExperience} years` : null]
+        .filter(Boolean)
+        .join(" · ");
+      lines.push(`- ${skill.name}${meta ? ` (${meta})` : ""}`);
+    });
+  }
+
+  if (languages.length > 0) {
+    lines.push("", "Languages");
+    languages.forEach((language) => {
+      lines.push(`- ${language.name}${language.proficiency ? ` — ${language.proficiency}` : ""}`);
+    });
+  }
+
+  lines.push("", "Professional Experience");
+  if (experienceEntries.length > 0) {
+    experienceEntries.forEach((entry, index) => {
+      lines.push(
+        `${index + 1}. ${entry.role || "Role"} @ ${entry.company || "—"} (${formatCvTimeline(entry.startDate, entry.endDate, entry.isCurrent)})`
+      );
+      if (entry.description) {
+        lines.push(`   ${entry.description}`);
+      }
+      if (entry.technologies && entry.technologies.length > 0) {
+        lines.push(`   Technologies: ${entry.technologies.join(", ")}`);
+      }
+    });
+  } else {
+    lines.push("No work experience parsed.");
+  }
+
+  lines.push("", "Education");
+  if (educationEntries.length > 0) {
+    educationEntries.forEach((entry, index) => {
+      const degreeLabel = entry.degree || entry.fieldOfStudy || "Program";
+      const years = [entry.startYear, entry.endYear].filter(Boolean).join(" — ");
+      lines.push(`${index + 1}. ${degreeLabel} — ${entry.institution || "—"}${years ? ` (${years})` : ""}`);
+      if (entry.fieldOfStudy && entry.degree) {
+        lines.push(`   Field: ${entry.fieldOfStudy}`);
+      }
+    });
+  } else {
+    lines.push("No education parsed.");
+  }
+
+  if (projects.length > 0) {
+    lines.push("", "Projects");
+    projects.forEach((project, index) => {
+      lines.push(
+        `${index + 1}. ${project.name}${project.role ? ` — ${project.role}` : ""} (${formatCvTimeline(project.startDate, project.endDate)})`
+      );
+      if (project.description) lines.push(`   ${project.description}`);
+      if (project.technologies && project.technologies.length > 0) {
+        lines.push(`   Technologies: ${project.technologies.join(", ")}`);
+      }
+      if (project.link) lines.push(`   Link: ${project.link}`);
+    });
+  }
+
+  if (certifications.length > 0) {
+    lines.push("", "Certifications");
+    certifications.forEach((cert, index) => {
+      const meta = [cert.issuer, cert.issueDate].filter(Boolean).join(" · ");
+      lines.push(`${index + 1}. ${cert.name}${meta ? ` (${meta})` : ""}`);
+    });
+  }
+
+  if (availability && (availability.status || availability.type || availability.startDate)) {
+    lines.push("", "Availability");
+    if (availability.status) lines.push(`Status: ${availability.status}`);
+    if (availability.type) lines.push(`Type: ${availability.type}`);
+    if (availability.startDate) lines.push(`Start Date: ${availability.startDate}`);
+  }
+
+  return lines;
+}
+
+interface CvViewProps {
+  candidate: CandidateRecord;
+  experienceEntries: ApplicantExperience[];
+  educationEntries: ApplicantEducation[];
+  certifications: ApplicantCertification[];
+  onOpenResume: () => void;
+  onExport: () => void;
+  onDownloadCv: () => void;
+}
+
+function CvView({
+  candidate,
+  experienceEntries,
+  educationEntries,
+  certifications,
+  onOpenResume,
+  onExport,
+  onDownloadCv,
+}: CvViewProps) {
+  const applicant = candidate.applicant;
+  const skills = applicant?.skills || [];
+  const languages = applicant?.languages || [];
+  const projects = applicant?.projects || [];
+  const socialLinks = applicant?.socialLinks;
+  const availability = applicant?.availability;
+  const bio = applicant?.bio?.trim() || candidate.bio?.trim() || candidate.summary?.trim();
+  const headline = applicant?.headline?.trim() || candidate.headline?.trim();
+
+  return (
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_320px]">
+      <div className="flex flex-col gap-6">
+        {(bio || headline) && (
+          <Card className="p-6">
+            <div className="mb-3 flex items-center gap-2">
+              <FileText className="h-4 w-4 text-brand" />
+              <h3 className="font-display text-base font-semibold text-ink">Professional Summary</h3>
+            </div>
+            {headline && <p className="text-sm font-semibold text-ink">{headline}</p>}
+            {bio && <p className="mt-2 whitespace-pre-line text-sm leading-6 text-ink">{bio}</p>}
+          </Card>
+        )}
+
+        <Card className="p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Briefcase className="h-4 w-4 text-brand" />
+            <h3 className="font-display text-base font-semibold text-ink">Professional Experience</h3>
+          </div>
+          {experienceEntries.length > 0 ? (
+            <ol className="space-y-5">
+              {experienceEntries.map((entry, index) => (
+                <li key={`${entry.company}-${entry.role}-${index}`} className="border-l-2 border-brand/30 pl-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold text-ink">{entry.role || "Role"}</p>
+                      <p className="text-sm text-ink-muted">{entry.company || "Company"}</p>
+                    </div>
+                    <span className="text-xs text-ink-muted">
+                      {formatExperienceTimeline(entry.startDate, entry.endDate, entry.isCurrent)}
+                    </span>
+                  </div>
+                  {entry.description && (
+                    <p className="mt-2 whitespace-pre-line text-xs leading-5 text-ink-muted">{entry.description}</p>
+                  )}
+                  {entry.technologies && entry.technologies.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {entry.technologies.map((tech) => (
+                        <Badge key={`${index}-${tech}`} tone="neutral">{tech}</Badge>
+                      ))}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="text-sm text-ink-muted">No work experience has been parsed from this CV.</p>
+          )}
+        </Card>
+
+        <Card className="p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <GraduationCap className="h-4 w-4 text-brand" />
+            <h3 className="font-display text-base font-semibold text-ink">Education</h3>
+          </div>
+          {educationEntries.length > 0 ? (
+            <ul className="space-y-4">
+              {educationEntries.map((entry, index) => (
+                <li key={`${entry.institution}-${entry.degree}-${index}`} className="flex items-start justify-between gap-3 border-l-2 border-brand/30 pl-4">
+                  <div>
+                    <p className="text-sm font-semibold text-ink">{entry.degree || entry.fieldOfStudy || "Program"}</p>
+                    <p className="text-sm text-ink-muted">{entry.institution || "Institution"}</p>
+                    {entry.fieldOfStudy && entry.degree && (
+                      <p className="text-xs text-ink-muted">{entry.fieldOfStudy}</p>
+                    )}
+                  </div>
+                  <span className="text-xs text-ink-muted">
+                    {[entry.startYear, entry.endYear].filter(Boolean).join(" — ") || "—"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-ink-muted">No education history has been parsed.</p>
+          )}
+        </Card>
+
+        {projects.length > 0 && (
+          <Card className="p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <Wrench className="h-4 w-4 text-brand" />
+              <h3 className="font-display text-base font-semibold text-ink">Projects</h3>
+            </div>
+            <ul className="space-y-5">
+              {projects.map((project, index) => (
+                <li key={`${project.name}-${index}`} className="border-l-2 border-brand/30 pl-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <p className="text-sm font-semibold text-ink">{project.name}</p>
+                    <span className="text-xs text-ink-muted">
+                      {formatExperienceTimeline(project.startDate, project.endDate)}
+                    </span>
+                  </div>
+                  {project.role && <p className="text-xs text-ink-muted">{project.role}</p>}
+                  {project.description && (
+                    <p className="mt-1 whitespace-pre-line text-xs leading-5 text-ink-muted">{project.description}</p>
+                  )}
+                  {project.technologies && project.technologies.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {project.technologies.map((tech) => (
+                        <Badge key={`${index}-${tech}`} tone="neutral">{tech}</Badge>
+                      ))}
+                    </div>
+                  )}
+                  {project.link && (
+                    <a
+                      href={project.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1.5 inline-flex items-center gap-1 text-xs text-brand hover:underline"
+                    >
+                      <LinkIcon className="h-3 w-3" />
+                      {project.link}
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+
+        {certifications.length > 0 && (
+          <Card className="p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <Award className="h-4 w-4 text-brand" />
+              <h3 className="font-display text-base font-semibold text-ink">Certifications</h3>
+            </div>
+            <ul className="space-y-3">
+              {certifications.map((cert, index) => (
+                <li key={`${cert.name}-${index}`} className="flex items-start justify-between gap-3 border-l-2 border-brand/30 pl-4">
+                  <div>
+                    <p className="text-sm font-semibold text-ink">{cert.name}</p>
+                    {cert.issuer && <p className="text-xs text-ink-muted">{cert.issuer}</p>}
+                  </div>
+                  {cert.issueDate && <span className="text-xs text-ink-muted">{cert.issueDate}</span>}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+      </div>
+
+      <aside className="flex flex-col gap-5">
+        <Card className="p-5">
+          <h3 className="text-sm font-semibold text-ink">Contact</h3>
+          <ul className="mt-3 space-y-2 text-xs text-ink">
+            <li className="flex items-start gap-2">
+              <Mail className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ink-muted" />
+              <span className="break-all">{candidate.email}</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ink-muted" />
+              <span>{candidate.location || "—"}</span>
+            </li>
+            {socialLinks?.linkedin && (
+              <li className="flex items-start gap-2">
+                <LinkIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ink-muted" />
+                <a href={socialLinks.linkedin} target="_blank" rel="noopener noreferrer" className="break-all text-brand hover:underline">
+                  {socialLinks.linkedin}
+                </a>
+              </li>
+            )}
+            {socialLinks?.github && (
+              <li className="flex items-start gap-2">
+                <LinkIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ink-muted" />
+                <a href={socialLinks.github} target="_blank" rel="noopener noreferrer" className="break-all text-brand hover:underline">
+                  {socialLinks.github}
+                </a>
+              </li>
+            )}
+            {socialLinks?.portfolio && (
+              <li className="flex items-start gap-2">
+                <LinkIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ink-muted" />
+                <a href={socialLinks.portfolio} target="_blank" rel="noopener noreferrer" className="break-all text-brand hover:underline">
+                  {socialLinks.portfolio}
+                </a>
+              </li>
+            )}
+          </ul>
+        </Card>
+
+        {skills.length > 0 && (
+          <Card className="p-5">
+            <h3 className="text-sm font-semibold text-ink">Skills</h3>
+            <ul className="mt-3 space-y-2">
+              {skills.map((skill, index) => (
+                <li key={`${skill.name}-${index}`} className="flex items-center justify-between gap-2 text-xs">
+                  <span className="text-ink">{skill.name}</span>
+                  <span className="text-ink-muted">
+                    {[skill.level, skill.yearsOfExperience ? `${skill.yearsOfExperience}y` : null].filter(Boolean).join(" · ") || ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+
+        {languages.length > 0 && (
+          <Card className="p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <Globe className="h-4 w-4 text-brand" />
+              <h3 className="text-sm font-semibold text-ink">Languages</h3>
+            </div>
+            <ul className="space-y-1.5">
+              {languages.map((language, index) => (
+                <li key={`${language.name}-${index}`} className="flex items-center justify-between text-xs">
+                  <span className="text-ink">{language.name}</span>
+                  {language.proficiency && <span className="text-ink-muted">{language.proficiency}</span>}
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+
+        {availability && (availability.status || availability.type || availability.startDate) && (
+          <Card className="p-5">
+            <h3 className="text-sm font-semibold text-ink">Availability</h3>
+            <dl className="mt-3 space-y-2 text-xs">
+              {availability.status && (
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-ink-muted">Status</dt>
+                  <dd className="text-ink">{availability.status}</dd>
+                </div>
+              )}
+              {availability.type && (
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-ink-muted">Type</dt>
+                  <dd className="text-ink">{availability.type}</dd>
+                </div>
+              )}
+              {availability.startDate && (
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-ink-muted">Start Date</dt>
+                  <dd className="text-ink">{availability.startDate}</dd>
+                </div>
+              )}
+            </dl>
+          </Card>
+        )}
+
+        <Card className="p-5">
+          <h3 className="text-sm font-semibold text-ink">Downloads</h3>
+          <Button
+            size="sm"
+            fullWidth
+            className="mt-3"
+            leftIcon={<FileText className="h-4 w-4" />}
+            onClick={onDownloadCv}
+          >
+            Download CV (PDF)
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            fullWidth
+            className="mt-2"
+            leftIcon={<Download className="h-4 w-4" />}
+            disabled={!candidate.sourceUrl}
+            onClick={onOpenResume}
+          >
+            {candidate.sourceFileName || (candidate.sourceUrl ? "View original resume" : "Original resume unavailable")}
+          </Button>
+          <Button variant="secondary" size="sm" fullWidth className="mt-2" leftIcon={<Download className="h-4 w-4" />} onClick={onExport}>
+            Export AI Report (PDF)
+          </Button>
+        </Card>
+      </aside>
+    </div>
+  );
+}
+
 export default function CandidateDetailPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const candidateParamId = resolvedParams.id;
+  const searchParams = useSearchParams();
+  const initialView = searchParams?.get("view") === "cv" ? "cv" : "summary";
+  const [view, setView] = useState<"summary" | "cv">(initialView);
   const [showSchedule, setShowSchedule] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
   const [showReject, setShowReject] = useState(false);
@@ -92,6 +516,11 @@ export default function CandidateDetailPage({ params }: PageProps) {
   const [candidate, setCandidate] = useState<CandidateRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    const nextView = searchParams?.get("view") === "cv" ? "cv" : "summary";
+    setView(nextView);
+  }, [searchParams]);
 
   useEffect(() => {
     let cancelled = false;
@@ -152,6 +581,18 @@ export default function CandidateDetailPage({ params }: PageProps) {
     if (candidate.sourceUrl) {
       window.open(candidate.sourceUrl, "_blank", "noopener,noreferrer");
     }
+  }
+
+  function handleDownloadCv() {
+    if (!candidate) return;
+
+    const { experience: experienceEntries, education: educationEntries, certifications } =
+      resolveParsedApplicantHighlights(candidate.applicant);
+
+    const lines = buildCandidateCvPdfLines(candidate, experienceEntries, educationEntries, certifications);
+    const blob = createPdfFromLines(lines);
+    const filename = `${sanitizeFilename(`cv_${candidate.name}`)}.pdf`;
+    downloadBlob(blob, filename);
   }
 
   function handleExportAiReport() {
@@ -325,6 +766,44 @@ export default function CandidateDetailPage({ params }: PageProps) {
         </div>
       </Card>
 
+      <div role="tablist" aria-label="Candidate view" className="mb-6 inline-flex rounded-lg border border-line bg-surface p-1 shadow-soft">
+        {([
+          { id: "summary" as const, label: "AI Summary", icon: Sparkles },
+          { id: "cv" as const, label: "Full CV", icon: FileText },
+        ]).map((tab) => {
+          const Icon = tab.icon;
+          const isActive = view === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => setView(tab.id)}
+              className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-all ${
+                isActive
+                  ? "bg-brand text-white shadow-sm"
+                  : "text-ink-muted hover:bg-surface-soft hover:text-ink"
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {view === "cv" ? (
+        <CvView
+          candidate={candidate}
+          experienceEntries={experienceEntries}
+          educationEntries={educationEntries}
+          certifications={certifications}
+          onOpenResume={handleOpenResume}
+          onExport={handleExportAiReport}
+          onDownloadCv={handleDownloadCv}
+        />
+      ) : (
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]">
         <div className="flex flex-col gap-6">
           <Card className="bg-brand-soft/40 p-6">
@@ -549,6 +1028,7 @@ export default function CandidateDetailPage({ params }: PageProps) {
           </Card>
         </aside>
       </div>
+      )}
 
       <Modal open={showSchedule} onClose={() => setShowSchedule(false)} size="md">
         <ModalHeader

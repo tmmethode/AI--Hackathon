@@ -287,6 +287,27 @@ export async function deleteShortlist(id: string) {
   );
 }
 
+export async function updateShortlistCandidateStatus(
+  id: string,
+  email: string,
+  status: "shortlisted" | "rejected"
+) {
+  const encoded = encodeURIComponent(email);
+  const response = await fetch(`${getApiBaseUrl()}/shortlists/${id}/candidates/${encoded}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    body: JSON.stringify({ status }),
+  });
+
+  return handleApiResponse<ShortlistResponse>(
+    response,
+    "Failed to update candidate status."
+  );
+}
+
 export function buildCreatePayload(
   jobId: string,
   runName: string,

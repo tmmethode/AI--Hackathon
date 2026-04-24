@@ -230,6 +230,14 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "UpdateShortlistCandidateStatusRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "status": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["shortlisted"]},{"dataType":"enum","enums":["rejected"]}],"required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "DeleteShortlistResponse": {
         "dataType": "refObject",
         "properties": {
@@ -1598,6 +1606,39 @@ export function RegisterRoutes(app: Router) {
                 next,
                 validatedArgs,
                 successStatus: 201,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsShortlistController_updateShortlistCandidateStatus: Record<string, TsoaRoute.ParameterSchema> = {
+                id: {"in":"path","name":"id","required":true,"dataType":"string"},
+                email: {"in":"path","name":"email","required":true,"dataType":"string"},
+                body: {"in":"body","name":"body","required":true,"ref":"UpdateShortlistCandidateStatusRequest"},
+        };
+        app.patch('/shortlists/:id/candidates/:email',
+            authenticateMiddleware([{"jwt":[]}]),
+            ...(fetchMiddlewares<RequestHandler>(ShortlistController)),
+            ...(fetchMiddlewares<RequestHandler>(ShortlistController.prototype.updateShortlistCandidateStatus)),
+
+            async function ShortlistController_updateShortlistCandidateStatus(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsShortlistController_updateShortlistCandidateStatus, request, response });
+
+                const controller = new ShortlistController();
+
+              await templateService.apiHandler({
+                methodName: 'updateShortlistCandidateStatus',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
               });
             } catch (err) {
                 return next(err);

@@ -4,10 +4,10 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
-  Search, Filter, ArrowDownUp, Check, Users, Eye,
+  Search, Filter, ArrowDownUp, Check, Users, Eye, FileText,
   Download, Mail, Calendar,
   Briefcase, ChevronDown, Send, Video, Phone, X,
-  ClipboardCheck, GraduationCap, Wrench, ChevronRight,
+  ClipboardCheck, GraduationCap, Wrench, ChevronRight, Sparkles,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -17,6 +17,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Field, Input, Textarea, Select } from "@/components/ui/Input";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
 import { type CandidateStatus } from "@/lib/candidates";
+import { listAllJobs } from "@/lib/jobs";
 import { createPdfFromLines } from "@/lib/pdf";
 import { downloadCsv, downloadJson, downloadBlob, sanitizeFilename } from "@/lib/download";
 import {
@@ -252,6 +253,7 @@ export default function CandidatesPage() {
   const [sortAsc, setSortAsc] = useState(false);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [filterJob, setFilterJob] = useState<string>("all");
+  const [defaultJobResolved, setDefaultJobResolved] = useState(false);
   const [page, setPage] = useState(1);
   const [showSort, setShowSort] = useState(false);
   const [showFilter, setShowFilter] = useState(false);
@@ -269,6 +271,48 @@ export default function CandidatesPage() {
   >({});
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function resolveDefaultJob() {
+      try {
+        const jobs = await listAllJobs();
+        if (cancelled) {
+          return;
+        }
+
+        if (jobs.length === 0) {
+          setDefaultJobResolved(true);
+          return;
+        }
+
+        const latest = [...jobs].sort((a, b) => {
+          const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
+          const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
+          return bTime - aTime;
+        })[0];
+
+        setFilterJob(latest.title);
+      } catch {
+        // Fall back to showing all jobs if the jobs list fails to load.
+      } finally {
+        if (!cancelled) {
+          setDefaultJobResolved(true);
+        }
+      }
+    }
+
+    void resolveDefaultJob();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!defaultJobResolved) {
+      return;
+    }
+
     let cancelled = false;
     const timeoutId = window.setTimeout(async () => {
       setLoading(true);
@@ -290,10 +334,12 @@ export default function CandidatesPage() {
         }
 
         setCandidates(
-          response.data.map((candidate) => ({
-            ...candidate,
-            status: localStatusOverrides[candidate.id]?.next ?? candidate.status,
-          }))
+          response.data
+            .map((candidate) => ({
+              ...candidate,
+              status: localStatusOverrides[candidate.id]?.next ?? candidate.status,
+            }))
+            .filter((candidate) => candidate.status !== "rejected" && candidate.status !== "new")
         );
         setCounts(response.statusCounts);
         setJobOptions(response.jobOptions);
@@ -316,7 +362,7 @@ export default function CandidatesPage() {
       cancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [filterJob, filterStatus, page, search, sortAsc, sortKey, localStatusOverrides]);
+  }, [filterJob, filterStatus, page, search, sortAsc, sortKey, localStatusOverrides, defaultJobResolved]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) setSortAsc((v) => !v);
@@ -589,18 +635,17 @@ export default function CandidatesPage() {
       </div>
       {showJobPicker && <div className="fixed inset-0 z-[15]" onClick={() => setShowJobPicker(false)} />}
 
-      <section className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
+      <section className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {([
-          { label: "Total", value: displayCounts.all, tone: "brand" },
+          { label: "Active Total", value: displayCounts.shortlisted + displayCounts.advanced, tone: "brand" },
           { label: "Shortlisted", value: displayCounts.shortlisted, tone: "brand" },
           { label: "Advanced", value: displayCounts.advanced, tone: "success" },
-          { label: "New", value: displayCounts.new, tone: "neutral" },
-          { label: "Rejected", value: displayCounts.rejected, tone: "danger" },
+          { label: "Interviews", value: displayCounts.interview, tone: "success" },
         ] as const).map((s) => (
           <Card key={s.label} className="p-4">
             <p className="text-xs text-ink-muted">{s.label}</p>
             <p className={`mt-1 font-display text-2xl font-bold ${
-              s.tone === "success" ? "text-success" : s.tone === "brand" ? "text-brand" : s.tone === "danger" ? "text-danger" : "text-ink"
+              s.tone === "success" ? "text-success" : "text-brand"
             }`}>{s.value}</p>
           </Card>
         ))}
@@ -630,7 +675,7 @@ export default function CandidatesPage() {
               </Button>
               {showFilter && (
                 <div className="absolute right-0 top-9 z-10 w-48 overflow-hidden rounded-lg border border-line bg-surface shadow-xl">
-                  {(["all", "shortlisted", "advanced", "interview", "exam", "assessment", "practical", "rejected", "new"] as FilterStatus[]).map((s) => (
+                  {(["all", "shortlisted", "advanced", "interview", "exam", "assessment", "practical"] as FilterStatus[]).map((s) => (
                     <button key={s} onClick={() => { setFilterStatus(s); setShowFilter(false); setPage(1); }}
                       className={`flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-surface-soft ${
                         filterStatus === s ? "text-brand font-medium" : "text-ink"
@@ -730,8 +775,13 @@ export default function CandidatesPage() {
 
                   <div className="flex shrink-0 items-center gap-1.5">
                     <Link href={`/candidates/${c.id}`}>
-                      <Button variant="secondary" size="sm" leftIcon={<Eye className="h-3.5 w-3.5" />}>
-                        Profile
+                      <Button variant="secondary" size="sm" leftIcon={<Sparkles className="h-3.5 w-3.5" />}>
+                        AI Summary
+                      </Button>
+                    </Link>
+                    <Link href={`/candidates/${c.id}?view=cv`}>
+                      <Button variant="secondary" size="sm" leftIcon={<FileText className="h-3.5 w-3.5" />}>
+                        CV
                       </Button>
                     </Link>
 

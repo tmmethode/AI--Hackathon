@@ -131,7 +131,11 @@ function applyFilters(
   const needle = search.trim().toLowerCase();
   const filtered = candidates.filter((candidate) => {
     if (job !== "all" && candidate.job !== job) return false;
-    if (status !== "all") {
+    if (status === "all") {
+      if (candidate.status === "rejected" || candidate.status === "new") {
+        return false;
+      }
+    } else {
       if (status === "advanced") {
         if (!ADVANCED_STATUSES.includes(candidate.status)) return false;
       } else if (candidate.status !== status) {
