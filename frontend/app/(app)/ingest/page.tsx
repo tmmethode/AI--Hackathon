@@ -91,7 +91,7 @@ interface ApplicantEditFormState {
 }
 
 const tabs = [
-  { id: "json", label: "Upload via JSON", icon: Database },
+  { id: "json", label: "Umurava Platform", icon: Database },
   { id: "pdf", label: "Resume Upload", icon: FileText },
   { id: "csv", label: "CSV Import", icon: TableIcon },
   { id: "links", label: "Paste Links", icon: Link2 },
@@ -235,7 +235,7 @@ function getImportStageTitle(tab: TabId, stage: ImportStage) {
 function humanizeApplicantSource(source: ApplicantSource) {
   switch (source) {
     case "umurava-platform":
-      return "JSON Upload";
+      return "Umurava Platform";
     case "pdf-upload":
       return "Resume Upload";
     case "csv-import":
@@ -1068,7 +1068,7 @@ function JsonTab({
   return (
     <div className="flex flex-col gap-4 p-6">
       <p className="text-sm text-ink-muted">
-        Upload one or more JSON files containing applicant records. Imported data is sent directly to the backend.
+        Umurava applicant json schema.
       </p>
       <div
         onDragOver={(event) => {
@@ -1354,7 +1354,7 @@ function LinksTab({
 }
 
 export default function IngestPage() {
-  const [activeTab, setActiveTab] = useState<TabId>("pdf");
+  const [activeTab, setActiveTab] = useState<TabId>("json");
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [jsonFiles, setJsonFiles] = useState<UploadedFile[]>([]);
   const [csvFiles, setCsvFiles] = useState<UploadedFile[]>([]);
