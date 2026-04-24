@@ -52,9 +52,6 @@
 					"jobTitle": {
 						"type": "string"
 					},
-					"department": {
-						"type": "string"
-					},
 					"runName": {
 						"type": "string"
 					},
@@ -100,7 +97,6 @@
 					"_id",
 					"job",
 					"jobTitle",
-					"department",
 					"runName",
 					"model",
 					"totalApplicants",
@@ -200,6 +196,63 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"ShortlistWeightCriterionDTO": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"label": {
+						"type": "string"
+					},
+					"value": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"id",
+					"label",
+					"value"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"ShortlistCriterionAssessmentDTO": {
+				"properties": {
+					"label": {
+						"type": "string"
+					},
+					"weightPct": {
+						"type": "number",
+						"format": "double"
+					},
+					"score": {
+						"type": "number",
+						"format": "double"
+					},
+					"weightedScore": {
+						"type": "number",
+						"format": "double"
+					},
+					"summary": {
+						"type": "string"
+					},
+					"evidence": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"label",
+					"weightPct",
+					"score",
+					"weightedScore"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"ShortlistRecommendation": {
 				"type": "string",
 				"enum": [
@@ -245,6 +298,12 @@
 					"relevanceScore": {
 						"type": "number",
 						"format": "double"
+					},
+					"criterionAssessments": {
+						"items": {
+							"$ref": "#/components/schemas/ShortlistCriterionAssessmentDTO"
+						},
+						"type": "array"
 					},
 					"criticalRequirementGap": {
 						"type": "boolean"
@@ -323,6 +382,12 @@
 						"type": "number",
 						"format": "double"
 					},
+					"criterionAssessments": {
+						"items": {
+							"$ref": "#/components/schemas/ShortlistCriterionAssessmentDTO"
+						},
+						"type": "array"
+					},
 					"criticalRequirementGap": {
 						"type": "boolean"
 					},
@@ -375,9 +440,6 @@
 					"jobTitle": {
 						"type": "string"
 					},
-					"department": {
-						"type": "string"
-					},
 					"runName": {
 						"type": "string"
 					},
@@ -391,6 +453,12 @@
 					"shortlistCount": {
 						"type": "number",
 						"format": "double"
+					},
+					"weightCriteria": {
+						"items": {
+							"$ref": "#/components/schemas/ShortlistWeightCriterionDTO"
+						},
+						"type": "array"
 					},
 					"screeningResults": {
 						"items": {
@@ -431,11 +499,11 @@
 					"_id",
 					"job",
 					"jobTitle",
-					"department",
 					"runName",
 					"model",
 					"totalApplicants",
 					"shortlistCount",
+					"weightCriteria",
 					"screeningResults",
 					"shortlist",
 					"createdBy",
@@ -472,9 +540,6 @@
 					"jobTitle": {
 						"type": "string"
 					},
-					"department": {
-						"type": "string"
-					},
 					"model": {
 						"type": "string"
 					},
@@ -485,6 +550,12 @@
 					"shortlistCount": {
 						"type": "number",
 						"format": "double"
+					},
+					"weightCriteria": {
+						"items": {
+							"$ref": "#/components/schemas/ShortlistWeightCriterionDTO"
+						},
+						"type": "array"
 					},
 					"screeningResults": {
 						"items": {
@@ -730,9 +801,6 @@
 					"title": {
 						"type": "string"
 					},
-					"department": {
-						"type": "string"
-					},
 					"hiringManager": {
 						"$ref": "#/components/schemas/HiringManagerSummary"
 					},
@@ -814,7 +882,6 @@
 				"required": [
 					"_id",
 					"title",
-					"department",
 					"hiringManager",
 					"location",
 					"locationPolicy",
@@ -937,9 +1004,6 @@
 					"title": {
 						"type": "string"
 					},
-					"department": {
-						"type": "string"
-					},
 					"hiringManager": {
 						"type": "string",
 						"description": "User id of the hiring manager (must have role 'recruiter' or 'admin'). Optional when the caller is an admin or recruiter — defaults to them."
@@ -1008,7 +1072,6 @@
 				},
 				"required": [
 					"title",
-					"department",
 					"location",
 					"summary",
 					"responsibilities",
@@ -1020,9 +1083,6 @@
 			"UpdateJobRequest": {
 				"properties": {
 					"title": {
-						"type": "string"
-					},
-					"department": {
 						"type": "string"
 					},
 					"hiringManager": {
@@ -1522,6 +1582,26 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"GeminiWeightCriterion": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"label": {
+						"type": "string"
+					},
+					"value": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"label",
+					"value"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"GeminiRankingCriterion": {
 				"properties": {
 					"id": {
@@ -1551,9 +1631,6 @@
 						"type": "string"
 					},
 					"title": {
-						"type": "string"
-					},
-					"department": {
 						"type": "string"
 					},
 					"locationPolicy": {
@@ -1624,6 +1701,12 @@
 					},
 					"educationLevel": {
 						"type": "string"
+					},
+					"weightCriteria": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiWeightCriterion"
+						},
+						"type": "array"
 					},
 					"rankingCriteria": {
 						"items": {
@@ -1944,6 +2027,12 @@
 						"type": "number",
 						"format": "double"
 					},
+					"criterionAssessments": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiCriterionAssessment"
+						},
+						"type": "array"
+					},
 					"criticalRequirementGap": {
 						"type": "boolean"
 					},
@@ -2021,6 +2110,12 @@
 						"type": "number",
 						"format": "double"
 					},
+					"criterionAssessments": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiCriterionAssessment"
+						},
+						"type": "array"
+					},
 					"criticalRequirementGap": {
 						"type": "boolean"
 					},
@@ -2094,8 +2189,11 @@
 					"jobTitle": {
 						"type": "string"
 					},
-					"department": {
-						"type": "string"
+					"weightCriteria": {
+						"items": {
+							"$ref": "#/components/schemas/GeminiWeightCriterion"
+						},
+						"type": "array"
 					},
 					"shortlistCount": {
 						"type": "number",
@@ -2126,7 +2224,6 @@
 				},
 				"required": [
 					"jobTitle",
-					"department",
 					"shortlistCount",
 					"totalApplicants",
 					"screeningResults",
@@ -2328,9 +2425,6 @@
 					"title": {
 						"type": "string"
 					},
-					"department": {
-						"type": "string"
-					},
 					"hiringManager": {
 						"type": "string"
 					},
@@ -2371,12 +2465,6 @@
 						"type": "string"
 					},
 					"coreHardSkills": {
-						"items": {
-							"type": "string"
-						},
-						"type": "array"
-					},
-					"preferredSkills": {
 						"items": {
 							"type": "string"
 						},

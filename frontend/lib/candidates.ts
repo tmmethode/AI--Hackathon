@@ -2,6 +2,7 @@ import { listAllApplicants, type ApplicantRecord, type ApplicantSource } from "@
 import { calculateApplicantExperienceYears } from "@/lib/experience";
 import { getShortlist, listShortlists, type ShortlistRecord } from "@/lib/shortlists";
 import { listJobs, type JobRecord } from "@/lib/jobs";
+import type { GeminiCriterionAssessment } from "@/lib/screening";
 
 export type CandidateStatus =
   | "shortlisted"
@@ -44,6 +45,7 @@ export interface CandidateRecord {
     education: number;
     relevance: number;
   };
+  criterionAssessments?: GeminiCriterionAssessment[];
   applicant?: ApplicantRecord;
   shortlistRecord?: ShortlistRecord | null;
 }
@@ -200,6 +202,7 @@ export async function loadCandidateRecords(): Promise<CandidateRecord[]> {
           education: result.educationScore,
           relevance: result.relevanceScore,
         },
+        criterionAssessments: result.criterionAssessments,
         applicant,
         shortlistRecord: record,
       });

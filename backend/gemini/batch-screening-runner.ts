@@ -21,7 +21,6 @@ function toBatchJobFromModel(job: IJob): GeminiBatchJob {
   return {
     id: job._id.toString(),
     title: job.title,
-    department: job.department,
     location: job.location,
     locationPolicy: job.locationPolicy,
     employmentType: job.employmentType,

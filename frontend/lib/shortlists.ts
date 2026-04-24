@@ -3,17 +3,18 @@ import type {
   GeminiBatchScreeningResponse,
   GeminiBatchScreeningResultEntry,
   GeminiBatchShortlistEntry,
+  GeminiWeightCriterion,
 } from "@/lib/screening";
 
 export interface ShortlistRecord {
   _id: string;
   job: string;
   jobTitle: string;
-  department: string;
   runName: string;
   model: string;
   totalApplicants: number;
   shortlistCount: number;
+  weightCriteria: GeminiWeightCriterion[];
   screeningResults: GeminiBatchScreeningResultEntry[];
   shortlist: GeminiBatchShortlistEntry[];
   instructions?: string;
@@ -29,7 +30,6 @@ export interface ShortlistSummary {
   _id: string;
   job: string;
   jobTitle: string;
-  department: string;
   runName: string;
   model: string;
   totalApplicants: number;
@@ -56,10 +56,10 @@ export interface CreateShortlistPayload {
   jobId: string;
   runName?: string;
   jobTitle: string;
-  department?: string;
   model?: string;
   totalApplicants: number;
   shortlistCount: number;
+  weightCriteria?: GeminiWeightCriterion[];
   screeningResults: GeminiBatchScreeningResultEntry[];
   shortlist: GeminiBatchShortlistEntry[];
   instructions?: string;
@@ -311,10 +311,10 @@ export function buildCreatePayload(
     jobId,
     runName,
     jobTitle: response.jobTitle,
-    department: response.department,
     model: response.model,
     totalApplicants: response.totalApplicants,
     shortlistCount: response.shortlistCount,
+    weightCriteria: response.weightCriteria,
     screeningResults: response.screeningResults,
     shortlist: response.shortlist,
     instructions,

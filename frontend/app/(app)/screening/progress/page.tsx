@@ -400,7 +400,7 @@ export default function ScreeningProgressPage() {
             </div>
             <h3 className="font-display text-base font-semibold text-ink">{run.request.jobTitle}</h3>
             <p className="text-xs text-ink-muted">
-              {[run.request.department, run.request.location].filter(Boolean).join(" · ") || "Screening run"}
+              {run.request.location || "Screening run"}
             </p>
             <div className="mt-3 flex items-center gap-2 text-xs text-ink-muted">
               <Clock className="h-3.5 w-3.5" />

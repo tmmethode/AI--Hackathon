@@ -125,8 +125,8 @@ export class NotificationController {
       id: `job-${record._id.toString()}`,
       type: 'job' as const,
       title: 'Job created',
-      body: `New role "${record.title}" was created in ${record.department}.`,
-      detail: `The role "${record.title}" (${record.status}) was created under the ${record.department} department with location set to ${record.location}.`,
+      body: `New role "${record.title}" was created.`,
+      detail: `The role "${record.title}" (${record.status}) was created with location set to ${record.location}.`,
       createdAt: record.createdAt.toISOString(),
     }));
   };

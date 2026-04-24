@@ -1,6 +1,6 @@
 "use client";
 
-import { type ComponentProps, useEffect, useMemo, useState } from "react";
+import { type ComponentProps, type FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Archive,
@@ -26,12 +26,19 @@ import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "@/components/ui/Modal";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Field, Input, Select, Textarea } from "@/components/ui/Input";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
   getHiringManagerName,
   listAllJobs,
+  splitLinesToList,
+  type EducationLevel,
+  type EmploymentType,
   type JobRecord,
   type JobStatus,
+  type LocationPolicy,
+  type SeniorityLevel,
+  type WeightCriterion,
 } from "@/lib/jobs";
 import { downloadCsv, sanitizeFilename } from "@/lib/download";
 import {
@@ -46,6 +53,7 @@ import {
   setShowArchiveConfirm,
   setShowJobDetails,
   setStatusFilter,
+  updateJob,
 } from "@/lib/features/jobs/jobsSlice";
 
 const statusTone: Record<JobStatus, ComponentProps<typeof Badge>["tone"]> = {
@@ -56,6 +64,146 @@ const statusTone: Record<JobStatus, ComponentProps<typeof Badge>["tone"]> = {
 
 const PAGE_SIZE = 5;
 const ALL_STATUSES = ["All", "Active", "Draft", "Closed"] as const;
+
+interface EditJobForm {
+  title: string;
+  location: string;
+  locationPolicy: LocationPolicy;
+  employmentType: EmploymentType;
+  salaryBand: string;
+  summary: string;
+  responsibilities: string;
+  mustHaveQualifications: string;
+  niceToHaveQualifications: string;
+  coreHardSkills: string;
+  coreSoftSkills: string;
+  experienceYears: string;
+  seniorityLevel: SeniorityLevel;
+  educationLevel: EducationLevel;
+  status: JobStatus;
+  weightCriteria: WeightCriterion[];
+}
+
+const DEFAULT_EDIT_WEIGHT_CRITERIA: WeightCriterion[] = [
+  { id: "must-have-qualifications", label: "Must-have Qualifications", value: 30 },
+  { id: "nice-to-have-qualifications", label: "Nice-to-have Qualifications", value: 10 },
+  { id: "core-skills", label: "Core Hard & Soft Skills", value: 25 },
+  { id: "experience-seniority", label: "Years of Experience & Seniority Level", value: 25 },
+  { id: "education", label: "Educational Background", value: 10 },
+];
+
+function canonicalEditWeightId(criterion: WeightCriterion): string | undefined {
+  const id = criterion.id.toLowerCase();
+  const label = criterion.label.toLowerCase();
+
+  if (id.includes("must-have") || label.includes("must-have") || label.includes("mandatory")) return "must-have-qualifications";
+  if (id.includes("nice-to-have") || id.includes("preferred") || id.includes("bonus") || label.includes("nice-to-have") || label.includes("preferred") || label.includes("bonus")) return "nice-to-have-qualifications";
+  if (id.includes("skill") || id.includes("culture") || id.includes("soft") || label.includes("skill") || label.includes("culture") || label.includes("soft")) return "core-skills";
+  if (id.includes("experience") || id.includes("seniority") || label.includes("experience") || label.includes("seniority")) return "experience-seniority";
+  if (id.includes("education") || label.includes("education")) return "education";
+  return undefined;
+}
+
+function normalizeEditWeights(criteria: WeightCriterion[]): WeightCriterion[] {
+  const source = criteria.length > 0 ? criteria : DEFAULT_EDIT_WEIGHT_CRITERIA;
+  const valuesById = new Map<string, WeightCriterion>();
+
+  for (const criterion of source) {
+    const id = canonicalEditWeightId(criterion);
+    if (id && !valuesById.has(id)) {
+      valuesById.set(id, criterion);
+    }
+  }
+
+  const normalized = DEFAULT_EDIT_WEIGHT_CRITERIA.map((criterion) => {
+    const match = valuesById.get(criterion.id);
+    return {
+      ...criterion,
+      value: Math.max(0, Math.min(100, Math.round(Number(match?.value ?? criterion.value) || 0))),
+    };
+  });
+  const total = normalized.reduce((sum, criterion) => sum + criterion.value, 0);
+
+  if (total === 100) {
+    return normalized;
+  }
+
+  if (total <= 0) {
+    return DEFAULT_EDIT_WEIGHT_CRITERIA.map((criterion) => ({ ...criterion }));
+  }
+
+  const scaled = normalized.map((criterion) => ({
+    ...criterion,
+    value: Math.floor((criterion.value / total) * 100),
+  }));
+  let diff = 100 - scaled.reduce((sum, criterion) => sum + criterion.value, 0);
+
+  return scaled.map((criterion) => {
+    if (diff <= 0) return criterion;
+    diff -= 1;
+    return { ...criterion, value: criterion.value + 1 };
+  });
+}
+
+function rebalanceEditWeights(criteria: WeightCriterion[], changedId: string, nextValue: number): WeightCriterion[] {
+  const normalized = normalizeEditWeights(criteria);
+  const clamped = Math.max(0, Math.min(100, Math.round(Number(nextValue) || 0)));
+  const others = normalized.filter((criterion) => criterion.id !== changedId);
+  const oldOtherTotal = others.reduce((sum, criterion) => sum + criterion.value, 0);
+  const remaining = 100 - clamped;
+
+  let nextOthers: WeightCriterion[];
+  if (oldOtherTotal <= 0) {
+    const base = Math.floor(remaining / Math.max(1, others.length));
+    let diff = remaining - base * others.length;
+    nextOthers = others.map((criterion) => {
+      const value = base + (diff > 0 ? 1 : 0);
+      diff -= diff > 0 ? 1 : 0;
+      return { ...criterion, value };
+    });
+  } else {
+    nextOthers = others.map((criterion) => ({
+      ...criterion,
+      value: Math.floor((criterion.value / oldOtherTotal) * remaining),
+    }));
+    let diff = remaining - nextOthers.reduce((sum, criterion) => sum + criterion.value, 0);
+    nextOthers = nextOthers.map((criterion) => {
+      if (diff <= 0) return criterion;
+      diff -= 1;
+      return { ...criterion, value: criterion.value + 1 };
+    });
+  }
+
+  const valuesById = new Map(
+    [{ id: changedId, value: clamped }, ...nextOthers].map((criterion) => [criterion.id, criterion.value])
+  );
+
+  return normalized.map((criterion) => ({
+    ...criterion,
+    value: valuesById.get(criterion.id) ?? criterion.value,
+  }));
+}
+
+function buildEditForm(job: JobRecord): EditJobForm {
+  return {
+    title: job.title,
+    location: job.location,
+    locationPolicy: job.locationPolicy,
+    employmentType: job.employmentType,
+    salaryBand: job.salaryBand || "",
+    summary: job.summary,
+    responsibilities: job.responsibilities,
+    mustHaveQualifications: job.mustHaveQualifications,
+    niceToHaveQualifications: job.niceToHaveQualifications || "",
+    coreHardSkills: job.coreHardSkills.join("\n"),
+    coreSoftSkills: job.coreSoftSkills.join("\n"),
+    experienceYears: String(job.experienceYears || 0),
+    seniorityLevel: job.seniorityLevel,
+    educationLevel: job.educationLevel,
+    status: job.status,
+    weightCriteria: normalizeEditWeights(job.weightCriteria),
+  };
+}
 
 function formatJobId(job: JobRecord) {
   return `JOB-${job._id.slice(-6).toUpperCase()}`;
@@ -210,6 +358,13 @@ export default function JobsPage() {
     () => jobs.find((job) => job._id === selectedId) ?? jobs[0] ?? null,
     [jobs, selectedId]
   );
+  const [editTargetId, setEditTargetId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<EditJobForm | null>(null);
+  const [editError, setEditError] = useState("");
+  const editWeightTotal = useMemo(
+    () => editForm?.weightCriteria.reduce((sum, criterion) => sum + criterion.value, 0) ?? 0,
+    [editForm]
+  );
 
   const rangeStart = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const rangeEnd = total === 0 ? 0 : Math.min(page * PAGE_SIZE, total);
@@ -228,6 +383,79 @@ export default function JobsPage() {
 
   async function handleArchive(id: string) {
     await dispatch(archiveJob(id));
+  }
+
+  function openEditJob(job: JobRecord) {
+    setEditTargetId(job._id);
+    setEditForm(buildEditForm(job));
+    setEditError("");
+    dispatch(setSelectedId(job._id));
+    dispatch(setMenuOpen(null));
+    dispatch(setShowJobDetails(false));
+  }
+
+  function updateEditField<Key extends keyof Omit<EditJobForm, "weightCriteria">>(
+    field: Key,
+    value: EditJobForm[Key]
+  ) {
+    setEditForm((current) => (current ? { ...current, [field]: value } : current));
+  }
+
+  function updateEditWeight(id: string, value: number) {
+    setEditForm((current) =>
+      current
+        ? {
+            ...current,
+            weightCriteria: rebalanceEditWeights(current.weightCriteria, id, value),
+          }
+        : current
+    );
+  }
+
+  async function handleUpdateJob(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!editTargetId || !editForm) {
+      return;
+    }
+
+    if (editWeightTotal !== 100) {
+      setEditError(`Scoring weights must total 100% before saving. Current total is ${editWeightTotal}%.`);
+      return;
+    }
+
+    setEditError("");
+
+    const result = await dispatch(
+      updateJob({
+        id: editTargetId,
+        payload: {
+          title: editForm.title.trim(),
+          location: editForm.location.trim(),
+          locationPolicy: editForm.locationPolicy,
+          employmentType: editForm.employmentType,
+          salaryBand: editForm.salaryBand.trim() || undefined,
+          summary: editForm.summary.trim(),
+          responsibilities: editForm.responsibilities.trim(),
+          mustHaveQualifications: editForm.mustHaveQualifications.trim(),
+          niceToHaveQualifications: editForm.niceToHaveQualifications.trim() || undefined,
+          coreHardSkills: splitLinesToList(editForm.coreHardSkills),
+          coreSoftSkills: splitLinesToList(editForm.coreSoftSkills),
+          experienceYears: Number(editForm.experienceYears) || 0,
+          seniorityLevel: editForm.seniorityLevel,
+          educationLevel: editForm.educationLevel,
+          weightCriteria: editForm.weightCriteria,
+          status: editForm.status,
+        },
+      })
+    );
+
+    if (updateJob.fulfilled.match(result)) {
+      setEditTargetId(null);
+      setEditForm(null);
+    } else {
+      setEditError(result.payload || "Failed to update the job.");
+    }
   }
 
   const [exporting, setExporting] = useState(false);
@@ -251,7 +479,6 @@ export default function JobsPage() {
       const header = [
         "Job ID",
         "Title",
-        "Department",
         "Location",
         "Status",
         "Hiring Manager",
@@ -265,7 +492,6 @@ export default function JobsPage() {
         rows.push([
           formatJobId(job),
           job.title,
-          job.department,
           job.location,
           job.status,
           getHiringManagerName(job.hiringManager),
@@ -325,7 +551,7 @@ export default function JobsPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
             <input
-              placeholder="Search by title, department, or manager…"
+              placeholder="Search by title, manager, or location…"
               value={search}
               onChange={(event) => handleSearchChange(event.target.value)}
               className="h-10 w-full bg-transparent pl-9 pr-3 text-sm text-ink placeholder:text-ink-muted focus:outline-none"
@@ -386,7 +612,7 @@ export default function JobsPage() {
                       <div>
                         <p className="font-semibold text-ink">{job.title}</p>
                         <p className="mt-0.5 text-[10px] uppercase tracking-wider text-ink-muted">
-                          {formatJobId(job)} · {job.department}
+                          {formatJobId(job)}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
@@ -427,6 +653,12 @@ export default function JobsPage() {
                               }}
                             >
                               <Briefcase className="h-3.5 w-3.5 text-ink-muted" /> View Job
+                            </button>
+                            <button
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-surface-soft"
+                              onClick={() => openEditJob(job)}
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-ink-muted" /> Edit Job
                             </button>
                             <button
                               className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-surface-soft"
@@ -490,7 +722,7 @@ export default function JobsPage() {
                   <Badge tone={statusTone[selected.status]} pill>{selected.status}</Badge>
                 </div>
                 <h3 className="mt-3 font-display text-lg font-bold text-ink">{selected.title}</h3>
-                <p className="text-xs text-ink-muted">{selected.department}</p>
+                <p className="text-xs text-ink-muted">{selected.location}</p>
 
                 <dl className="mt-4 grid grid-cols-2 gap-3 text-xs">
                   <div>
@@ -559,13 +791,21 @@ export default function JobsPage() {
                     >
                       View Job
                     </Button>
+                    <Button
+                      variant="secondary"
+                      leftIcon={<Pencil className="h-4 w-4" />}
+                      fullWidth
+                      onClick={() => openEditJob(selected)}
+                    >
+                      Edit
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
                     <Link href="/ingest" className="contents">
                       <Button variant="secondary" leftIcon={<Upload className="h-4 w-4" />} fullWidth>
                         Ingest
                       </Button>
                     </Link>
-                  </div>
-                  <div className="grid grid-cols-1 gap-2">
                     <Link href="/jobs/new" className="contents">
                       <Button variant="secondary" leftIcon={<Pencil className="h-4 w-4" />} fullWidth>
                         New Copy
@@ -616,7 +856,7 @@ export default function JobsPage() {
           <>
             <ModalHeader
               title={selected.title}
-              subtitle={`${selected.department} · ${formatJobId(selected)}`}
+              subtitle={formatJobId(selected)}
               onClose={() => dispatch(setShowJobDetails(false))}
             >
               <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink-muted">Job Details</p>
@@ -714,9 +954,259 @@ export default function JobsPage() {
               </div>
             </ModalBody>
             <ModalFooter>
+              <Button variant="secondary" leftIcon={<Pencil className="h-4 w-4" />} onClick={() => openEditJob(selected)}>
+                Edit Job
+              </Button>
               <Button variant="secondary" onClick={() => dispatch(setShowJobDetails(false))}>Close</Button>
             </ModalFooter>
           </>
+        )}
+      </Modal>
+
+      <Modal
+        open={!!editTargetId && !!editForm}
+        onClose={() => {
+          setEditTargetId(null);
+          setEditForm(null);
+          setEditError("");
+        }}
+        size="xl"
+      >
+        {editForm && (
+          <form onSubmit={handleUpdateJob}>
+            <ModalHeader
+              title={`Edit ${editForm.title || "Job"}`}
+              subtitle="Update job details, requirements, status, and AI scoring weights."
+              onClose={() => {
+                setEditTargetId(null);
+                setEditForm(null);
+                setEditError("");
+              }}
+            />
+            <ModalBody className="max-h-[70vh] overflow-y-auto">
+              {editError && (
+                <div className="mb-5 rounded-md border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+                  {editError}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                <Field label="Job Title" className="md:col-span-2" required>
+                  <Input
+                    value={editForm.title}
+                    onChange={(event) => updateEditField("title", event.target.value)}
+                    required
+                  />
+                </Field>
+                <Field label="Status">
+                  <Select
+                    value={editForm.status}
+                    onChange={(event) => updateEditField("status", event.target.value as JobStatus)}
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Draft">Draft</option>
+                    <option value="Closed">Closed</option>
+                  </Select>
+                </Field>
+                <Field label="Location" required>
+                  <Input
+                    value={editForm.location}
+                    onChange={(event) => updateEditField("location", event.target.value)}
+                    required
+                  />
+                </Field>
+                <Field label="Location Policy" required>
+                  <Select
+                    value={editForm.locationPolicy}
+                    onChange={(event) => updateEditField("locationPolicy", event.target.value as LocationPolicy)}
+                  >
+                    <option value="remote">Remote</option>
+                    <option value="hybrid">Hybrid</option>
+                    <option value="onsite">On-site</option>
+                  </Select>
+                </Field>
+                <Field label="Employment Type" required>
+                  <Select
+                    value={editForm.employmentType}
+                    onChange={(event) => updateEditField("employmentType", event.target.value as EmploymentType)}
+                  >
+                    <option value="full-time">Full-time Permanent</option>
+                    <option value="part-time">Part-time</option>
+                    <option value="contract">Contract</option>
+                    <option value="internship">Internship</option>
+                    <option value="temporary">Temporary</option>
+                  </Select>
+                </Field>
+                <Field label="Salary Band">
+                  <Input
+                    value={editForm.salaryBand}
+                    onChange={(event) => updateEditField("salaryBand", event.target.value)}
+                  />
+                </Field>
+              </div>
+
+              <div className="mt-6 grid grid-cols-1 gap-5">
+                <Field label="Job Summary" required>
+                  <Textarea
+                    rows={3}
+                    value={editForm.summary}
+                    onChange={(event) => updateEditField("summary", event.target.value)}
+                    required
+                  />
+                </Field>
+                <Field label="Key Responsibilities" required>
+                  <Textarea
+                    rows={5}
+                    value={editForm.responsibilities}
+                    onChange={(event) => updateEditField("responsibilities", event.target.value)}
+                    required
+                  />
+                </Field>
+              </div>
+
+              <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2">
+                <Field label="Must-have Qualifications" required>
+                  <Textarea
+                    rows={5}
+                    value={editForm.mustHaveQualifications}
+                    onChange={(event) => updateEditField("mustHaveQualifications", event.target.value)}
+                    required
+                  />
+                </Field>
+                <Field label="Nice-to-have Qualifications" required>
+                  <Textarea
+                    rows={5}
+                    value={editForm.niceToHaveQualifications}
+                    onChange={(event) => updateEditField("niceToHaveQualifications", event.target.value)}
+                  />
+                </Field>
+                <Field label="Core Hard Skills" hint="One skill per line.">
+                  <Textarea
+                    rows={4}
+                    value={editForm.coreHardSkills}
+                    onChange={(event) => updateEditField("coreHardSkills", event.target.value)}
+                  />
+                </Field>
+                <Field label="Core Soft Skills" hint="One skill per line.">
+                  <Textarea
+                    rows={4}
+                    value={editForm.coreSoftSkills}
+                    onChange={(event) => updateEditField("coreSoftSkills", event.target.value)}
+                  />
+                </Field>
+              </div>
+
+              <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <Field label="Experience">
+                  <Select value={editForm.experienceYears} onChange={(event) => updateEditField("experienceYears", event.target.value)}>
+                    <option value="">Select years</option>
+                    <option value="0">0+ Years</option>
+                    <option value="1">1+ Years</option>
+                    <option value="2">2+ Years</option>
+                    <option value="3">3+ Years</option>
+                    <option value="4">4+ Years</option>
+                    <option value="5">5+ Years</option>
+                    <option value="6">6+ Years</option>
+                    <option value="7">7+ Years</option>
+                    <option value="8">8+ Years</option>
+                    <option value="10">10+ Years</option>
+                    <option value="12">12+ Years</option>
+                    <option value="15">15+ Years</option>
+                  </Select>
+                </Field>
+                <Field label="Seniority Level" required>
+                  <Select
+                    value={editForm.seniorityLevel}
+                    onChange={(event) => updateEditField("seniorityLevel", event.target.value as SeniorityLevel)}
+                  >
+                    <option value="junior">Junior</option>
+                    <option value="mid">Mid-level</option>
+                    <option value="senior">Senior</option>
+                    <option value="lead">Lead</option>
+                    <option value="manager">Manager</option>
+                    <option value="principal">Principal</option>
+                  </Select>
+                </Field>
+                <Field label="Education Level" required>
+                  <Select
+                    value={editForm.educationLevel}
+                    onChange={(event) => updateEditField("educationLevel", event.target.value as EducationLevel)}
+                  >
+                    <option value="none">No formal degree required</option>
+                    <option value="hs">High School</option>
+                    <option value="associate">Associate Degree</option>
+                    <option value="bs">Bachelor&apos;s Degree</option>
+                    <option value="ms">Master&apos;s Degree</option>
+                    <option value="mba">MBA</option>
+                    <option value="phd">PhD / Doctorate</option>
+                    <option value="professional">Professional Certification Equivalent</option>
+                  </Select>
+                </Field>
+              </div>
+
+              <div className="mt-6">
+                <h3 className="mb-1 text-sm font-semibold text-ink">AI Scoring Weights</h3>
+                <p className="mb-3 text-xs text-ink-muted">These percentages are used by screening and saved shortlists.</p>
+                <div className="flex flex-col gap-2">
+                  {editForm.weightCriteria.map((criterion) => (
+                    <div
+                      key={criterion.id}
+                      className="flex items-center gap-3 rounded-lg border border-line bg-surface px-4 py-2.5"
+                    >
+                      <span className="w-[200px] shrink-0 text-sm font-medium text-ink">{criterion.label}</span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={5}
+                        value={criterion.value}
+                        onChange={(event) => updateEditWeight(criterion.id, Number(event.target.value))}
+                        className="h-1.5 min-w-0 flex-1 cursor-pointer accent-brand"
+                        aria-label={`${criterion.label} weight slider`}
+                      />
+                      <span
+                        className={`w-12 shrink-0 rounded-md px-2 py-0.5 text-center text-xs font-bold ${
+                          criterion.value > 0 ? "bg-brand/10 text-brand" : "bg-surface-soft text-ink-muted"
+                        }`}
+                      >
+                        {criterion.value}%
+                      </span>
+                    </div>
+                  ))}
+                  <div className="mt-1 flex items-center justify-end gap-2 text-sm">
+                    <span className="text-ink-muted">Total:</span>
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                        editWeightTotal === 100 ? "bg-success/10 text-success" : "bg-danger/10 text-danger"
+                      }`}
+                    >
+                      {editWeightTotal}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </ModalBody>
+            <ModalFooter>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setEditTargetId(null);
+                  setEditForm(null);
+                  setEditError("");
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                leftIcon={isMutatingId === editTargetId ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Pencil className="h-4 w-4" />}
+                disabled={isMutatingId === editTargetId}
+              >
+                Save Changes
+              </Button>
+            </ModalFooter>
+          </form>
         )}
       </Modal>
 
@@ -740,7 +1230,7 @@ export default function JobsPage() {
                   <div>
                     <p className="text-sm font-semibold text-ink">{job.title}</p>
                     <p className="text-xs text-ink-muted">
-                      {formatJobId(job)} · {job.department} · {job.applicantsCount} applicants
+                      {formatJobId(job)} · {job.applicantsCount} applicants
                     </p>
                   </div>
                 </div>
@@ -784,7 +1274,7 @@ export default function JobsPage() {
                   <Archive className="h-5 w-5 shrink-0 text-ink-muted" />
                   <div>
                     <p className="text-sm font-semibold text-ink">{job.title}</p>
-                    <p className="text-xs text-ink-muted">{formatJobId(job)} · {job.department}</p>
+                    <p className="text-xs text-ink-muted">{formatJobId(job)}</p>
                   </div>
                 </div>
                 <p className="text-sm text-ink-muted">

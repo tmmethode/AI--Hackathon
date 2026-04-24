@@ -31,7 +31,6 @@ export interface HiringManagerSummary {
 export interface IJobResponse {
   _id: string;
   title: string;
-  department: string;
   hiringManager: HiringManagerSummary;
   location: string;
   locationPolicy: LocationPolicy;
@@ -63,7 +62,6 @@ export interface IJobResponse {
 
 export interface CreateJobRequest {
   title: string;
-  department: string;
   /** User id of the hiring manager (must have role 'recruiter' or 'admin'). Optional when the caller is an admin or recruiter — defaults to them. */
   hiringManager?: string;
   location: string;
@@ -91,7 +89,6 @@ export interface CreateJobRequest {
 
 export interface UpdateJobRequest {
   title?: string;
-  department?: string;
   /** User id of the hiring manager. Must reference a user with role 'recruiter' or 'admin'. */
   hiringManager?: string;
   location?: string;

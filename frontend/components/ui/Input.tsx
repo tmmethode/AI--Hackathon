@@ -5,14 +5,20 @@ interface FieldProps {
   label?: string;
   hint?: string;
   error?: string;
+  required?: boolean;
   children: ReactNode;
   className?: string;
 }
 
-export function Field({ label, hint, error, children, className }: FieldProps) {
+export function Field({ label, hint, error, required, children, className }: FieldProps) {
   return (
     <label className={cn("block", className)}>
-      {label && <span className="mb-1.5 block text-[13px] font-medium text-ink">{label}</span>}
+      {label && (
+        <span className="mb-1.5 block text-[13px] font-medium text-ink">
+          {label}
+          {required && <span className="ml-0.5 text-danger" aria-hidden>*</span>}
+        </span>
+      )}
       {children}
       {hint && !error && <span className="mt-1 block text-xs text-ink-muted">{hint}</span>}
       {error && <span className="mt-1 block text-xs text-danger">{error}</span>}

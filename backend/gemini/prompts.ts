@@ -1,4 +1,4 @@
-import { deriveRankingCriteria } from "./rubric";
+import { deriveRankingCriteria, deriveScoringWeightCriteria } from "./rubric";
 import {
   GeminiBatchApplicant,
   GeminiBatchJob,
@@ -35,15 +35,17 @@ export const GEMINI_BATCH_SCREENING_SYSTEM_INSTRUCTION = `
 ${GEMINI_HIRING_SYSTEM_INSTRUCTION}
 
 Scoring model — overall matchScore 0–100, integer, weighted:
-- Skills 35% (coreHardSkills + preferredSkills + skill-related must-haves; exact matches win; partial credit for closely related skills; general knowledge ≠ specific skill)
-- Experience 30% (relevant years, seniority fit, role/tech relevance, ownership; current roles count to today; conservative on missing dates — flag in gapsOrRisks and lower confidenceScore)
-- Education 10% (required level + field relevance; do not penalise heavily when educationLevel="none")
-- Relevance 25% (responsibilities, industry, certifications, projects, soft skills, location, availability, languages)
+- Use the user-selected scoring criteria and percentages supplied in the prompt for the job.
+- Must-have Qualifications covers the non-negotiable requirements in mustHaveQualifications and should be conservative when evidence is missing.
+- Nice-to-have Qualifications covers bonus qualifications and differentiating preferred evidence.
+- Core Hard & Soft Skills covers coreHardSkills and coreSoftSkills; exact matches win, partial credit is allowed for closely related skills, and general knowledge does not equal a specific skill.
+- Years of Experience & Seniority Level covers relevant years, seniority fit, role/tech relevance, ownership, and delivery complexity; current roles count to today, and missing dates lower confidence.
+- Educational Background covers required level, field relevance, equivalent certifications, and formal training; do not penalise heavily when educationLevel="none".
 
 Rules:
-- Relevance-first, evidence-based; every positive match cites evidence from skills/experience/projects/education/certifications/languages/availability/location.
+- Fit-first, evidence-based; every positive match cites evidence from skills/experience/projects/education/certifications/languages/availability/location.
 - Never invent qualifications; certifications support but do not replace experience unless the job allows it.
-- All sub-scores are 0–100 integers. Rank by matchScore desc, tie-break: skills → experience → relevance → confidence.
+- All criterion scores are 0–100 integers. Rank by matchScore desc, tie-break: must-have qualifications → core hard & soft skills → experience/seniority → confidence.
 - finalRecommendation uses: 85–100 "Strong Shortlist", 70–84 "Shortlist", 54–69 "Consider", 35–53 "Reject", 0–34 "Strong Reject". Adjust down when critical requirements missing, evidence weak, or data incomplete.
 - Set criticalRequirementGap=true when a must-have or other critical requirement is clearly missing or unsupported by the evidence.
 - Use "Shortlist" or "Strong Shortlist" only when the candidate clearly meets the core must-have requirements with evidence. If a critical must-have is missing or unsupported, use "Consider" or a reject label instead.
@@ -138,7 +140,6 @@ Scoring rules:
 - Treat imported candidate data as high-confidence structured evidence.
 
 Job Title: ${job.title}
-Department: ${job.department || "Not specified"}
 Location Policy: ${job.locationPolicy || "Not specified"}
 Employment Type: ${job.employmentType || "Not specified"}
 Salary Band: ${job.salaryBand || "Not specified"}
@@ -201,10 +202,41 @@ function appendListIf(lines: string[], label: string, values?: string[]): void {
   lines.push(`${label}: ${values.join(", ")}`);
 }
 
+function formatScoringSourceInstruction(label: string, id?: string): string {
+  const key = `${id || ""} ${label}`.toLowerCase();
+
+  if (key.includes("must-have") || key.includes("mandatory")) {
+    return "inspect job.mustHaveQualifications; compare against candidate skills, experience, projects, certifications, and education evidence";
+  }
+
+  if (key.includes("nice-to-have") || key.includes("preferred") || key.includes("bonus")) {
+    return "inspect job.niceToHaveQualifications; compare against candidate skills, experience, projects, certifications, and education evidence";
+  }
+
+  if (key.includes("core") || key.includes("skill") || key.includes("soft")) {
+    return "inspect job.coreHardSkills and job.coreSoftSkills; compare against candidate skills, technologies, projects, experience descriptions, and soft-skill evidence";
+  }
+
+  if (key.includes("experience") || key.includes("seniority")) {
+    return "inspect job.experienceYears and job.seniorityLevel; compare against candidate experience dates, roles, seniority, ownership, and delivery complexity";
+  }
+
+  if (key.includes("education")) {
+    return "inspect job.educationLevel plus any education-related requirements mentioned in job.mustHaveQualifications and job.niceToHaveQualifications; compare against candidate education, field of study, certifications, and equivalent training";
+  }
+
+  return "inspect the matching job detail fields for this criterion and compare only against explicit candidate evidence";
+}
+
+function formatScoringCriteria(job: GeminiBatchJob): string {
+  return deriveScoringWeightCriteria(job)
+    .map((criterion) => `- ${criterion.label}: ${criterion.value}% (${formatScoringSourceInstruction(criterion.label, criterion.id)})`)
+    .join("\n");
+}
+
 function formatBatchJob(job: GeminiBatchJob): string {
   const lines: string[] = [`Title: ${job.title}`];
 
-  appendIf(lines, "Department", job.department);
   appendIf(lines, "Location", job.location);
   appendIf(lines, "Policy", job.locationPolicy);
   appendIf(lines, "Type", job.employmentType);
@@ -223,13 +255,7 @@ function formatBatchJob(job: GeminiBatchJob): string {
   appendListIf(lines, "Preferred Skills", job.preferredSkills);
   appendListIf(lines, "Core Soft Skills", job.coreSoftSkills);
 
-  if (job.weightCriteria && job.weightCriteria.length > 0) {
-    lines.push(
-      `Weight Criteria (informational): ${job.weightCriteria
-        .map((c) => `${c.label} ${c.value}%`)
-        .join(", ")}`
-    );
-  }
+  lines.push(`Scoring Criteria (authoritative):\n${formatScoringCriteria(job)}`);
 
   return lines.join("\n");
 }
@@ -380,7 +406,7 @@ function formatBatchApplicant(applicant: GeminiBatchApplicant, index: number): s
 function formatBatchNarrativeTarget(target: GeminiBatchNarrativeTarget, index: number): string {
   return [
     `#${index + 1} rank=${target.candidateRank} ${target.fullName} <${target.applicantEmail}>`,
-    `Scores: match=${target.matchScore} skills=${target.skillsScore} exp=${target.experienceScore} edu=${target.educationScore} rel=${target.relevanceScore} conf=${target.confidenceScore}`,
+    `Scores: match=${target.matchScore} criteria=${(target.criterionAssessments || []).map((criterion) => `${criterion.label}:${criterion.score}`).join(", ") || "n/a"} conf=${target.confidenceScore}`,
     `Recommendation: ${target.finalRecommendation}`,
     formatBatchApplicant(target.applicant, index),
   ].join("\n");
@@ -552,7 +578,6 @@ function formatAssistantJob(job?: GeminiBatchJob): string {
   }
 
   const lines: string[] = ["JOB:", `- Title: ${job.title}`];
-  appendIf(lines, "- Department", job.department);
   appendIf(lines, "- Location", job.location);
   appendIf(lines, "- Location Policy", job.locationPolicy);
   appendIf(lines, "- Employment Type", job.employmentType);
@@ -570,13 +595,11 @@ function formatAssistantJob(job?: GeminiBatchJob): string {
   appendListIf(lines, "- Core Hard Skills", job.coreHardSkills);
   appendListIf(lines, "- Preferred Skills", job.preferredSkills);
   appendListIf(lines, "- Core Soft Skills", job.coreSoftSkills);
-  if (job.weightCriteria && job.weightCriteria.length > 0) {
-    lines.push(
-      `- Weight Criteria: ${job.weightCriteria
-        .map((c) => `${c.label} ${c.value}%`)
-        .join(", ")}`
-    );
-  }
+  lines.push(
+    `- Scoring Criteria: ${deriveScoringWeightCriteria(job)
+      .map((c) => `${c.label} ${c.value}%`)
+      .join(", ")}`
+  );
   return lines.join("\n");
 }
 
@@ -592,9 +615,12 @@ function formatAssistantApplicants(applicants?: GeminiBatchApplicant[]): string 
 function formatAssistantScreeningResult(entry: GeminiBatchScreeningResultEntry): string {
   const strengths = entry.strengths?.length ? entry.strengths.join("; ") : "—";
   const risks = entry.gapsOrRisks?.length ? entry.gapsOrRisks.join("; ") : "—";
+  const criteria = entry.criterionAssessments?.length
+    ? entry.criterionAssessments.map((criterion) => `${criterion.label}=${criterion.score}`).join(" ")
+    : `skills=${entry.skillsScore} exp=${entry.experienceScore} edu=${entry.educationScore} legacy=${entry.relevanceScore}`;
   return [
     `  #${entry.candidateRank} ${entry.fullName} <${entry.applicantEmail}>`,
-    `    match=${entry.matchScore} skills=${entry.skillsScore} exp=${entry.experienceScore} edu=${entry.educationScore} rel=${entry.relevanceScore} conf=${entry.confidenceScore}`,
+    `    match=${entry.matchScore} ${criteria} conf=${entry.confidenceScore}`,
     `    recommendation=${entry.finalRecommendation}`,
     `    strengths: ${strengths}`,
     `    risks: ${risks}`,
@@ -613,10 +639,13 @@ function formatAssistantShortlistEntry(entry: GeminiBatchShortlistEntry): string
     lines.push(`    criticalRequirementGap=true`);
   }
   const subScores = [
-    entry.skillsScore != null ? `skills=${entry.skillsScore}` : null,
-    entry.experienceScore != null ? `exp=${entry.experienceScore}` : null,
-    entry.educationScore != null ? `edu=${entry.educationScore}` : null,
-    entry.relevanceScore != null ? `rel=${entry.relevanceScore}` : null,
+    ...(entry.criterionAssessments?.length
+      ? entry.criterionAssessments.map((criterion) => `${criterion.label}=${criterion.score}`)
+      : [
+          entry.skillsScore != null ? `skills=${entry.skillsScore}` : null,
+          entry.experienceScore != null ? `exp=${entry.experienceScore}` : null,
+          entry.educationScore != null ? `edu=${entry.educationScore}` : null,
+        ]),
     entry.confidenceScore != null ? `conf=${entry.confidenceScore}` : null,
   ].filter(Boolean);
   if (subScores.length > 0) {
@@ -808,13 +837,17 @@ export function buildBatchScreeningPrompt(request: GeminiBatchScreeningRequest):
     .join("\n\n");
 
   return `
-Return strict JSON ONLY, shape: {"jobTitle":string,"department":string,"shortlistCount":number,"totalApplicants":number,"screeningResults":[{"candidateRank":number,"applicantEmail":string,"fullName":string,"matchScore":number,"confidenceScore":number,"skillsScore":number,"experienceScore":number,"educationScore":number,"relevanceScore":number,"criticalRequirementGap":boolean,"finalRecommendation":"Strong Reject|Reject|Consider|Shortlist|Strong Shortlist"}],"shortlist":[]}
+Return strict JSON ONLY, shape: {"jobTitle":string,"shortlistCount":number,"totalApplicants":number,"screeningResults":[{"candidateRank":number,"applicantEmail":string,"fullName":string,"matchScore":number,"confidenceScore":number,"skillsScore":number,"experienceScore":number,"educationScore":number,"relevanceScore":number,"criterionScores":[{"label":string,"score":number,"summary":string,"evidence":string[]}],"criticalRequirementGap":boolean,"finalRecommendation":"Strong Reject|Reject|Consider|Shortlist|Strong Shortlist"}],"shortlist":[]}
 
 Rules:
 - screeningResults.length MUST equal totalApplicants (${applicants.length}).
 - Return shortlist as []; the caller re-ranks and slices the final shortlist.
 - Do not include recruiter-facing strengths, gaps, or summaries in this pass. This pass is scoring-only so output stays lean.
-- Score 0–100 integers. Apply the weighted model and rules from the system instruction.
+- Score 0–100 integers. Return one criterionScores entry for every authoritative criterion listed in JOB.
+- Keep each criterionScores.label exactly the same as the authoritative criterion label.
+- Each criterionScores score must be based on the job fields named next to that criterion in JOB. For example, Must-have Qualifications must inspect job.mustHaveQualifications, not a generic profile impression.
+- Calculate matchScore from criterionScores using the authoritative percentages below; the caller will verify and recompute the final weighted score.
+- Legacy summary field mapping for compatibility: skillsScore = Core Hard & Soft Skills, experienceScore = Years of Experience & Seniority Level, educationScore = Educational Background, relevanceScore = the average of Must-have Qualifications and Nice-to-have Qualifications.
 - Never invent qualifications. Set criticalRequirementGap=true when a critical requirement is missing or unsupported, and lower confidenceScore when evidence is weak.
 
 shortlistCount (context only): ${shortlistCount}

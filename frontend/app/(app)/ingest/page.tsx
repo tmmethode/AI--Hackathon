@@ -2161,7 +2161,7 @@ export default function IngestPage() {
                 <div>
                   <p className="text-sm font-medium text-ink">{currentJob.title}</p>
                   <p className="text-xs text-ink-muted">
-                    {currentJob.department} · {currentJob.applicantsCount} applicants
+                    {currentJob.applicantsCount} applicants
                   </p>
                 </div>
               </div>

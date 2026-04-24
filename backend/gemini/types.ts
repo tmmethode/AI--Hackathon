@@ -28,10 +28,15 @@ export interface GeminiRankingCriterion {
   description?: string;
 }
 
+export interface GeminiWeightCriterion {
+  id?: string;
+  label: string;
+  value: number;
+}
+
 export interface GeminiJobContext {
   id?: string;
   title: string;
-  department?: string;
   locationPolicy?: string;
   employmentType?: string;
   salaryBand?: string;
@@ -47,6 +52,7 @@ export interface GeminiJobContext {
   experience?: string;
   seniorityLevel?: string;
   educationLevel?: string;
+  weightCriteria?: GeminiWeightCriterion[];
   rankingCriteria?: GeminiRankingCriterion[];
 }
 
@@ -164,16 +170,9 @@ export type GeminiBatchRecommendation =
   | "Shortlist"
   | "Strong Shortlist";
 
-export interface GeminiWeightCriterion {
-  id?: string;
-  label: string;
-  value: number;
-}
-
 export interface GeminiBatchJob {
   id?: string;
   title: string;
-  department?: string;
   hiringManager?: string;
   location?: string;
   locationPolicy?: "remote" | "hybrid" | "onsite" | string;
@@ -304,6 +303,7 @@ export interface GeminiBatchNarrativeTarget {
   experienceScore: number;
   educationScore: number;
   relevanceScore: number;
+  criterionAssessments?: GeminiCriterionAssessment[];
   finalRecommendation: GeminiBatchRecommendation;
   applicant: GeminiBatchApplicant;
 }
@@ -325,6 +325,7 @@ export interface GeminiBatchScreeningResultEntry {
   experienceScore: number;
   educationScore: number;
   relevanceScore: number;
+  criterionAssessments?: GeminiCriterionAssessment[];
   criticalRequirementGap: boolean;
   strengths: string[];
   gapsOrRisks: string[];
@@ -342,6 +343,7 @@ export interface GeminiBatchShortlistEntry {
   experienceScore: number;
   educationScore: number;
   relevanceScore: number;
+  criterionAssessments?: GeminiCriterionAssessment[];
   criticalRequirementGap: boolean;
   strengths: string[];
   gapsOrRisks: string[];
@@ -351,7 +353,7 @@ export interface GeminiBatchShortlistEntry {
 
 export interface GeminiBatchScreeningResponse {
   jobTitle: string;
-  department: string;
+  weightCriteria?: GeminiWeightCriterion[];
   shortlistCount: number;
   totalApplicants: number;
   screeningResults: GeminiBatchScreeningResultEntry[];
@@ -370,7 +372,6 @@ export interface GeminiRecruiterAssistantMessage {
 export interface GeminiRecruiterAssistantShortlistContext {
   runName?: string;
   jobTitle?: string;
-  department?: string;
   model?: string;
   totalApplicants?: number;
   shortlistCount?: number;

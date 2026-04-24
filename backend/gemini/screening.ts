@@ -7,7 +7,14 @@ import {
   GEMINI_BATCH_SCREENING_SYSTEM_INSTRUCTION,
   GEMINI_HIRING_SYSTEM_INSTRUCTION,
 } from "./prompts";
-import { buildCriterionAssessments, computeFinalWeightedScore, deriveRankingCriteria } from "./rubric";
+import {
+  buildCriterionAssessments,
+  computeFinalWeightedScore,
+  computeWeightedBatchScore,
+  deriveRankingCriteria,
+  deriveScoringRankingCriteria,
+  deriveScoringWeightCriteria,
+} from "./rubric";
 import {
   GeminiBatchApplicant,
   GeminiBatchNarrativeEntry,
@@ -326,6 +333,7 @@ interface ParsedBatchScoreEntry {
   experienceScore: number;
   educationScore: number;
   relevanceScore: number;
+  criterionAssessments: ReturnType<typeof buildCriterionAssessments>;
   criticalRequirementGap: boolean;
   finalRecommendation: GeminiBatchRecommendation;
 }
@@ -337,7 +345,10 @@ interface ParsedBatchNarrativeResult {
   summaryExplanation: string;
 }
 
-function parseBatchScoreEntry(raw: unknown): ParsedBatchScoreEntry | null {
+function parseBatchScoreEntry(
+  raw: unknown,
+  job: GeminiBatchScreeningRequest["job"]
+): ParsedBatchScoreEntry | null {
   if (typeof raw !== "object" || raw === null) {
     return null;
   }
@@ -349,7 +360,31 @@ function parseBatchScoreEntry(raw: unknown): ParsedBatchScoreEntry | null {
     return null;
   }
 
-  const matchScore = clampScore(entry.matchScore);
+  const criteria = deriveScoringRankingCriteria(job);
+  const returnedCriterionScores = toCriterionScores(entry.criterionScores);
+  const fallbackCriterionScores =
+    returnedCriterionScores.length > 0
+      ? returnedCriterionScores
+      : criteria.map((criterion) => {
+          const label = criterion.label.toLowerCase();
+          const score =
+            label.includes("experience") || label.includes("seniority")
+              ? entry.experienceScore
+              : label.includes("education")
+              ? entry.educationScore
+              : label.includes("core") || label.includes("skill")
+              ? entry.skillsScore
+              : entry.relevanceScore;
+
+          return {
+            label: criterion.label,
+            score: clampScore(score),
+            summary: "",
+            evidence: [],
+          };
+        });
+  const criterionAssessments = buildCriterionAssessments(criteria, fallbackCriterionScores);
+  const matchScore = computeFinalWeightedScore(criterionAssessments);
 
   return {
     applicantEmail: email,
@@ -360,6 +395,7 @@ function parseBatchScoreEntry(raw: unknown): ParsedBatchScoreEntry | null {
     experienceScore: clampScore(entry.experienceScore),
     educationScore: clampScore(entry.educationScore),
     relevanceScore: clampScore(entry.relevanceScore),
+    criterionAssessments,
     criticalRequirementGap: entry.criticalRequirementGap === true || entry.criticalRequirementGap === "true",
     finalRecommendation: normalizeRecommendation(entry.finalRecommendation),
   };
@@ -479,8 +515,19 @@ export class GeminiScreeningService {
 
     const parsedEntries = Array.isArray(parsed.screeningResults)
       ? (parsed.screeningResults as unknown[])
-          .map(parseBatchScoreEntry)
+          .map((entry) => parseBatchScoreEntry(entry, request.job))
           .filter((entry): entry is ParsedBatchScoreEntry => entry !== null)
+          .map((entry) => {
+            const weightedMatchScore = entry.criterionAssessments.length > 0
+              ? computeFinalWeightedScore(entry.criterionAssessments)
+              : computeWeightedBatchScore(request.job, entry);
+
+            return {
+              ...entry,
+              matchScore: weightedMatchScore,
+              finalRecommendation: recommendationFromScore(weightedMatchScore),
+            };
+          })
       : [];
 
     const entryByEmail = new Map<string, ParsedBatchScoreEntry>();
@@ -650,6 +697,7 @@ export class GeminiScreeningService {
         experienceScore: entry.experienceScore,
         educationScore: entry.educationScore,
         relevanceScore: entry.relevanceScore,
+        criterionAssessments: entry.criterionAssessments,
         finalRecommendation: entry.finalRecommendation,
         applicant: applicantByEmail.get(entry.applicantEmail.trim().toLowerCase()) || {
           email: entry.applicantEmail,
@@ -766,6 +814,7 @@ export class GeminiScreeningService {
             experienceScore: entry.experienceScore,
             educationScore: entry.educationScore,
             relevanceScore: entry.relevanceScore,
+            criterionAssessments: entry.criterionAssessments,
             strengths: [],
             gapsOrRisks: entry.criticalRequirementGap
               ? ["Critical requirement gap identified during screening."]
@@ -786,6 +835,7 @@ export class GeminiScreeningService {
           experienceScore: 0,
           educationScore: 0,
           relevanceScore: 0,
+          criterionAssessments: [],
           strengths: [],
           gapsOrRisks: ["Gemini did not return an evaluation for this applicant."],
           finalRecommendation: "Consider",
@@ -828,6 +878,7 @@ export class GeminiScreeningService {
         experienceScore: entry.experienceScore,
         educationScore: entry.educationScore,
         relevanceScore: entry.relevanceScore,
+        criterionAssessments: entry.criterionAssessments,
         criticalRequirementGap: entry.criticalRequirementGap,
         strengths: entry.strengths,
         gapsOrRisks: entry.gapsOrRisks,
@@ -837,7 +888,7 @@ export class GeminiScreeningService {
 
     return {
       jobTitle: request.job.title,
-      department: request.job.department || "",
+      weightCriteria: deriveScoringWeightCriteria(request.job),
       shortlistCount: shortlist.length,
       totalApplicants,
       screeningResults,

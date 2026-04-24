@@ -16,6 +16,7 @@ import Shortlist, {
   IShortlist,
   IShortlistEntry,
   IShortlistResultEntry,
+  IShortlistWeightCriterion,
   ShortlistRecommendation,
 } from '../models/Shortlist';
 import Job from '../models/Job';
@@ -32,6 +33,7 @@ export interface ShortlistResultEntryDTO {
   experienceScore: number;
   educationScore: number;
   relevanceScore: number;
+  criterionAssessments?: ShortlistCriterionAssessmentDTO[];
   criticalRequirementGap: boolean;
   strengths: string[];
   gapsOrRisks: string[];
@@ -49,6 +51,7 @@ export interface ShortlistEntryDTO {
   experienceScore: number;
   educationScore: number;
   relevanceScore: number;
+  criterionAssessments?: ShortlistCriterionAssessmentDTO[];
   criticalRequirementGap: boolean;
   strengths: string[];
   gapsOrRisks: string[];
@@ -56,15 +59,30 @@ export interface ShortlistEntryDTO {
   summaryExplanation: string;
 }
 
+export interface ShortlistWeightCriterionDTO {
+  id: string;
+  label: string;
+  value: number;
+}
+
+export interface ShortlistCriterionAssessmentDTO {
+  label: string;
+  weightPct: number;
+  score: number;
+  weightedScore: number;
+  summary?: string;
+  evidence?: string[];
+}
+
 export interface ShortlistDTO {
   _id: string;
   job: string;
   jobTitle: string;
-  department: string;
   runName: string;
   model: string;
   totalApplicants: number;
   shortlistCount: number;
+  weightCriteria: ShortlistWeightCriterionDTO[];
   screeningResults: ShortlistResultEntryDTO[];
   shortlist: ShortlistEntryDTO[];
   instructions?: string;
@@ -80,7 +98,6 @@ export interface ShortlistSummaryDTO {
   _id: string;
   job: string;
   jobTitle: string;
-  department: string;
   runName: string;
   model: string;
   totalApplicants: number;
@@ -99,10 +116,10 @@ export interface CreateShortlistRequest {
   jobId: string;
   runName?: string;
   jobTitle: string;
-  department?: string;
   model?: string;
   totalApplicants: number;
   shortlistCount: number;
+  weightCriteria?: ShortlistWeightCriterionDTO[];
   screeningResults: ShortlistResultEntryDTO[];
   shortlist: ShortlistEntryDTO[];
   instructions?: string;
@@ -201,6 +218,7 @@ export class ShortlistController {
       experienceScore: entry.experienceScore,
       educationScore: entry.educationScore,
       relevanceScore: entry.relevanceScore,
+      criterionAssessments: entry.criterionAssessments || [],
       criticalRequirementGap: entry.criticalRequirementGap ?? false,
       strengths: entry.strengths || [],
       gapsOrRisks: entry.gapsOrRisks || [],
@@ -220,6 +238,7 @@ export class ShortlistController {
       experienceScore: entry.experienceScore,
       educationScore: entry.educationScore,
       relevanceScore: entry.relevanceScore,
+      criterionAssessments: entry.criterionAssessments || [],
       criticalRequirementGap: entry.criticalRequirementGap ?? false,
       strengths: entry.strengths || [],
       gapsOrRisks: entry.gapsOrRisks || [],
@@ -244,11 +263,20 @@ export class ShortlistController {
       experienceScore: entry.experienceScore ?? source?.experienceScore ?? 0,
       educationScore: entry.educationScore ?? source?.educationScore ?? 0,
       relevanceScore: entry.relevanceScore ?? source?.relevanceScore ?? 0,
+      criterionAssessments: entry.criterionAssessments ?? source?.criterionAssessments ?? [],
       criticalRequirementGap: entry.criticalRequirementGap ?? source?.criticalRequirementGap ?? false,
       strengths: entry.strengths || [],
       gapsOrRisks: entry.gapsOrRisks || [],
       finalRecommendation: entry.finalRecommendation,
       summaryExplanation: entry.summaryExplanation || '',
+    };
+  }
+
+  private toWeightCriterionDTO(entry: IShortlistWeightCriterion): ShortlistWeightCriterionDTO {
+    return {
+      id: entry.id,
+      label: entry.label,
+      value: entry.value,
     };
   }
 
@@ -261,11 +289,13 @@ export class ShortlistController {
       _id: shortlist._id.toString(),
       job: shortlist.job.toString(),
       jobTitle: shortlist.jobTitle,
-      department: shortlist.department || '',
       runName: shortlist.runName,
       model: shortlist.geminiModel || '',
       totalApplicants: shortlist.totalApplicants,
       shortlistCount: shortlist.shortlistCount,
+      weightCriteria: (shortlist.weightCriteria || []).map((entry) =>
+        this.toWeightCriterionDTO(entry)
+      ),
       screeningResults: (shortlist.screeningResults || []).map((entry) =>
         this.toResultEntryDTO(entry)
       ),
@@ -290,7 +320,6 @@ export class ShortlistController {
       _id: shortlist._id.toString(),
       job: shortlist.job.toString(),
       jobTitle: shortlist.jobTitle,
-      department: shortlist.department || '',
       runName: shortlist.runName,
       model: shortlist.geminiModel || '',
       totalApplicants: shortlist.totalApplicants,
@@ -483,16 +512,23 @@ export class ShortlistController {
 
       const screeningResults = Array.isArray(body.screeningResults) ? body.screeningResults : [];
       const shortlistEntries = Array.isArray(body.shortlist) ? body.shortlist : [];
+      const weightCriteria = Array.isArray(body.weightCriteria) && body.weightCriteria.length > 0
+        ? body.weightCriteria
+        : (job.weightCriteria || []).map((criterion) => ({
+            id: criterion.id,
+            label: criterion.label,
+            value: criterion.value,
+          }));
       const runName = await this.buildUniqueRunName();
 
       const shortlist = new Shortlist({
         job: job._id,
         jobTitle: body.jobTitle || job.title,
-        department: body.department ?? job.department ?? '',
         runName,
         geminiModel: body.model || '',
         totalApplicants: body.totalApplicants,
         shortlistCount: shortlistEntries.length,
+        weightCriteria,
         screeningResults,
         shortlist: shortlistEntries,
         instructions: body.instructions || '',

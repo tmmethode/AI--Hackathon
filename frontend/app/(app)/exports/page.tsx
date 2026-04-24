@@ -112,15 +112,22 @@ function buildPreviewRows(record: ShortlistRecord): string[][] {
 
 
 function buildCsvRows(record: ShortlistRecord): (readonly unknown[])[] {
+  const criteria =
+    record.weightCriteria && record.weightCriteria.length > 0
+      ? record.weightCriteria
+      : [
+          { id: "must-have-qualifications", label: "Must-have Qualifications", value: 30 },
+          { id: "nice-to-have-qualifications", label: "Nice-to-have Qualifications", value: 10 },
+          { id: "core-skills", label: "Core Hard & Soft Skills", value: 25 },
+          { id: "experience-seniority", label: "Years of Experience & Seniority Level", value: 25 },
+          { id: "education", label: "Educational Background", value: 10 },
+        ];
   const header = [
     "Rank",
     "Name",
     "Email",
     "Match %",
-    "Skills %",
-    "Experience %",
-    "Education %",
-    "Relevance %",
+    ...criteria.map((criterion) => `${criterion.label} %`),
     "Recommendation",
     "Strengths",
     "Gaps",
@@ -128,15 +135,23 @@ function buildCsvRows(record: ShortlistRecord): (readonly unknown[])[] {
   ];
   const rows: (readonly unknown[])[] = [header];
   for (const entry of selectCandidates(record)) {
+    const criterionScores = new Map(
+      (entry.criterionAssessments || []).map((criterion) => [criterion.label, criterion.score])
+    );
+    const fallbackScore = (criterion: { id?: string; label: string }) => {
+      const key = `${criterion.id || ""} ${criterion.label}`.toLowerCase();
+      if (criterionScores.has(criterion.label)) return criterionScores.get(criterion.label) ?? 0;
+      if (key.includes("experience") || key.includes("seniority")) return entry.experienceScore ?? 0;
+      if (key.includes("education")) return entry.educationScore ?? 0;
+      if (key.includes("skill") || key.includes("core")) return entry.skillsScore ?? 0;
+      return entry.relevanceScore ?? 0;
+    };
     rows.push([
       entry.candidateRank ?? "",
       entry.fullName || "",
       entry.applicantEmail || "",
       entry.matchScore ?? 0,
-      entry.skillsScore ?? 0,
-      entry.experienceScore ?? 0,
-      entry.educationScore ?? 0,
-      entry.relevanceScore ?? 0,
+      ...criteria.map(fallbackScore),
       entry.finalRecommendation || "",
       (entry.strengths || []).join("; "),
       (entry.gapsOrRisks || []).join("; "),
@@ -149,10 +164,10 @@ function buildCsvRows(record: ShortlistRecord): (readonly unknown[])[] {
 function buildJsonData(record: ShortlistRecord) {
   return {
     job: record.jobTitle,
-    department: record.department,
     runName: record.runName,
     totalApplicants: record.totalApplicants,
     shortlistCount: record.shortlistCount,
+    weightCriteria: record.weightCriteria || [],
     generatedAt: new Date().toISOString(),
     candidates: selectCandidates(record),
   };
@@ -165,7 +180,6 @@ function buildPdfLines(record: ShortlistRecord) {
     "Candidate Screening Report",
     `Selected Position: ${record.jobTitle || "—"}`,
     `Screening Run: ${record.runName || "—"}`,
-    `Department: ${record.department || "—"}`,
     `Generated On: ${formatDateTime(new Date().toISOString())}`,
     `Total Applicants Evaluated: ${record.totalApplicants}`,
     `Candidates In Shortlist: ${record.shortlistCount}`,
@@ -175,7 +189,11 @@ function buildPdfLines(record: ShortlistRecord) {
       `${index + 1}. ${candidate.fullName || "Unknown Candidate"}`,
       `Email: ${candidate.applicantEmail || "—"}`,
       `Recommendation: ${candidate.finalRecommendation || "Review"}`,
-      `Scores: Match ${candidate.matchScore ?? 0}% | Skills ${candidate.skillsScore ?? 0}% | Experience ${candidate.experienceScore ?? 0}% | Education ${candidate.educationScore ?? 0}% | Relevance ${candidate.relevanceScore ?? 0}%`,
+      `Scores: Match ${candidate.matchScore ?? 0}% | ${
+        candidate.criterionAssessments && candidate.criterionAssessments.length > 0
+          ? candidate.criterionAssessments.map((criterion) => `${criterion.label} ${criterion.score}%`).join(" | ")
+          : `Core Hard & Soft Skills ${candidate.skillsScore ?? 0}% | Years of Experience & Seniority Level ${candidate.experienceScore ?? 0}% | Educational Background ${candidate.educationScore ?? 0}%`
+      }`,
       `Key Strengths: ${(candidate.strengths || []).join(", ") || "No strengths captured."}`,
       `Potential Gaps: ${(candidate.gapsOrRisks || []).join(", ") || "No gaps captured."}`,
       `Summary: ${candidate.summaryExplanation || "No summary available."}`,

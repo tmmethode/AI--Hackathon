@@ -2,6 +2,7 @@ import { getGeminiConfig } from "./config";
 import { GeminiClient } from "./client";
 import { GeminiScreeningService } from "./screening";
 import { isFrontendResultShortlistEligible } from "./shortlist-criteria";
+import { deriveRankingCriteria } from "./rubric";
 import {
   GeminiFrontendConfigResponse,
   GeminiFrontendScreeningResult,
@@ -41,6 +42,7 @@ export class GeminiFrontendService {
           "experience",
           "seniorityLevel",
           "educationLevel",
+          "weightCriteria",
           "rankingCriteria",
         ],
         candidateFields: [
@@ -154,7 +156,7 @@ export class GeminiFrontendService {
       shortlistSize: normalizedShortlistSize,
       shortlistedCount: shortlisted.length,
       model: results.find((result) => result.raw)?.model || activeModel,
-      rankingCriteria: request.job.rankingCriteria,
+      rankingCriteria: deriveRankingCriteria(request.job),
       summary: `Processed ${results.length} candidates for ${request.job.title}. ${strongMatches} candidates received a yes or strong_yes recommendation.${failureSuffix}`,
       results,
     };

@@ -104,7 +104,6 @@ export class JobController {
     return {
       _id: job._id.toString(),
       title: job.title,
-      department: job.department,
       hiringManager: this.toHiringManagerSummary((job as any).hiringManager),
       location: job.location,
       locationPolicy: job.locationPolicy,
@@ -166,7 +165,6 @@ export class JobController {
 
         filter.$or = [
           { title: regex },
-          { department: regex },
           { location: regex },
           { hiringManager: { $in: matchingManagerIds } },
         ];
@@ -214,7 +212,7 @@ export class JobController {
 
       if (search && search.trim().length > 0) {
         const regex = new RegExp(search.trim(), 'i');
-        filter.$or = [{ title: regex }, { department: regex }, { location: regex }];
+        filter.$or = [{ title: regex }, { location: regex }];
       }
 
       const jobs = await Job.find(filter)

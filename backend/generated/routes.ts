@@ -55,7 +55,6 @@ const models: TsoaRoute.Models = {
             "_id": {"dataType":"string","required":true},
             "job": {"dataType":"string","required":true},
             "jobTitle": {"dataType":"string","required":true},
-            "department": {"dataType":"string","required":true},
             "runName": {"dataType":"string","required":true},
             "model": {"dataType":"string","required":true},
             "totalApplicants": {"dataType":"double","required":true},
@@ -106,6 +105,29 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ShortlistWeightCriterionDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"string","required":true},
+            "label": {"dataType":"string","required":true},
+            "value": {"dataType":"double","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ShortlistCriterionAssessmentDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "label": {"dataType":"string","required":true},
+            "weightPct": {"dataType":"double","required":true},
+            "score": {"dataType":"double","required":true},
+            "weightedScore": {"dataType":"double","required":true},
+            "summary": {"dataType":"string"},
+            "evidence": {"dataType":"array","array":{"dataType":"string"}},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "ShortlistRecommendation": {
         "dataType": "refAlias",
         "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["Strong Reject"]},{"dataType":"enum","enums":["Reject"]},{"dataType":"enum","enums":["Consider"]},{"dataType":"enum","enums":["Shortlist"]},{"dataType":"enum","enums":["Strong Shortlist"]}],"validators":{}},
@@ -123,6 +145,7 @@ const models: TsoaRoute.Models = {
             "experienceScore": {"dataType":"double","required":true},
             "educationScore": {"dataType":"double","required":true},
             "relevanceScore": {"dataType":"double","required":true},
+            "criterionAssessments": {"dataType":"array","array":{"dataType":"refObject","ref":"ShortlistCriterionAssessmentDTO"}},
             "criticalRequirementGap": {"dataType":"boolean","required":true},
             "strengths": {"dataType":"array","array":{"dataType":"string"},"required":true},
             "gapsOrRisks": {"dataType":"array","array":{"dataType":"string"},"required":true},
@@ -144,6 +167,7 @@ const models: TsoaRoute.Models = {
             "experienceScore": {"dataType":"double","required":true},
             "educationScore": {"dataType":"double","required":true},
             "relevanceScore": {"dataType":"double","required":true},
+            "criterionAssessments": {"dataType":"array","array":{"dataType":"refObject","ref":"ShortlistCriterionAssessmentDTO"}},
             "criticalRequirementGap": {"dataType":"boolean","required":true},
             "strengths": {"dataType":"array","array":{"dataType":"string"},"required":true},
             "gapsOrRisks": {"dataType":"array","array":{"dataType":"string"},"required":true},
@@ -159,11 +183,11 @@ const models: TsoaRoute.Models = {
             "_id": {"dataType":"string","required":true},
             "job": {"dataType":"string","required":true},
             "jobTitle": {"dataType":"string","required":true},
-            "department": {"dataType":"string","required":true},
             "runName": {"dataType":"string","required":true},
             "model": {"dataType":"string","required":true},
             "totalApplicants": {"dataType":"double","required":true},
             "shortlistCount": {"dataType":"double","required":true},
+            "weightCriteria": {"dataType":"array","array":{"dataType":"refObject","ref":"ShortlistWeightCriterionDTO"},"required":true},
             "screeningResults": {"dataType":"array","array":{"dataType":"refObject","ref":"ShortlistResultEntryDTO"},"required":true},
             "shortlist": {"dataType":"array","array":{"dataType":"refObject","ref":"ShortlistEntryDTO"},"required":true},
             "instructions": {"dataType":"string"},
@@ -192,10 +216,10 @@ const models: TsoaRoute.Models = {
             "jobId": {"dataType":"string","required":true},
             "runName": {"dataType":"string"},
             "jobTitle": {"dataType":"string","required":true},
-            "department": {"dataType":"string"},
             "model": {"dataType":"string"},
             "totalApplicants": {"dataType":"double","required":true},
             "shortlistCount": {"dataType":"double","required":true},
+            "weightCriteria": {"dataType":"array","array":{"dataType":"refObject","ref":"ShortlistWeightCriterionDTO"}},
             "screeningResults": {"dataType":"array","array":{"dataType":"refObject","ref":"ShortlistResultEntryDTO"},"required":true},
             "shortlist": {"dataType":"array","array":{"dataType":"refObject","ref":"ShortlistEntryDTO"},"required":true},
             "instructions": {"dataType":"string"},
@@ -305,7 +329,6 @@ const models: TsoaRoute.Models = {
         "properties": {
             "_id": {"dataType":"string","required":true},
             "title": {"dataType":"string","required":true},
-            "department": {"dataType":"string","required":true},
             "hiringManager": {"ref":"HiringManagerSummary","required":true},
             "location": {"dataType":"string","required":true},
             "locationPolicy": {"ref":"LocationPolicy","required":true},
@@ -376,7 +399,6 @@ const models: TsoaRoute.Models = {
         "dataType": "refObject",
         "properties": {
             "title": {"dataType":"string","required":true},
-            "department": {"dataType":"string","required":true},
             "hiringManager": {"dataType":"string"},
             "location": {"dataType":"string","required":true},
             "locationPolicy": {"ref":"LocationPolicy"},
@@ -402,7 +424,6 @@ const models: TsoaRoute.Models = {
         "dataType": "refObject",
         "properties": {
             "title": {"dataType":"string"},
-            "department": {"dataType":"string"},
             "hiringManager": {"dataType":"string"},
             "location": {"dataType":"string"},
             "locationPolicy": {"ref":"LocationPolicy"},
@@ -549,6 +570,16 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiWeightCriterion": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"string"},
+            "label": {"dataType":"string","required":true},
+            "value": {"dataType":"double","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "GeminiRankingCriterion": {
         "dataType": "refObject",
         "properties": {
@@ -565,7 +596,6 @@ const models: TsoaRoute.Models = {
         "properties": {
             "id": {"dataType":"string"},
             "title": {"dataType":"string","required":true},
-            "department": {"dataType":"string"},
             "locationPolicy": {"dataType":"string"},
             "employmentType": {"dataType":"string"},
             "salaryBand": {"dataType":"string"},
@@ -581,6 +611,7 @@ const models: TsoaRoute.Models = {
             "experience": {"dataType":"string"},
             "seniorityLevel": {"dataType":"string"},
             "educationLevel": {"dataType":"string"},
+            "weightCriteria": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiWeightCriterion"}},
             "rankingCriteria": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiRankingCriterion"}},
         },
         "additionalProperties": false,
@@ -691,6 +722,7 @@ const models: TsoaRoute.Models = {
             "experienceScore": {"dataType":"double","required":true},
             "educationScore": {"dataType":"double","required":true},
             "relevanceScore": {"dataType":"double","required":true},
+            "criterionAssessments": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiCriterionAssessment"}},
             "criticalRequirementGap": {"dataType":"boolean","required":true},
             "strengths": {"dataType":"array","array":{"dataType":"string"},"required":true},
             "gapsOrRisks": {"dataType":"array","array":{"dataType":"string"},"required":true},
@@ -712,6 +744,7 @@ const models: TsoaRoute.Models = {
             "experienceScore": {"dataType":"double","required":true},
             "educationScore": {"dataType":"double","required":true},
             "relevanceScore": {"dataType":"double","required":true},
+            "criterionAssessments": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiCriterionAssessment"}},
             "criticalRequirementGap": {"dataType":"boolean","required":true},
             "strengths": {"dataType":"array","array":{"dataType":"string"},"required":true},
             "gapsOrRisks": {"dataType":"array","array":{"dataType":"string"},"required":true},
@@ -736,7 +769,7 @@ const models: TsoaRoute.Models = {
         "dataType": "refObject",
         "properties": {
             "jobTitle": {"dataType":"string","required":true},
-            "department": {"dataType":"string","required":true},
+            "weightCriteria": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiWeightCriterion"}},
             "shortlistCount": {"dataType":"double","required":true},
             "totalApplicants": {"dataType":"double","required":true},
             "screeningResults": {"dataType":"array","array":{"dataType":"refObject","ref":"GeminiBatchScreeningResultEntry"},"required":true},
@@ -822,7 +855,6 @@ const models: TsoaRoute.Models = {
         "dataType": "refObject",
         "properties": {
             "title": {"dataType":"string"},
-            "department": {"dataType":"string"},
             "hiringManager": {"dataType":"string"},
             "location": {"dataType":"string"},
             "locationPolicy": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["remote"]},{"dataType":"enum","enums":["hybrid"]},{"dataType":"enum","enums":["onsite"]}]},
@@ -833,7 +865,6 @@ const models: TsoaRoute.Models = {
             "mustHaveQualifications": {"dataType":"string"},
             "niceToHaveQualifications": {"dataType":"string"},
             "coreHardSkills": {"dataType":"array","array":{"dataType":"string"}},
-            "preferredSkills": {"dataType":"array","array":{"dataType":"string"}},
             "coreSoftSkills": {"dataType":"array","array":{"dataType":"string"}},
             "experienceYears": {"dataType":"double"},
             "seniorityLevel": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["junior"]},{"dataType":"enum","enums":["mid"]},{"dataType":"enum","enums":["senior"]},{"dataType":"enum","enums":["lead"]},{"dataType":"enum","enums":["manager"]},{"dataType":"enum","enums":["principal"]}]},

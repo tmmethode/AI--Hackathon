@@ -3,10 +3,12 @@ import {
   archiveJob as archiveJobRequest,
   deleteJob as deleteJobRequest,
   listJobs,
+  updateJob as updateJobRequest,
   type JobsResponse,
   type JobRecord,
   type JobResponse,
   type JobStatus,
+  type UpdateJobPayload,
 } from "@/lib/jobs";
 
 type JobsFilterStatus = JobStatus | "All";
@@ -84,6 +86,18 @@ export const deleteJob = createAsyncThunk<
     return await deleteJobRequest(id);
   } catch (error) {
     return rejectWithValue(error instanceof Error ? error.message : "Failed to delete the job.");
+  }
+});
+
+export const updateJob = createAsyncThunk<
+  JobResponse,
+  { id: string; payload: UpdateJobPayload },
+  { rejectValue: string }
+>("jobs/updateJob", async ({ id, payload }, { rejectWithValue }) => {
+  try {
+    return await updateJobRequest(id, payload);
+  } catch (error) {
+    return rejectWithValue(error instanceof Error ? error.message : "Failed to update the job.");
   }
 });
 
@@ -183,6 +197,20 @@ const jobsSlice = createSlice({
       .addCase(deleteJob.rejected, (state, action) => {
         state.isMutatingId = null;
         state.error = action.payload || "Failed to delete the job.";
+      })
+      .addCase(updateJob.pending, (state, action) => {
+        state.isMutatingId = action.meta.arg.id;
+        state.error = "";
+      })
+      .addCase(updateJob.fulfilled, (state, action) => {
+        state.isMutatingId = null;
+        state.menuOpen = null;
+        state.items = state.items.map((job) => (job._id === action.payload.data._id ? action.payload.data : job));
+        state.selectedId = action.payload.data._id;
+      })
+      .addCase(updateJob.rejected, (state, action) => {
+        state.isMutatingId = null;
+        state.error = action.payload || "Failed to update the job.";
       });
   },
 });

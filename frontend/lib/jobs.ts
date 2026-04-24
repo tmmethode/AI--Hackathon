@@ -23,7 +23,6 @@ export interface HiringManagerSummary {
 export interface JobRecord {
   _id: string;
   title: string;
-  department: string;
   hiringManager: HiringManagerSummary;
   location: string;
   locationPolicy: LocationPolicy;
@@ -101,7 +100,6 @@ export interface JobResponse {
 
 export interface CreateJobPayload {
   title: string;
-  department: string;
   hiringManager?: string;
   location: string;
   locationPolicy: LocationPolicy;
@@ -120,6 +118,8 @@ export interface CreateJobPayload {
   weightCriteria: WeightCriterion[];
   status: JobStatus;
 }
+
+export type UpdateJobPayload = Partial<CreateJobPayload>;
 
 function getAuthHeader() {
   const session = getStoredAuth();
@@ -255,6 +255,21 @@ export async function createJob(payload: CreateJobPayload) {
 
   return normalizeJobResponse(
     await handleApiResponse<JobResponse>(response, "Failed to create the job.")
+  );
+}
+
+export async function updateJob(id: string, payload: UpdateJobPayload) {
+  const response = await fetch(`${getApiBaseUrl()}/jobs/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return normalizeJobResponse(
+    await handleApiResponse<JobResponse>(response, "Failed to update the job.")
   );
 }
 

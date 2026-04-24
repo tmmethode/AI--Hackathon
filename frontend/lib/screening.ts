@@ -1,7 +1,7 @@
 import { getApiBaseUrl, getStoredAuth } from "@/lib/auth";
 
 export interface GeminiScoringPillar {
-  id: "skills" | "experience" | "education" | "relevance";
+  id: "mustHave" | "niceToHave" | "skills" | "experience" | "education";
   label: string;
   pct: number;
   description: string;
@@ -10,44 +10,44 @@ export interface GeminiScoringPillar {
 
 export const GEMINI_SCORING_PILLARS: readonly GeminiScoringPillar[] = [
   {
-    id: "skills",
-    label: "Skills Match",
-    pct: 35,
+    id: "mustHave",
+    label: "Must-have Qualifications",
+    pct: 30,
     description:
-      "Evaluates coreHardSkills, preferredSkills, and skill-related must-haves. Exact matches score highest; closely related skills get partial credit.",
-    evidenceFields: ["skills", "experience.technologies", "projects.technologies", "certifications"],
+      "Checks the job's must-have qualifications against explicit candidate skills, experience, projects, certifications, and education evidence.",
+    evidenceFields: ["mustHaveQualifications", "skills", "experience", "projects", "certifications", "education"],
+  },
+  {
+    id: "niceToHave",
+    label: "Nice-to-have Qualifications",
+    pct: 10,
+    description:
+      "Checks the job's nice-to-have qualifications against bonus candidate skills, experience, projects, certifications, and education evidence.",
+    evidenceFields: ["niceToHaveQualifications", "skills", "experience", "projects", "certifications"],
+  },
+  {
+    id: "skills",
+    label: "Core Hard & Soft Skills",
+    pct: 25,
+    description:
+      "Checks the job's coreHardSkills and coreSoftSkills against candidate skills, technologies, projects, experience descriptions, and soft-skill evidence.",
+    evidenceFields: ["skills", "experience.technologies", "projects.technologies", "certifications", "coreSoftSkills"],
   },
   {
     id: "experience",
-    label: "Experience Match",
-    pct: 30,
+    label: "Years of Experience & Seniority Level",
+    pct: 25,
     description:
-      "Measures years of relevant experience, seniority fit, role and technology relevance, and complexity or ownership in prior work.",
+      "Checks the job's experienceYears and seniorityLevel against candidate experience dates, role seniority, ownership, and delivery complexity.",
     evidenceFields: ["experience", "projects", "headline"],
   },
   {
     id: "education",
-    label: "Education Match",
+    label: "Educational Background",
     pct: 10,
     description:
-      "Compares against the required educationLevel and field of study. Not penalised heavily when the job requires \"none\".",
-    evidenceFields: ["education"],
-  },
-  {
-    id: "relevance",
-    label: "Overall Relevance",
-    pct: 25,
-    description:
-      "Alignment with responsibilities, industry and domain fit, certifications, soft-skills evidence, location, availability, and languages.",
-    evidenceFields: [
-      "responsibilities",
-      "certifications",
-      "projects",
-      "coreSoftSkills",
-      "location",
-      "availability",
-      "languages",
-    ],
+      "Checks educationLevel plus education-related requirements in must-have and nice-to-have qualifications against candidate education, field of study, certifications, and equivalent training.",
+    evidenceFields: ["educationLevel", "mustHaveQualifications", "niceToHaveQualifications", "education", "certifications"],
   },
 ];
 
@@ -67,9 +67,9 @@ export const GEMINI_RECOMMENDATION_BANDS: readonly GeminiRecommendationBand[] = 
 ];
 
 export const GEMINI_TIE_BREAK_ORDER: readonly string[] = [
-  "Higher skillsScore",
-  "Higher experienceScore",
-  "Higher relevanceScore",
+  "Higher must-have qualifications score",
+  "Higher core hard & soft skills score",
+  "Higher years of experience & seniority score",
   "Higher confidenceScore",
 ];
 
@@ -106,7 +106,6 @@ export interface GeminiWeightCriterion {
 export interface GeminiBatchJob {
   id?: string;
   title: string;
-  department?: string;
   hiringManager?: string;
   location?: string;
   locationPolicy?: string;
@@ -229,6 +228,7 @@ export interface GeminiBatchScreeningResultEntry {
   experienceScore: number;
   educationScore: number;
   relevanceScore: number;
+  criterionAssessments?: GeminiCriterionAssessment[];
   criticalRequirementGap: boolean;
   strengths: string[];
   gapsOrRisks: string[];
@@ -246,6 +246,7 @@ export interface GeminiBatchShortlistEntry {
   experienceScore: number;
   educationScore: number;
   relevanceScore: number;
+  criterionAssessments?: GeminiCriterionAssessment[];
   criticalRequirementGap: boolean;
   strengths: string[];
   gapsOrRisks: string[];
@@ -253,9 +254,18 @@ export interface GeminiBatchShortlistEntry {
   summaryExplanation: string;
 }
 
+export interface GeminiCriterionAssessment {
+  label: string;
+  weightPct: number;
+  score: number;
+  weightedScore: number;
+  summary?: string;
+  evidence?: string[];
+}
+
 export interface GeminiBatchScreeningResponse {
   jobTitle: string;
-  department: string;
+  weightCriteria?: GeminiWeightCriterion[];
   shortlistCount: number;
   totalApplicants: number;
   screeningResults: GeminiBatchScreeningResultEntry[];

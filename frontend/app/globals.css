@@ -58,6 +58,49 @@
   .hairline {
     @apply border-b border-line;
   }
+
+  /* Custom range slider – remove default black track */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    width: 100%;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--color-surface-soft);
+  }
+  input[type="range"]::-moz-range-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--color-surface-soft);
+    border: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    background: var(--color-brand);
+    margin-top: -5px;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  input[type="range"]::-moz-range-thumb {
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    background: var(--color-brand);
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  input[type="range"]::-moz-range-progress {
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--color-brand);
+  }
 }
 
 @layer utilities {

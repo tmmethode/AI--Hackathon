@@ -139,7 +139,7 @@ function buildWorkspaceOverviewNote(input: {
     lines.push("Recent jobs:");
     for (const job of input.recentJobs) {
       lines.push(
-        `- ${job.title} | ${job.department || "No department"} | ${job.status} | created ${formatDateLabel(job.createdAt)}`
+        `- ${job.title} | ${job.status} | created ${formatDateLabel(job.createdAt)}`
       );
     }
   }
@@ -225,7 +225,6 @@ function toBatchJobFromModel(job: IJob): GeminiBatchJob {
   return {
     id: job._id.toString(),
     title: job.title,
-    department: job.department,
     location: job.location,
     locationPolicy: job.locationPolicy,
     employmentType: job.employmentType,
@@ -395,7 +394,6 @@ function toShortlistContextFromModel(shortlist: IShortlist): GeminiRecruiterAssi
   return {
     runName: shortlist.runName,
     jobTitle: shortlist.jobTitle,
-    department: shortlist.department,
     model: shortlist.geminiModel,
     totalApplicants: shortlist.totalApplicants,
     shortlistCount: shortlist.shortlistCount,

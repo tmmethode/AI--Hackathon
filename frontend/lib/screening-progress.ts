@@ -10,7 +10,6 @@ export interface ScreeningRunRequest {
   jobId: string;
   runName: string;
   jobTitle: string;
-  department?: string;
   location?: string;
   model?: string;
   shortlistSize: number;

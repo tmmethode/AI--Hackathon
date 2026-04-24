@@ -23,7 +23,6 @@ export interface IWeightCriterion {
 export interface IJob extends Document {
   _id: mongoose.Types.ObjectId;
   title: string;
-  department: string;
   hiringManager: mongoose.Types.ObjectId;
   location: string;
   locationPolicy: LocationPolicy;
@@ -65,7 +64,6 @@ const WeightCriterionSchema: Schema = new Schema(
 const JobSchema: Schema = new Schema(
   {
     title: { type: String, required: true, trim: true, maxlength: 150 },
-    department: { type: String, required: true, trim: true, maxlength: 100 },
     hiringManager: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -143,7 +141,7 @@ const JobSchema: Schema = new Schema(
   }
 );
 
-JobSchema.index({ title: 'text', department: 'text', summary: 'text' });
+JobSchema.index({ title: 'text', summary: 'text' });
 JobSchema.index({ status: 1 });
 JobSchema.index({ createdBy: 1 });
 JobSchema.index({ hiringManager: 1 });

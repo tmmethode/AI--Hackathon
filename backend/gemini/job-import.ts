@@ -24,7 +24,6 @@ interface ImportCandidateWeightCriterion {
 
 interface ImportCandidatePayload {
   title?: unknown;
-  department?: unknown;
   hiringManager?: unknown;
   location?: unknown;
   locationPolicy?: unknown;
@@ -35,7 +34,6 @@ interface ImportCandidatePayload {
   mustHaveQualifications?: unknown;
   niceToHaveQualifications?: unknown;
   coreHardSkills?: unknown;
-  preferredSkills?: unknown;
   coreSoftSkills?: unknown;
   experienceYears?: unknown;
   seniorityLevel?: unknown;
@@ -46,7 +44,6 @@ interface ImportCandidatePayload {
 
 export interface ImportedJobDraft {
   title?: string;
-  department?: string;
   hiringManager?: string;
   location?: string;
   locationPolicy?: "remote" | "hybrid" | "onsite";
@@ -57,7 +54,6 @@ export interface ImportedJobDraft {
   mustHaveQualifications?: string;
   niceToHaveQualifications?: string;
   coreHardSkills?: string[];
-  preferredSkills?: string[];
   coreSoftSkills?: string[];
   experienceYears?: number;
   seniorityLevel?: "junior" | "mid" | "senior" | "lead" | "manager" | "principal";
@@ -167,7 +163,6 @@ function sanitizeImportedDraft(payload: ImportCandidatePayload): ImportedJobDraf
 
   const draft: ImportedJobDraft = {
     title: clampText(payload.title, 160),
-    department: clampText(payload.department, 120),
     hiringManager: clampText(payload.hiringManager, 160),
     location: clampText(payload.location, 160),
     locationPolicy:
@@ -184,7 +179,6 @@ function sanitizeImportedDraft(payload: ImportCandidatePayload): ImportedJobDraf
     mustHaveQualifications: clampText(payload.mustHaveQualifications, 5_000),
     niceToHaveQualifications: clampText(payload.niceToHaveQualifications, 5_000),
     coreHardSkills: normalizeStringArray(payload.coreHardSkills, 30),
-    preferredSkills: normalizeStringArray(payload.preferredSkills, 30),
     coreSoftSkills: normalizeStringArray(payload.coreSoftSkills, 30),
     experienceYears: Number.isFinite(Number(payload.experienceYears))
       ? Math.max(0, Math.min(50, Math.round(Number(payload.experienceYears))))
@@ -230,6 +224,7 @@ function buildExtractionPrompt(sourceType: "url" | "file", sourceValue: string, 
     "Extract a job posting into strict JSON for a recruiting system.",
     "Only include information that is explicit in the source.",
     "If unknown, return null or empty arrays. Do not hallucinate.",
+    "Put preferred or bonus qualifications in niceToHaveQualifications; do not create a separate preferred skills field.",
     "Enums must exactly match allowed values:",
     '- locationPolicy: "remote" | "hybrid" | "onsite"',
     '- employmentType: "full-time" | "part-time" | "contract" | "internship" | "temporary"',
@@ -237,7 +232,7 @@ function buildExtractionPrompt(sourceType: "url" | "file", sourceValue: string, 
     '- educationLevel: "none" | "hs" | "associate" | "bs" | "ms" | "mba" | "phd" | "professional"',
     '- status: "Active" | "Draft" | "Closed"',
     "Return only valid JSON with this exact top-level shape:",
-    '{"title":string|null,"department":string|null,"hiringManager":string|null,"location":string|null,"locationPolicy":string|null,"employmentType":string|null,"salaryBand":string|null,"summary":string|null,"responsibilities":string|null,"mustHaveQualifications":string|null,"niceToHaveQualifications":string|null,"coreHardSkills":string[],"preferredSkills":string[],"coreSoftSkills":string[],"experienceYears":number|null,"seniorityLevel":string|null,"educationLevel":string|null,"weightCriteria":[{"id":string,"label":string,"value":number}],"status":string|null}',
+    '{"title":string|null,"hiringManager":string|null,"location":string|null,"locationPolicy":string|null,"employmentType":string|null,"salaryBand":string|null,"summary":string|null,"responsibilities":string|null,"mustHaveQualifications":string|null,"niceToHaveQualifications":string|null,"coreHardSkills":string[],"coreSoftSkills":string[],"experienceYears":number|null,"seniorityLevel":string|null,"educationLevel":string|null,"weightCriteria":[{"id":string,"label":string,"value":number}],"status":string|null}',
     `Source Type: ${sourceType}`,
     `Source Reference: ${sourceValue}`,
     "Source Content:",

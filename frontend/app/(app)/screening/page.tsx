@@ -28,6 +28,7 @@ import {
   listAllApplicants,
 } from "@/lib/applicants";
 import {
+  type GeminiScoringPillar,
   type GeminiFrontendConfigResponse,
   GEMINI_RECOMMENDATION_BANDS,
   GEMINI_SCORING_PILLARS,
@@ -46,6 +47,26 @@ interface ScreeningAsset {
 const FALLBACK_SHORTLIST_SIZE = 10;
 const FALLBACK_SHORTLIST_MIN = 1;
 const FALLBACK_SHORTLIST_MAX = 50;
+
+function criterionToPillar(criterion: JobRecord["weightCriteria"][number]): GeminiScoringPillar {
+  const normalizedId = (criterion.id || criterion.label).toLowerCase();
+  const defaultPillar =
+    normalizedId.includes("must-have") || normalizedId.includes("mandatory")
+      ? GEMINI_SCORING_PILLARS.find((pillar) => pillar.id === "mustHave")
+      : normalizedId.includes("nice-to-have") || normalizedId.includes("preferred") || normalizedId.includes("bonus")
+      ? GEMINI_SCORING_PILLARS.find((pillar) => pillar.id === "niceToHave")
+      : normalizedId.includes("experience") || normalizedId.includes("seniority")
+      ? GEMINI_SCORING_PILLARS.find((pillar) => pillar.id === "experience")
+      : normalizedId.includes("education")
+      ? GEMINI_SCORING_PILLARS.find((pillar) => pillar.id === "education")
+      : GEMINI_SCORING_PILLARS.find((pillar) => pillar.id === "skills");
+
+  return {
+    ...(defaultPillar || GEMINI_SCORING_PILLARS[0]),
+    label: criterion.label,
+    pct: criterion.value,
+  };
+}
 
 function formatJobId(job: JobRecord) {
   return `JOB-${job._id.slice(-6).toUpperCase()}`;
@@ -352,6 +373,13 @@ export default function ScreeningPage() {
     [applicants]
   );
   const jobWeightCriteria = useMemo(() => selectedJob?.weightCriteria ?? [], [selectedJob]);
+  const scoringPillars = useMemo(
+    () =>
+      jobWeightCriteria.length > 0
+        ? jobWeightCriteria.map(criterionToPillar)
+        : [...GEMINI_SCORING_PILLARS],
+    [jobWeightCriteria]
+  );
   const requirements = useMemo(
     () => (selectedJob ? splitLinesToList(selectedJob.mustHaveQualifications) : []),
     [selectedJob]
@@ -424,7 +452,6 @@ export default function ScreeningPage() {
         jobId: selectedJob._id,
         runName,
         jobTitle: selectedJob.title,
-        department: selectedJob.department,
         location: selectedJob.location,
         model: screeningConfig?.model,
         shortlistSize: normalizedShortlistSize,
@@ -533,8 +560,7 @@ export default function ScreeningPage() {
                 <div>
                   <h3 className="font-display text-base font-semibold text-ink">AI Ranking Distribution</h3>
                   <p className="mt-0.5 text-xs text-ink-muted">
-                    Fixed weighted model Gemini applies to every applicant. Your job weight criteria are
-                    sent as contextual guidance.
+                    Saved job scoring weights Gemini applies to every applicant.
                   </p>
                 </div>
                 <Badge tone="info" pill>
@@ -543,9 +569,9 @@ export default function ScreeningPage() {
               </div>
 
               <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4">
-                {GEMINI_SCORING_PILLARS.map((pillar) => (
+                {scoringPillars.map((pillar) => (
                   <div
-                    key={pillar.id}
+                    key={`${pillar.id}-${pillar.label}`}
                     className="rounded-md border border-line p-3"
                     title={pillar.description}
                   >
@@ -576,26 +602,9 @@ export default function ScreeningPage() {
                   className="ml-auto text-[10px] text-ink-muted"
                   title={`Tie-break order: ${GEMINI_TIE_BREAK_ORDER.join(" → ")}`}
                 >
-                  Tie-break: skills → exp → relevance → confidence
+                  Tie-break: must-have → skills → experience → confidence
                 </span>
               </div>
-
-              {jobWeightCriteria.length > 0 && (
-                <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-                    Job context
-                  </span>
-                  {jobWeightCriteria.map((criterion) => (
-                    <span
-                      key={criterion.id ?? criterion.label}
-                      className="inline-flex items-center gap-1 rounded-full border border-line bg-surface px-2 py-0.5 text-[10px] font-medium text-ink"
-                    >
-                      <span className="truncate max-w-[140px]">{criterion.label}</span>
-                      <span className="font-mono text-ink-muted">{criterion.value}%</span>
-                    </span>
-                  ))}
-                </div>
-              )}
 
               <div className="mt-4 flex flex-wrap items-center gap-3">
                 <Field
@@ -796,7 +805,7 @@ export default function ScreeningPage() {
                       <p className="text-xs font-semibold uppercase tracking-wider text-ink-muted">{formatJobId(selectedJob)}</p>
                       <p className="text-sm font-semibold text-ink">{selectedJob.title}</p>
                       <p className="text-xs text-ink-muted">
-                        {selectedJob.department} · {selectedJob.location}
+                        {selectedJob.location}
                       </p>
                     </div>
                   </div>

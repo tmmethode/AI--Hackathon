@@ -48,7 +48,6 @@ interface Candidate {
 interface ScreeningJob {
   id: string;
   title: string;
-  dept: string;
   location: string;
   type: string;
   salary: string;
@@ -61,6 +60,8 @@ interface ScreeningJob {
   requirements: string[];
   candidates: Candidate[];
 }
+
+type ScorePillarKey = "mustHave" | "niceToHave" | "skills" | "experience" | "education";
 
 function formatScreenedDate(iso: string): string {
   try {
@@ -91,11 +92,41 @@ function retentionRiskFromScore(confidenceScore: number): string {
   return "High";
 }
 
+function formatCriterionLabel(label: string, value?: number): string {
+  return typeof value === "number" ? `${label} (${value}%)` : label;
+}
+
+function resolveCriterionKey(criterion: { id?: string; label: string }): ScorePillarKey {
+  const key = (criterion.id || criterion.label).toLowerCase();
+
+  if (key.includes("must-have") || key.includes("mandatory")) return "mustHave";
+  if (key.includes("nice-to-have") || key.includes("preferred") || key.includes("bonus")) return "niceToHave";
+  if (key.includes("experience") || key.includes("seniority")) return "experience";
+  if (key.includes("education")) return "education";
+  return "skills";
+}
+
+function buildPillarLabels(weightCriteria: ShortlistRecord["weightCriteria"] = []) {
+  const labels = {
+    mustHave: "Must-have Qualifications",
+    niceToHave: "Nice-to-have Qualifications",
+    skills: "Core Hard & Soft Skills",
+    experience: "Years of Experience & Seniority Level",
+    education: "Educational Background",
+  };
+
+  for (const criterion of weightCriteria || []) {
+    labels[resolveCriterionKey(criterion)] = formatCriterionLabel(criterion.label, criterion.value);
+  }
+
+  return labels;
+}
+
 function buildCandidateFromResult(
   entry: GeminiBatchScreeningResultEntry,
   shortlistJobId: string,
   candidateKey: number,
-  pillarLabels: { skills: string; experience: string; education: string; relevance: string },
+  pillarLabels: Record<ScorePillarKey, string>,
   shortlistedEmails: Set<string>,
   experienceYears: number,
   applicant?: ApplicantRecord
@@ -123,12 +154,18 @@ function buildCandidateFromResult(
     location: "—",
     email: entry.applicantEmail,
     applicant,
-    matching: [
-      { label: pillarLabels.skills, value: entry.skillsScore },
-      { label: pillarLabels.experience, value: entry.experienceScore },
-      { label: pillarLabels.education, value: entry.educationScore },
-      { label: pillarLabels.relevance, value: entry.relevanceScore },
-    ],
+    matching: entry.criterionAssessments && entry.criterionAssessments.length > 0
+      ? entry.criterionAssessments.map((criterion) => ({
+          label: formatCriterionLabel(criterion.label, criterion.weightPct),
+          value: criterion.score,
+        }))
+      : [
+          { label: pillarLabels.mustHave, value: entry.relevanceScore },
+          { label: pillarLabels.niceToHave, value: entry.relevanceScore },
+          { label: pillarLabels.skills, value: entry.skillsScore },
+          { label: pillarLabels.experience, value: entry.experienceScore },
+          { label: pillarLabels.education, value: entry.educationScore },
+        ],
     status: shortlistedEmails.has(emailKey) ? "shortlisted" : "rejected",
   };
 }
@@ -137,7 +174,6 @@ function buildScreeningJobFromSummary(summary: ShortlistSummary, isCurrent: bool
   return {
     id: summary._id,
     title: summary.jobTitle,
-    dept: summary.department || "—",
     location: "—",
     type: "—",
     salary: "—",
@@ -153,12 +189,7 @@ function buildScreeningJobFromSummary(summary: ShortlistSummary, isCurrent: bool
 }
 
 function buildCandidatesFromRecord(record: ShortlistRecord, applicants: ApplicantRecord[]): Candidate[] {
-  const labels = {
-    skills: "Skills Match",
-    experience: "Experience Match",
-    education: "Education Match",
-    relevance: "Overall Relevance",
-  };
+  const labels = buildPillarLabels(record.weightCriteria);
   const shortlistedEmails = new Set(
     (record.shortlist || []).map((entry) => entry.applicantEmail.trim().toLowerCase())
   );
@@ -552,7 +583,7 @@ function ShortlistsPageInner() {
                       <Badge tone="neutral" pill>{activeJob.screenedDate}</Badge>
                     )}
                   </div>
-                  <p className="mt-0.5 text-xs text-ink-muted">{activeJob.dept} · {activeJob.location} · {activeJob.id}</p>
+                  <p className="mt-0.5 text-xs text-ink-muted">{activeJob.location} · {activeJob.id}</p>
                 </div>
                 <ChevronDown className={`h-4 w-4 shrink-0 text-ink-muted transition-transform ${showJobPicker ? "rotate-180" : ""}`} />
               </button>
@@ -583,7 +614,7 @@ function ShortlistsPageInner() {
                                 {j.isCurrent && <Badge tone="success" pill className="text-[9px]">Current</Badge>}
                               </div>
                               <p className="text-[11px] text-ink-muted">
-                                {j.dept} · {j.screened} screened · {j.screenedDate}
+                                {j.screened} screened · {j.screenedDate}
                               </p>
                             </div>
                             <div className="text-right shrink-0">
@@ -1043,7 +1074,7 @@ function ShortlistsPageInner() {
       )}
 
       <Modal open={showJobModal} onClose={() => setShowJobModal(false)} size="lg">
-        <ModalHeader title={activeJob.title} subtitle={`${activeJob.dept} · ${activeJob.id}`} onClose={() => setShowJobModal(false)}>
+        <ModalHeader title={activeJob.title} subtitle={activeJob.id} onClose={() => setShowJobModal(false)}>
           <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-ink-muted">Job Details</p>
         </ModalHeader>
         <ModalBody className="flex flex-col gap-5">

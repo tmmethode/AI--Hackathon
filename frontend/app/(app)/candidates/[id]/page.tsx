@@ -184,7 +184,9 @@ export default function CandidateDetailPage({ params }: PageProps) {
       "",
       "AI Scores",
       `Overall Match: ${candidate.matchScore}%`,
-      `Skills: ${candidate.scores?.skills ?? "—"}% | Experience: ${candidate.scores?.experience ?? "—"}% | Education: ${candidate.scores?.education ?? "—"}% | Relevance: ${candidate.scores?.relevance ?? "—"}%`,
+      candidate.criterionAssessments && candidate.criterionAssessments.length > 0
+        ? candidate.criterionAssessments.map((criterion) => `${criterion.label}: ${criterion.score}%`).join(" | ")
+        : `Core Hard & Soft Skills: ${candidate.scores?.skills ?? "—"}% | Years of Experience & Seniority Level: ${candidate.scores?.experience ?? "—"}% | Educational Background: ${candidate.scores?.education ?? "—"}%`,
       candidate.finalRecommendation ? `Recommendation: ${candidate.finalRecommendation}` : "",
       "",
       "AI Summary",
@@ -421,20 +423,22 @@ export default function CandidateDetailPage({ params }: PageProps) {
 
         <aside className="flex flex-col gap-5">
           <Card className="p-5">
-            <h3 className="text-sm font-semibold text-ink">Skill Match</h3>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <div className="rounded-md bg-success/10 p-3 text-center">
-                <p className="text-[10px] uppercase text-ink-muted">Skill Match</p>
-                <p className="font-display text-2xl font-bold text-success">
-                  {candidate.scores?.skills ?? candidate.matchScore}%
-                </p>
-              </div>
-              <div className="rounded-md bg-brand-soft p-3 text-center">
-                <p className="text-[10px] uppercase text-ink-muted">Exp. Match</p>
-                <p className="font-display text-2xl font-bold text-brand">
-                  {candidate.scores?.experience ?? 0}%
-                </p>
-              </div>
+            <h3 className="text-sm font-semibold text-ink">AI Criteria Scores</h3>
+            <div className="mt-3 grid grid-cols-1 gap-3">
+              {(candidate.criterionAssessments && candidate.criterionAssessments.length > 0
+                ? candidate.criterionAssessments
+                : [
+                    { label: "Core Hard & Soft Skills", score: candidate.scores?.skills ?? candidate.matchScore },
+                    { label: "Years of Experience & Seniority Level", score: candidate.scores?.experience ?? 0 },
+                  ]
+              ).map((criterion) => (
+                <div key={criterion.label} className="rounded-md bg-surface-soft p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[10px] font-semibold uppercase text-ink-muted">{criterion.label}</p>
+                    <p className="font-display text-lg font-bold text-brand">{criterion.score}%</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </Card>
 

@@ -17,9 +17,16 @@ export interface WeightCriterion {
   value: number;
 }
 
+export const DEFAULT_WEIGHT_CRITERIA: WeightCriterion[] = [
+  { id: "must-have-qualifications", label: "Must-have Qualifications", value: 30 },
+  { id: "nice-to-have-qualifications", label: "Nice-to-have Qualifications", value: 10 },
+  { id: "core-skills", label: "Core Hard & Soft Skills", value: 25 },
+  { id: "experience-seniority", label: "Years of Experience & Seniority Level", value: 25 },
+  { id: "education", label: "Educational Background", value: 10 },
+];
+
 interface JobFormFields {
   title: string;
-  department: string;
   location: string;
   locationPolicy: LocationPolicy | "";
   employmentType: EmploymentType | "";
@@ -29,7 +36,6 @@ interface JobFormFields {
   mustHaveQualifications: string;
   niceToHaveQualifications: string;
   coreHardSkills: string;
-  preferredSkills: string;
   coreSoftSkills: string;
   experienceYears: string;
   seniorityLevel: SeniorityLevel | "";
@@ -38,7 +44,6 @@ interface JobFormFields {
 
 export interface ParsedJobImportData {
   title?: string;
-  department?: string;
   hiringManager?: string;
   location?: string;
   locationPolicy?: LocationPolicy;
@@ -49,7 +54,6 @@ export interface ParsedJobImportData {
   mustHaveQualifications?: string;
   niceToHaveQualifications?: string;
   coreHardSkills?: string[];
-  preferredSkills?: string[];
   coreSoftSkills?: string[];
   experienceYears?: number;
   seniorityLevel?: SeniorityLevel;
@@ -69,7 +73,6 @@ interface JobFormState {
 
 const initialForm: JobFormFields = {
   title: "",
-  department: "",
   location: "",
   locationPolicy: "",
   employmentType: "",
@@ -79,7 +82,6 @@ const initialForm: JobFormFields = {
   mustHaveQualifications: "",
   niceToHaveQualifications: "",
   coreHardSkills: "",
-  preferredSkills: "",
   coreSoftSkills: "",
   experienceYears: "",
   seniorityLevel: "",
@@ -88,17 +90,142 @@ const initialForm: JobFormFields = {
 
 const initialState: JobFormState = {
   form: initialForm,
-  weightCriteria: [
-    { id: "technical-skills", label: "Technical Skills", value: 40 },
-    { id: "experience", label: "Years of Experience", value: 30 },
-    { id: "soft-skills", label: "Culture & Soft Skills", value: 20 },
-    { id: "education", label: "Educational Background", value: 10 },
-  ],
+  weightCriteria: DEFAULT_WEIGHT_CRITERIA.map((criterion) => ({ ...criterion })),
   showSuccessModal: false,
   createdJobTitle: "",
   error: "",
   isSubmitting: false,
 };
+
+function clampWeight(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function canonicalCriterionId(criterion: WeightCriterion): string | undefined {
+  const id = criterion.id.trim().toLowerCase();
+  const label = criterion.label.trim().toLowerCase();
+
+  if (["must-have-qualifications", "must-have", "mandatory", "requirements"].includes(id) || label.includes("must-have") || label.includes("mandatory") || label.includes("non-negotiable")) {
+    return "must-have-qualifications";
+  }
+
+  if (["nice-to-have-qualifications", "nice-to-have", "preferred", "bonus"].includes(id) || label.includes("nice-to-have") || label.includes("preferred") || label.includes("bonus")) {
+    return "nice-to-have-qualifications";
+  }
+
+  if (["technical-skills", "skills", "skill-match", "core-hard-skills", "soft-skills", "culture", "culture-soft-skills", "core-skills", "relevance"].includes(id) || label.includes("technical") || label.includes("skill") || label.includes("culture") || label.includes("soft")) {
+    return "core-skills";
+  }
+
+  if (["experience", "years-of-experience", "experience-seniority"].includes(id) || label.includes("experience") || label.includes("seniority")) {
+    return "experience-seniority";
+  }
+
+  if (["education", "educational-background", "education-level"].includes(id) || label.includes("education")) {
+    return "education";
+  }
+
+  return undefined;
+}
+
+function normalizeWeightCriteria(criteria?: WeightCriterion[]): WeightCriterion[] {
+  if (!criteria || criteria.length === 0) {
+    return DEFAULT_WEIGHT_CRITERIA.map((criterion) => ({ ...criterion }));
+  }
+
+  const valuesById = new Map<string, number>();
+
+  for (const criterion of criteria) {
+    const id = canonicalCriterionId(criterion);
+    if (!id || valuesById.has(id)) {
+      continue;
+    }
+
+    valuesById.set(id, clampWeight(Number(criterion.value)));
+  }
+
+  const normalized = DEFAULT_WEIGHT_CRITERIA.map((criterion) => ({
+    ...criterion,
+    value: valuesById.get(criterion.id) ?? criterion.value,
+  }));
+
+  return rebalanceWeightCriteria(normalized, normalized[0].id, normalized[0].value);
+}
+
+function distributeRemaining(criteria: WeightCriterion[], remainingTotal: number): WeightCriterion[] {
+  if (criteria.length === 0) {
+    return [];
+  }
+
+  const oldTotal = criteria.reduce((sum, criterion) => sum + criterion.value, 0);
+
+  if (oldTotal <= 0) {
+    const base = Math.floor(remainingTotal / criteria.length);
+    let diff = remainingTotal - base * criteria.length;
+
+    return criteria.map((criterion) => {
+      const value = base + (diff > 0 ? 1 : 0);
+      diff -= diff > 0 ? 1 : 0;
+      return { ...criterion, value };
+    });
+  }
+
+  const distributed = criteria.map((criterion) => ({
+    ...criterion,
+    value: Math.floor((criterion.value / oldTotal) * remainingTotal),
+  }));
+  let diff = remainingTotal - distributed.reduce((sum, criterion) => sum + criterion.value, 0);
+
+  return distributed.map((criterion) => {
+    if (diff <= 0) {
+      return criterion;
+    }
+
+    diff -= 1;
+    return { ...criterion, value: criterion.value + 1 };
+  });
+}
+
+function rebalanceWeightCriteria(
+  criteria: WeightCriterion[],
+  changedId: string,
+  nextValue: number
+): WeightCriterion[] {
+  const canonical = normalizeWeightCriteriaShape(criteria);
+  const clampedValue = clampWeight(nextValue);
+  const changed = canonical.find((criterion) => criterion.id === changedId);
+
+  if (!changed) {
+    return canonical;
+  }
+
+  const others = canonical.filter((criterion) => criterion.id !== changedId);
+  const rebalancedOthers = distributeRemaining(others, 100 - clampedValue);
+  const valuesById = new Map(
+    [{ ...changed, value: clampedValue }, ...rebalancedOthers].map((criterion) => [
+      criterion.id,
+      criterion.value,
+    ])
+  );
+
+  return canonical.map((criterion) => ({
+    ...criterion,
+    value: valuesById.get(criterion.id) ?? 0,
+  }));
+}
+
+function normalizeWeightCriteriaShape(criteria: WeightCriterion[]): WeightCriterion[] {
+  const valuesById = new Map(criteria.map((criterion) => [criterion.id, criterion.value]));
+
+  return DEFAULT_WEIGHT_CRITERIA.map((criterion) => ({
+    ...criterion,
+    value: clampWeight(Number(valuesById.get(criterion.id) ?? criterion.value)),
+  }));
+}
 
 function buildPayload(state: JobFormState, status: CreateJobPayload["status"]): CreateJobPayload {
   const authUser = getStoredAuthUser();
@@ -107,7 +234,6 @@ function buildPayload(state: JobFormState, status: CreateJobPayload["status"]): 
 
   return {
     title: state.form.title.trim(),
-    department: state.form.department.trim(),
     hiringManager: hiringManagerId,
     location: state.form.location.trim(),
     locationPolicy: state.form.locationPolicy as LocationPolicy,
@@ -118,7 +244,7 @@ function buildPayload(state: JobFormState, status: CreateJobPayload["status"]): 
     mustHaveQualifications: state.form.mustHaveQualifications.trim(),
     niceToHaveQualifications: state.form.niceToHaveQualifications.trim() || undefined,
     coreHardSkills: splitLinesToList(state.form.coreHardSkills),
-    preferredSkills: splitLinesToList(state.form.preferredSkills),
+    preferredSkills: [],
     coreSoftSkills: splitLinesToList(state.form.coreSoftSkills),
     experienceYears: Number(state.form.experienceYears) || 0,
     seniorityLevel: state.form.seniorityLevel as SeniorityLevel,
@@ -144,7 +270,6 @@ export const submitJob = createAsyncThunk<
 
     if (
       !payload.title ||
-      !payload.department ||
       !payload.location ||
       !payload.summary ||
       !getState().jobForm.form.locationPolicy ||
@@ -180,17 +305,10 @@ const jobFormSlice = createSlice({
       );
     },
     updateWeightValue(state, action: PayloadAction<{ id: string; value: number }>) {
-      const otherTotal = state.weightCriteria.reduce(
-        (sum, criterion) => (criterion.id === action.payload.id ? sum : sum + criterion.value),
-        0
-      );
-      const maxAllowed = Math.max(0, 100 - otherTotal);
-      const normalizedValue = Number.isNaN(action.payload.value)
-        ? 0
-        : Math.min(maxAllowed, Math.max(0, action.payload.value));
-
-      state.weightCriteria = state.weightCriteria.map((criterion) =>
-        criterion.id === action.payload.id ? { ...criterion, value: normalizedValue } : criterion
+      state.weightCriteria = rebalanceWeightCriteria(
+        state.weightCriteria,
+        action.payload.id,
+        action.payload.value
       );
     },
     addWeightCriterion(state) {
@@ -211,7 +329,6 @@ const jobFormSlice = createSlice({
       const nextForm = { ...state.form };
 
       if (parsed.title) nextForm.title = parsed.title;
-      if (parsed.department) nextForm.department = parsed.department;
       if (parsed.location) nextForm.location = parsed.location;
       if (parsed.locationPolicy) nextForm.locationPolicy = parsed.locationPolicy;
       if (parsed.employmentType) nextForm.employmentType = parsed.employmentType;
@@ -222,9 +339,6 @@ const jobFormSlice = createSlice({
       if (parsed.niceToHaveQualifications) nextForm.niceToHaveQualifications = parsed.niceToHaveQualifications;
       if (Array.isArray(parsed.coreHardSkills) && parsed.coreHardSkills.length > 0) {
         nextForm.coreHardSkills = parsed.coreHardSkills.join("\n");
-      }
-      if (Array.isArray(parsed.preferredSkills) && parsed.preferredSkills.length > 0) {
-        nextForm.preferredSkills = parsed.preferredSkills.join("\n");
       }
       if (Array.isArray(parsed.coreSoftSkills) && parsed.coreSoftSkills.length > 0) {
         nextForm.coreSoftSkills = parsed.coreSoftSkills.join("\n");
@@ -238,11 +352,7 @@ const jobFormSlice = createSlice({
       state.form = nextForm;
 
       if (Array.isArray(parsed.weightCriteria) && parsed.weightCriteria.length > 0) {
-        state.weightCriteria = parsed.weightCriteria.map((criterion) => ({
-          id: criterion.id,
-          label: criterion.label,
-          value: criterion.value,
-        }));
+        state.weightCriteria = normalizeWeightCriteria(parsed.weightCriteria);
       }
     },
     clearJobFormError(state) {

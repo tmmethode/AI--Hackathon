@@ -17,6 +17,7 @@ export interface IShortlistResultEntry {
   experienceScore: number;
   educationScore: number;
   relevanceScore: number;
+  criterionAssessments: IShortlistCriterionAssessment[];
   criticalRequirementGap: boolean;
   strengths: string[];
   gapsOrRisks: string[];
@@ -34,6 +35,7 @@ export interface IShortlistEntry {
   experienceScore: number;
   educationScore: number;
   relevanceScore: number;
+  criterionAssessments: IShortlistCriterionAssessment[];
   criticalRequirementGap: boolean;
   strengths: string[];
   gapsOrRisks: string[];
@@ -41,15 +43,30 @@ export interface IShortlistEntry {
   summaryExplanation: string;
 }
 
+export interface IShortlistWeightCriterion {
+  id: string;
+  label: string;
+  value: number;
+}
+
+export interface IShortlistCriterionAssessment {
+  label: string;
+  weightPct: number;
+  score: number;
+  weightedScore: number;
+  summary?: string;
+  evidence: string[];
+}
+
 export interface IShortlist extends Document {
   _id: mongoose.Types.ObjectId;
   job: mongoose.Types.ObjectId;
   jobTitle: string;
-  department: string;
   runName: string;
   geminiModel: string;
   totalApplicants: number;
   shortlistCount: number;
+  weightCriteria: IShortlistWeightCriterion[];
   screeningResults: IShortlistResultEntry[];
   shortlist: IShortlistEntry[];
   instructions?: string;
@@ -80,6 +97,20 @@ const ShortlistResultEntrySchema: Schema = new Schema(
     experienceScore: { type: Number, default: 0, min: 0, max: 100 },
     educationScore: { type: Number, default: 0, min: 0, max: 100 },
     relevanceScore: { type: Number, default: 0, min: 0, max: 100 },
+    criterionAssessments: {
+      type: [
+        {
+          label: { type: String, required: true, trim: true },
+          weightPct: { type: Number, required: true, min: 0, max: 100 },
+          score: { type: Number, required: true, min: 0, max: 100 },
+          weightedScore: { type: Number, required: true, min: 0, max: 100 },
+          summary: { type: String, default: '' },
+          evidence: { type: [String], default: [] },
+        },
+      ],
+      default: [],
+      _id: false,
+    },
     criticalRequirementGap: { type: Boolean, default: false },
     strengths: { type: [String], default: [] },
     gapsOrRisks: { type: [String], default: [] },
@@ -105,6 +136,20 @@ const ShortlistEntrySchema: Schema = new Schema(
     experienceScore: { type: Number, default: 0, min: 0, max: 100 },
     educationScore: { type: Number, default: 0, min: 0, max: 100 },
     relevanceScore: { type: Number, default: 0, min: 0, max: 100 },
+    criterionAssessments: {
+      type: [
+        {
+          label: { type: String, required: true, trim: true },
+          weightPct: { type: Number, required: true, min: 0, max: 100 },
+          score: { type: Number, required: true, min: 0, max: 100 },
+          weightedScore: { type: Number, required: true, min: 0, max: 100 },
+          summary: { type: String, default: '' },
+          evidence: { type: [String], default: [] },
+        },
+      ],
+      default: [],
+      _id: false,
+    },
     criticalRequirementGap: { type: Boolean, default: false },
     strengths: { type: [String], default: [] },
     gapsOrRisks: { type: [String], default: [] },
@@ -119,15 +164,24 @@ const ShortlistEntrySchema: Schema = new Schema(
   { _id: false }
 );
 
+const ShortlistWeightCriterionSchema: Schema = new Schema(
+  {
+    id: { type: String, required: true },
+    label: { type: String, required: true, trim: true },
+    value: { type: Number, required: true, min: 0, max: 100 },
+  },
+  { _id: false }
+);
+
 const ShortlistSchema: Schema = new Schema(
   {
     job: { type: Schema.Types.ObjectId, ref: 'Job', required: true },
     jobTitle: { type: String, required: true, trim: true },
-    department: { type: String, default: '', trim: true },
     runName: { type: String, required: true, trim: true },
     geminiModel: { type: String, default: '' },
     totalApplicants: { type: Number, required: true, min: 0 },
     shortlistCount: { type: Number, required: true, min: 0 },
+    weightCriteria: { type: [ShortlistWeightCriterionSchema], default: [] },
     screeningResults: { type: [ShortlistResultEntrySchema], default: [] },
     shortlist: { type: [ShortlistEntrySchema], default: [] },
     instructions: { type: String, default: '' },
