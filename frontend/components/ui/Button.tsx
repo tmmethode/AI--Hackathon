@@ -13,11 +13,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<Variant, string> = {
-  primary: "bg-brand text-white shadow-card hover:bg-brand-hover",
-  secondary: "bg-surface border border-line-strong text-ink hover:bg-surface-soft",
+  primary: "bg-brand text-white shadow-card hover:bg-brand-hover hover:shadow-soft active:shadow-none",
+  secondary: "bg-surface border border-line-strong text-ink hover:bg-surface-soft hover:border-line-strong/80",
   ghost: "text-brand hover:bg-brand-soft",
-  dashed: "bg-surface border border-dashed border-line-strong text-ink hover:bg-surface-soft",
-  danger: "bg-danger text-white hover:bg-danger/90",
+  dashed: "bg-surface border border-dashed border-line-strong text-ink hover:bg-surface-soft hover:border-brand/40",
+  danger: "bg-danger text-white shadow-card hover:bg-danger/90 hover:shadow-soft active:shadow-none",
 };
 
 const sizes: Record<Size, string> = {
@@ -34,7 +34,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     <button
       ref={ref}
       className={cn(
-        "inline-flex items-center justify-center font-normal transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-50 disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center font-normal transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-surface focus-visible:ring-brand/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none",
         variants[variant],
         sizes[size],
         fullWidth && "w-full",

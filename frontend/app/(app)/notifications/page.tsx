@@ -120,7 +120,7 @@ export default function NotificationsPage() {
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_260px]">
         <div className="flex flex-col gap-4">
-          <div className="flex items-center gap-0 rounded-md border border-line bg-white shadow-sm">
+          <div className="flex items-center gap-0 rounded-xl border border-line bg-white shadow-soft transition-shadow focus-within:shadow-card">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
               <input
@@ -133,8 +133,8 @@ export default function NotificationsPage() {
             <div className="flex items-center gap-1 border-l border-line px-2">
               {(["all", "unread"] as Tab[]).map((t) => (
                 <button key={t} onClick={() => handleTab(t)}
-                  className={`h-7 rounded px-3 text-xs font-medium transition-colors capitalize ${
-                    tab === t ? "bg-brand text-white" : "text-ink-muted hover:bg-surface-soft hover:text-ink"
+                  className={`h-7 rounded-md px-3 text-xs font-medium transition-all capitalize ${
+                    tab === t ? "bg-brand text-white shadow-sm" : "text-ink-muted hover:bg-surface-soft hover:text-ink"
                   }`}>
                   {t === "unread" ? `Unread (${unreadCount})` : `All (${notifs.length})`}
                 </button>
@@ -198,8 +198,10 @@ export default function NotificationsPage() {
                 <nav className="flex gap-1">
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                     <button key={p} onClick={() => setPage(p)}
-                      className={`h-8 w-8 rounded-md border text-xs transition-colors ${
-                        p === page ? "border-brand bg-brand text-white" : "border-line text-ink hover:bg-surface-soft"
+                      className={`h-8 w-8 rounded-lg border text-xs transition-all ${
+                        p === page
+                          ? "border-brand bg-brand text-white shadow-sm"
+                          : "border-line text-ink hover:border-brand/40 hover:bg-surface-soft"
                       }`}>
                       {p}
                     </button>

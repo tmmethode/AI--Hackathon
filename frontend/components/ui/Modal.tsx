@@ -42,7 +42,7 @@ export function Modal({ open, onClose, children, size = "md", className }: Modal
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-2 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 p-2 backdrop-blur-sm animate-in fade-in duration-200 sm:items-center sm:p-4"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -78,7 +78,7 @@ export function ModalHeader({ title, subtitle, onClose, children }: ModalHeaderP
       </div>
       <button
         onClick={onClose}
-        className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-surface-soft hover:text-ink"
+        className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-surface-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
         aria-label="Close dialog"
       >
         <X className="h-5 w-5" />

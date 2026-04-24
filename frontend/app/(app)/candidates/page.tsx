@@ -489,7 +489,7 @@ export default function CandidatesPage() {
                 {exportBusy ? "Exporting…" : "Export All"}
               </Button>
               {showExportMenu && (
-                <div className="absolute right-0 top-[calc(100%+4px)] z-30 w-44 rounded-md border border-line bg-surface shadow-card">
+                <div className="absolute right-0 top-[calc(100%+4px)] z-30 w-44 overflow-hidden rounded-lg border border-line bg-surface shadow-xl">
                   {([["csv", "CSV Spreadsheet"], ["pdf", "PDF Report"], ["json", "JSON Data"]] as const).map(([fmt, label]) => (
                     <button
                       key={fmt}
@@ -629,7 +629,7 @@ export default function CandidatesPage() {
                 Filter
               </Button>
               {showFilter && (
-                <div className="absolute right-0 top-9 z-10 w-48 rounded-md border border-line bg-surface shadow-card">
+                <div className="absolute right-0 top-9 z-10 w-48 overflow-hidden rounded-lg border border-line bg-surface shadow-xl">
                   {(["all", "shortlisted", "advanced", "interview", "exam", "assessment", "practical", "rejected", "new"] as FilterStatus[]).map((s) => (
                     <button key={s} onClick={() => { setFilterStatus(s); setShowFilter(false); setPage(1); }}
                       className={`flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-surface-soft ${
@@ -648,7 +648,7 @@ export default function CandidatesPage() {
                 Sort
               </Button>
               {showSort && (
-                <div className="absolute right-0 top-9 z-10 w-44 rounded-md border border-line bg-surface shadow-card">
+                <div className="absolute right-0 top-9 z-10 w-44 overflow-hidden rounded-lg border border-line bg-surface shadow-xl">
                   {([["matchScore", "By Match %"], ["name", "By Name"], ["appliedDate", "By Date"]] as [SortKey, string][]).map(([key, label]) => (
                     <button key={key} onClick={() => handleSort(key)}
                       className={`flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-surface-soft ${
@@ -668,83 +668,69 @@ export default function CandidatesPage() {
             No candidates match your filters.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 p-4 sm:p-5 md:grid-cols-2">
+          <ul className="divide-y divide-line">
             {candidates.map((c) => {
               const matchColor = c.matchScore >= 90 ? "text-success" : c.matchScore >= 80 ? "text-brand" : "text-ink-muted";
               const ringColor = c.matchScore >= 90 ? "#22c55e" : c.matchScore >= 80 ? "var(--color-brand)" : "#94a3b8";
               const ringBg = c.matchScore >= 90 ? "rgba(34,197,94,0.1)" : c.matchScore >= 80 ? "rgba(59,130,246,0.1)" : "rgba(148,163,184,0.1)";
-              const barColor = c.matchScore >= 90 ? "bg-success" : c.matchScore >= 80 ? "bg-brand" : "bg-ink-muted/40";
               const statusIcon = advanceOptions.find((o) => o.key === c.status);
 
               return (
-                <div
+                <li
                   key={c.id}
-                  className={`group relative flex flex-col rounded-xl border border-line bg-surface shadow-sm transition-all duration-200 hover:shadow-md hover:border-brand/30 hover:-translate-y-0.5 ${c.status === "rejected" ? "opacity-50 grayscale-[30%]" : ""}`}
+                  className={`group relative flex flex-col gap-3 px-4 py-3 transition-colors hover:bg-surface-soft/40 md:flex-row md:items-center md:gap-4 md:px-5 ${c.status === "rejected" ? "opacity-50 grayscale-[30%]" : ""}`}
+                  style={{ boxShadow: `inset 3px 0 0 ${ringColor}` }}
                 >
-                  <div className="h-1 rounded-t-xl" style={{ background: `linear-gradient(90deg, ${ringColor}, ${ringColor}60)` }} />
-
-                  <div className="flex flex-col gap-3.5 p-5">
-                    <div className="flex items-start gap-3.5">
-                      <div className="relative flex-shrink-0">
-                        <svg width="52" height="52" viewBox="0 0 52 52" className="rotate-[-90deg]">
-                          <circle cx="26" cy="26" r="22" fill="none" stroke={ringBg} strokeWidth="4" />
-                          <circle
-                            cx="26" cy="26" r="22" fill="none" stroke={ringColor} strokeWidth="4"
-                            strokeLinecap="round"
-                            strokeDasharray={`${(c.matchScore / 100) * 138.2} 138.2`}
-                          />
-                        </svg>
-                        <span className={`absolute inset-0 flex items-center justify-center font-display text-xs font-bold ${matchColor}`}>
-                          {c.matchScore}
-                        </span>
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <h3 className="text-sm font-bold text-ink leading-tight">{c.name}</h3>
-                          <Badge tone={statusTone[c.status]} pill>
-                            {statusIcon && <statusIcon.icon className="h-2.5 w-2.5 mr-0.5" />}
-                            {statusLabels[c.status]}
-                          </Badge>
-                        </div>
-                        <p className="mt-0.5 text-xs font-medium text-ink/70">{c.title}</p>
-                        <p className="mt-0.5 text-[10px] text-ink-muted">{c.location} · {c.experience}</p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1.5">
-                      {c.skills.map((s) => (
-                        <span key={s} className="rounded-md bg-surface-soft px-2 py-0.5 text-[11px] font-medium text-ink/70">
-                          {s}
-                        </span>
-                      ))}
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between text-[10px] text-ink-muted mb-1">
-                        <span>AI Match Score</span>
-                        <span className={`font-bold ${matchColor}`}>{c.matchScore}%</span>
-                      </div>
-                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-soft">
-                        <div
-                          className={`h-full rounded-full ${barColor} transition-all duration-500`}
-                          style={{ width: `${c.matchScore}%` }}
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className="relative shrink-0">
+                      <svg width="40" height="40" viewBox="0 0 40 40" className="rotate-[-90deg]">
+                        <circle cx="20" cy="20" r="17" fill="none" stroke={ringBg} strokeWidth="3.5" />
+                        <circle
+                          cx="20" cy="20" r="17" fill="none" stroke={ringColor} strokeWidth="3.5"
+                          strokeLinecap="round"
+                          strokeDasharray={`${(c.matchScore / 100) * 106.8} 106.8`}
                         />
-                      </div>
+                      </svg>
+                      <span className={`absolute inset-0 flex items-center justify-center font-display text-[11px] font-bold ${matchColor}`}>
+                        {c.matchScore}
+                      </span>
                     </div>
 
-                    <div className="flex items-center justify-between rounded-md bg-surface-soft/50 px-3 py-2 text-[11px] text-ink-muted">
-                      <span className="flex items-center gap-1.5">
-                        <Briefcase className="h-3 w-3" />
-                        {c.job}
-                      </span>
-                      <span>{c.source}</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <h3 className="truncate text-sm font-bold leading-tight text-ink">{c.name}</h3>
+                        <Badge tone={statusTone[c.status]} pill>
+                          {statusIcon && <statusIcon.icon className="mr-0.5 h-2.5 w-2.5" />}
+                          {statusLabels[c.status]}
+                        </Badge>
+                      </div>
+                      <p className="mt-0.5 truncate text-xs font-medium text-ink/70">{c.title}</p>
+                      <p className="mt-0.5 flex items-center gap-1.5 truncate text-[10px] text-ink-muted">
+                        <span>{c.location}</span>
+                        <span>·</span>
+                        <span>{c.experience}</span>
+                        <span>·</span>
+                        <span className="flex items-center gap-1"><Briefcase className="h-3 w-3" />{c.job}</span>
+                        <span>·</span>
+                        <span>{c.source}</span>
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-1.5 border-t border-line px-4 py-3">
-                    <Link href={`/candidates/${c.id}`} className="flex-1">
-                      <Button variant="secondary" size="sm" fullWidth leftIcon={<Eye className="h-3.5 w-3.5" />}>
+                  <div className="hidden shrink-0 items-center gap-1 lg:flex lg:max-w-[260px] lg:flex-wrap">
+                    {c.skills.slice(0, 3).map((s) => (
+                      <span key={s} className="rounded-md bg-surface-soft px-2 py-0.5 text-[11px] font-medium text-ink/70">
+                        {s}
+                      </span>
+                    ))}
+                    {c.skills.length > 3 && (
+                      <span className="text-[11px] text-ink-muted">+{c.skills.length - 3}</span>
+                    )}
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <Link href={`/candidates/${c.id}`}>
+                      <Button variant="secondary" size="sm" leftIcon={<Eye className="h-3.5 w-3.5" />}>
                         Profile
                       </Button>
                     </Link>
@@ -758,23 +744,23 @@ export default function CandidatesPage() {
 
                     <button
                       onClick={() => setEmailTarget(c)}
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-line text-ink-muted transition-colors hover:bg-surface-soft hover:text-brand hover:border-brand/30"
+                      className="flex h-8 w-8 items-center justify-center rounded-md border border-line text-ink-muted transition-colors hover:border-brand/30 hover:bg-surface-soft hover:text-brand"
                       title={`Email — ${statusLabels[c.status]}`}
                     >
                       <Mail className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={() => setScheduleTarget(c)}
-                      className="flex h-8 w-8 items-center justify-center rounded-md border border-line text-ink-muted transition-colors hover:bg-surface-soft hover:text-brand hover:border-brand/30"
+                      className="flex h-8 w-8 items-center justify-center rounded-md border border-line text-ink-muted transition-colors hover:border-brand/30 hover:bg-surface-soft hover:text-brand"
                       title={`Schedule ${statusLabels[c.status]}`}
                     >
                       <Calendar className="h-3.5 w-3.5" />
                     </button>
                   </div>
-                </div>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-4 text-sm text-ink-muted sm:px-5">
@@ -782,8 +768,10 @@ export default function CandidatesPage() {
           <nav className="flex gap-1">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
               <button key={p} onClick={() => setPage(p)}
-                className={`h-8 w-8 rounded-md border text-xs transition-colors ${
-                  p === page ? "border-brand bg-brand text-white" : "border-line text-ink hover:bg-surface-soft"
+                className={`h-8 w-8 rounded-lg border text-xs transition-all ${
+                  p === page
+                    ? "border-brand bg-brand text-white shadow-sm"
+                    : "border-line text-ink hover:border-brand/40 hover:bg-surface-soft"
                 }`}>{p}</button>
             ))}
           </nav>

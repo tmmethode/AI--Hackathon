@@ -756,7 +756,7 @@ function ShortlistsPageInner() {
                   Filter
                 </Button>
                 {showFilter && (
-                  <div className="absolute right-0 top-9 z-10 w-44 rounded-md border border-line bg-surface shadow-card">
+                  <div className="absolute right-0 top-9 z-10 w-44 overflow-hidden rounded-lg border border-line bg-surface shadow-xl">
                     {(["all", "shortlisted", "advanced", "interview", "exam", "assessment", "practical", "rejected"] as FilterStatus[]).map((s) => {
                       const labels: Record<FilterStatus, string> = {
                         all: "All", shortlisted: "Shortlisted", advanced: "All Advanced",
@@ -780,7 +780,7 @@ function ShortlistsPageInner() {
                   Sort
                 </Button>
                 {showSort && (
-                  <div className="absolute right-0 top-9 z-10 w-44 rounded-md border border-line bg-surface shadow-card">
+                  <div className="absolute right-0 top-9 z-10 w-44 overflow-hidden rounded-lg border border-line bg-surface shadow-xl">
                     {([["rank", "By Rank"], ["match", "By Match %"], ["name", "By Name"], ["years", "By Experience"]] as [SortKey, string][]).map(([key, label]) => (
                       <button key={key} onClick={() => handleSort(key)}
                         className={`flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-surface-soft ${sortKey === key ? "text-brand font-medium" : "text-ink"}`}>
@@ -896,7 +896,7 @@ function ShortlistsPageInner() {
             <nav className="flex gap-1">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                 <button key={p} onClick={() => setPage(p)}
-                  className={`h-8 w-8 rounded-md border text-xs transition-colors ${p === page ? "border-brand bg-brand text-white" : "border-line text-ink hover:bg-surface-soft"}`}>
+                  className={`h-8 w-8 rounded-lg border text-xs transition-all ${p === page ? "border-brand bg-brand text-white shadow-sm" : "border-line text-ink hover:border-brand/40 hover:bg-surface-soft"}`}>
                   {p}
                 </button>
               ))}

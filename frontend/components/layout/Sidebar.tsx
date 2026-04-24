@@ -89,7 +89,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
         <Link
           href="/jobs/new"
           onClick={onClose}
-          className="mb-2 flex h-10 items-center justify-center gap-2 rounded-md bg-brand px-4 text-sm font-medium text-white shadow-card transition-colors hover:bg-brand-hover"
+          className="mb-2 flex h-10 items-center justify-center gap-2 rounded-md bg-brand px-4 text-sm font-medium text-white shadow-card transition-all duration-150 hover:bg-brand-hover hover:shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:ring-offset-2 focus-visible:ring-offset-surface-muted"
         >
           <CirclePlus className="h-4 w-4" aria-hidden />
           New Job
@@ -104,7 +104,7 @@ export function Sidebar({ open, onClose }: { open?: boolean; onClose?: () => voi
                 onClick={onClose}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex h-10 items-center gap-3 rounded-md px-3 text-sm transition-colors",
+                  "flex h-10 items-center gap-3 rounded-md px-3 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40",
                   active ? "bg-surface-soft text-ink-soft font-medium" : "text-ink hover:bg-surface-soft"
                 )}
               >

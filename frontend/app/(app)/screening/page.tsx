@@ -539,7 +539,7 @@ export default function ScreeningPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
-          <div className="flex flex-col gap-6">
+          <div className="order-2 flex flex-col gap-6 lg:order-1">
             <Card className="p-6">
               <header className="mb-5">
                 <h2 className="font-display text-lg font-semibold text-ink">Run Parameters</h2>
@@ -776,7 +776,7 @@ export default function ScreeningPage() {
             </Card>
           </div>
 
-          <aside className="flex flex-col gap-5">
+          <aside className="order-1 flex flex-col gap-5 lg:order-2">
             <Card className="p-5">
               <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">
                 <Briefcase className="h-3.5 w-3.5" /> Target Job

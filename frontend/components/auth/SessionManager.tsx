@@ -269,7 +269,7 @@ export function SessionManager() {
     <Modal open={isWarningOpen} onClose={dismissWarning} size="sm">
       <ModalHeader
         title="Session expiring soon"
-        subtitle="Your account will be signed out soon due to inactivity."
+        subtitle="Your account will be signed out due to inactivity."
         onClose={dismissWarning}
       >
         <div className="mb-2 inline-flex h-9 w-9 items-center justify-center rounded-full bg-danger/10 text-danger">
@@ -277,20 +277,22 @@ export function SessionManager() {
         </div>
       </ModalHeader>
       <ModalBody>
-        <p className="text-sm text-ink-muted">
-          To protect your account, inactive sessions are automatically ended. Choose <strong>Stay signed in</strong> to keep working and preserve unsaved progress.
-        </p>
-        <div className="mt-4 flex items-center gap-2 rounded-lg border border-line bg-surface-soft px-3 py-2.5 text-sm text-ink">
-          <Clock3 className="h-4 w-4 text-brand" />
-          <span>Time remaining: {formatDuration(timing.remainingMs)}</span>
+        <div className="flex items-center gap-3 rounded-lg border border-line bg-surface-soft px-4 py-3">
+          <Clock3 className="h-5 w-5 shrink-0 text-brand" />
+          <div className="min-w-0">
+            <p className="text-xs text-ink-muted">Time remaining</p>
+            <p className="font-display text-lg font-bold tabular-nums text-ink">
+              {formatDuration(timing.remainingMs)}
+            </p>
+          </div>
         </div>
+        <p className="mt-3 text-sm text-ink-muted">
+          For your security, inactive sessions are automatically ended. Choose <strong>Stay signed in</strong> to keep working and preserve unsaved progress.
+        </p>
       </ModalBody>
       <ModalFooter>
-        <Button variant="secondary" onClick={dismissWarning} disabled={isRefreshing}>
-          Dismiss
-        </Button>
-        <Button variant="danger" onClick={() => performLogout("idle")} disabled={isRefreshing}>
-          Sign out now
+        <Button variant="secondary" onClick={() => performLogout("idle")} disabled={isRefreshing}>
+          Sign out
         </Button>
         <Button onClick={() => void continueSession()} disabled={isRefreshing}>
           {isRefreshing ? "Refreshing session..." : "Stay signed in"}

@@ -20,7 +20,7 @@ function initials(name: string) {
 export function Avatar({ name, src, size = 36, online, className }: AvatarProps) {
   return (
     <span
-      className={cn("relative inline-flex shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand font-semibold", className)}
+      className={cn("relative inline-flex shrink-0 select-none items-center justify-center overflow-hidden rounded-full bg-brand-soft text-brand font-semibold ring-1 ring-inset ring-line/60", className)}
       style={{ width: size, height: size, fontSize: size * 0.38 }}
       aria-label={name}
     >

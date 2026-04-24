@@ -1891,7 +1891,7 @@ export default function IngestPage() {
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_300px]">
-        <div className="flex flex-col gap-6">
+        <div className="order-2 flex flex-col gap-6 lg:order-1">
           <Card className="overflow-hidden">
             <div role="tablist" className="flex items-center gap-1 border-b border-line p-2">
               {tabs.map((tab) => {
@@ -2113,10 +2113,10 @@ export default function IngestPage() {
                   <button
                     key={nextPage}
                     onClick={() => setPage(nextPage)}
-                    className={`h-8 w-8 rounded-md border text-xs transition-colors ${
+                    className={`h-8 w-8 rounded-lg border text-xs transition-all ${
                       nextPage === page
-                        ? "border-brand bg-brand text-white"
-                        : "border-line text-ink hover:bg-surface-soft"
+                        ? "border-brand bg-brand text-white shadow-sm"
+                        : "border-line text-ink hover:border-brand/40 hover:bg-surface-soft"
                     }`}
                   >
                     {nextPage}
@@ -2127,7 +2127,7 @@ export default function IngestPage() {
           </Card>
         </div>
 
-        <aside className="flex flex-col gap-5">
+        <aside className="order-1 flex flex-col gap-5 lg:order-2">
           <Card className="p-5">
             <h3 className="text-sm font-semibold text-ink">Target Job</h3>
             <p className="mt-1 text-xs text-ink-muted">Applicants will be attached to this backend job record.</p>

@@ -110,7 +110,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
     <>
       <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-line bg-surface px-3 sm:gap-4 sm:px-4 md:px-8">
         <button type="button" aria-label="Open menu" onClick={onMenuClick}
-          className="flex h-10 w-10 items-center justify-center rounded-md text-ink-muted hover:bg-surface-soft md:hidden">
+          className="flex h-10 w-10 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-surface-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 md:hidden">
           <Menu className="h-5 w-5" />
         </button>
         <div className="flex items-center gap-3">
@@ -126,20 +126,20 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
             type="search"
             aria-label="Search jobs or candidates"
             placeholder="Search job ID / candidate name..."
-            className="h-9 w-full rounded-md border border-line bg-surface pl-9 pr-3 text-sm text-ink placeholder:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+            className="h-9 w-full rounded-md border border-line bg-surface pl-9 pr-3 text-sm text-ink placeholder:text-ink-muted transition-colors hover:border-line-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:border-brand"
           />
         </div>
 
         <div className="ml-auto flex items-center gap-2">
           <button type="button" aria-label="Help"
-            className="flex h-10 w-10 items-center justify-center rounded-md text-ink-muted hover:bg-surface-soft">
+            className="flex h-10 w-10 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-surface-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40">
             <CircleHelp className="h-5 w-5" />
           </button>
 
           <div className="relative">
             <button type="button" aria-label="Notifications"
               onClick={() => { setShowNotif((v) => !v); setShowProfile(false); }}
-              className="relative flex h-10 w-10 items-center justify-center rounded-md text-ink-muted hover:bg-surface-soft">
+              className="relative flex h-10 w-10 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-surface-soft hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40">
               <Bell className="h-5 w-5" />
               {unread > 0 && (
                 <span className="absolute right-2 top-2 flex h-4 w-4 items-center justify-center rounded-full bg-danger text-[10px] font-bold text-white">

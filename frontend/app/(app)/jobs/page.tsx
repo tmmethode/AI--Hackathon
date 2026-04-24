@@ -547,14 +547,14 @@ export default function JobsPage() {
       )}
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
-        <div className="flex flex-col rounded-md border border-line bg-surface shadow-sm sm:flex-row sm:items-center">
+        <div className="flex flex-col rounded-xl border border-line bg-surface shadow-soft transition-shadow focus-within:shadow-card sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
+            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-muted" />
             <input
               placeholder="Search by title, manager, or location…"
               value={search}
               onChange={(event) => handleSearchChange(event.target.value)}
-              className="h-10 w-full bg-transparent pl-9 pr-3 text-sm text-ink placeholder:text-ink-muted focus:outline-none"
+              className="h-11 w-full bg-transparent pl-10 pr-3 text-sm text-ink placeholder:text-ink-muted focus:outline-none"
             />
           </div>
           <div className="flex flex-wrap items-center gap-1 border-t border-line px-2 py-2 sm:border-l sm:border-t-0 sm:py-0">
@@ -562,9 +562,9 @@ export default function JobsPage() {
               <button
                 key={status}
                 onClick={() => handleStatusChange(status)}
-                className={`h-7 rounded px-3 text-xs font-medium transition-colors ${
+                className={`h-7 rounded-md px-3 text-xs font-medium transition-all ${
                   statusFilter === status
-                    ? "bg-brand text-white"
+                    ? "bg-brand text-white shadow-sm"
                     : "text-ink-muted hover:bg-surface-soft hover:text-ink"
                 }`}
               >
@@ -578,7 +578,7 @@ export default function JobsPage() {
 
         <Card className="overflow-hidden">
           <div role="table" className="min-w-0">
-            <div role="row" className="hidden grid-cols-[2fr_1.1fr_1.1fr_0.9fr_100px_40px] gap-4 bg-surface-soft/40 px-5 py-3 text-xs text-ink-muted md:grid">
+            <div role="row" className="hidden grid-cols-[2fr_1.1fr_1.1fr_0.9fr_100px_40px] gap-4 border-b border-line bg-surface-soft/40 px-5 py-3 text-xs text-ink-muted md:grid">
               <span role="columnheader">Job Title &amp; ID</span>
               <span role="columnheader">Manager</span>
               <span role="columnheader">Location</span>
@@ -609,21 +609,21 @@ export default function JobsPage() {
                         selectedId === job._id ? "bg-brand-soft/40" : "hover:bg-surface-soft/50"
                       }`}
                     >
-                      <div>
-                        <p className="font-semibold text-ink">{job.title}</p>
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-ink">{job.title}</p>
                         <p className="mt-0.5 text-[10px] uppercase tracking-wider text-ink-muted">
                           {formatJobId(job)}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
                         <Avatar
                           name={managerName}
                           src={job.hiringManager.profilePicture}
                           size={24}
                         />
-                        <span className="text-ink">{managerName}</span>
+                        <span className="truncate text-ink">{managerName}</span>
                       </div>
-                      <p className="text-ink-muted">{job.location}</p>
+                      <p className="truncate text-ink-muted">{job.location}</p>
                       <div>
                         <p className="font-semibold text-ink">{job.applicantsCount}</p>
                         <p className="text-xs text-ink-muted">
@@ -635,7 +635,7 @@ export default function JobsPage() {
                       </div>
                       <div className="relative flex justify-end" onClick={(event) => event.stopPropagation()}>
                         <button
-                          className="rounded-md p-1 text-ink-muted hover:bg-surface-soft disabled:opacity-50"
+                          className="rounded-md p-1.5 text-ink-muted transition-colors hover:bg-surface-soft hover:text-ink disabled:opacity-50"
                           aria-label="More options"
                           onClick={() => dispatch(setMenuOpen(menuOpen === job._id ? null : job._id))}
                           disabled={isMutating}
@@ -643,9 +643,9 @@ export default function JobsPage() {
                           {isMutating ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <MoreHorizontal className="h-4 w-4" />}
                         </button>
                         {menuOpen === job._id && (
-                          <div className="absolute right-0 top-8 z-10 w-40 rounded-md border border-line bg-surface shadow-card">
+                          <div className="absolute right-0 top-9 z-10 w-44 overflow-hidden rounded-lg border border-line bg-surface shadow-xl">
                             <button
-                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-surface-soft"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink transition-colors hover:bg-surface-soft"
                               onClick={() => {
                                 dispatch(setSelectedId(job._id));
                                 dispatch(setShowJobDetails(true));
@@ -655,13 +655,13 @@ export default function JobsPage() {
                               <Briefcase className="h-3.5 w-3.5 text-ink-muted" /> View Job
                             </button>
                             <button
-                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-surface-soft"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink transition-colors hover:bg-surface-soft"
                               onClick={() => openEditJob(job)}
                             >
                               <Pencil className="h-3.5 w-3.5 text-ink-muted" /> Edit Job
                             </button>
                             <button
-                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-surface-soft"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-ink transition-colors hover:bg-surface-soft"
                               onClick={() => {
                                 dispatch(setShowArchiveConfirm(job._id));
                                 dispatch(setMenuOpen(null));
@@ -670,7 +670,7 @@ export default function JobsPage() {
                               <Archive className="h-3.5 w-3.5 text-ink-muted" /> Archive
                             </button>
                             <button
-                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-danger hover:bg-danger/5"
+                              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-danger transition-colors hover:bg-danger/5"
                               onClick={() => {
                                 dispatch(setDeleteTarget(job._id));
                                 dispatch(setMenuOpen(null));
@@ -688,15 +688,17 @@ export default function JobsPage() {
             )}
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line bg-surface px-4 py-4 text-sm text-ink-muted sm:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line bg-surface-soft/30 px-4 py-4 text-sm text-ink-muted sm:px-5">
             <p>Showing {rangeStart}-{rangeEnd} of {total} jobs</p>
             <nav aria-label="Pagination" className="flex items-center gap-1">
               {Array.from({ length: totalPages }, (_, index) => index + 1).map((value) => (
                 <button
                   key={value}
                   onClick={() => dispatch(setPage(value))}
-                  className={`h-8 w-8 rounded-md border text-xs transition-colors ${
-                    value === page ? "border-brand bg-brand text-white" : "border-line text-ink hover:bg-surface-soft"
+                  className={`h-8 w-8 rounded-lg border text-xs tabular-nums transition-all ${
+                    value === page
+                      ? "border-brand bg-brand text-white shadow-sm"
+                      : "border-line text-ink hover:border-brand/40 hover:bg-surface-soft"
                   }`}
                   aria-current={value === page ? "page" : undefined}
                   disabled={isLoading}
@@ -713,11 +715,11 @@ export default function JobsPage() {
             <JobsSidebarSkeleton />
           ) : selected ? (
             <>
-              <Card className="p-5">
+              <Card className="p-5 transition-shadow duration-200 hover:shadow-soft">
                 <p className="mb-3 text-center text-[11px] font-semibold uppercase tracking-widest text-ink-muted">
-                  - Quick Inspection -
+                  — Quick Inspection —
                 </p>
-                <div className="flex items-start justify-between">
+                <div className="flex items-start justify-between gap-2">
                   <Badge tone="neutral" className="rounded-full font-mono">ID: {formatJobId(selected)}</Badge>
                   <Badge tone={statusTone[selected.status]} pill>{selected.status}</Badge>
                 </div>
@@ -815,7 +817,7 @@ export default function JobsPage() {
                 </div>
               </Card>
 
-              <Card className="bg-brand-soft p-5">
+              <Card className="bg-brand-soft p-5 transition-shadow duration-200 hover:shadow-soft">
                 <h4 className="text-sm font-semibold text-info-deep">Ideal Candidate Profile</h4>
                 <p className="mt-2 text-xs leading-5 text-info-deep/80">{selected.summary}</p>
                 <dl className="mt-4 grid grid-cols-2 gap-3 text-[11px]">
@@ -830,7 +832,7 @@ export default function JobsPage() {
                 </dl>
               </Card>
 
-              <Card className="flex items-center justify-between p-5">
+              <Card className="flex items-center justify-between p-5 transition-shadow duration-200 hover:shadow-soft">
                 <div>
                   <p className="text-sm text-ink-muted">Total Applicants</p>
                   <p className="mt-1 font-display text-xl font-bold text-ink">{selected.applicantsCount}</p>
