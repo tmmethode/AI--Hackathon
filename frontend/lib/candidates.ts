@@ -16,6 +16,7 @@ export type CandidateStatus =
 export interface CandidateRecord {
   id: string;
   jobId: string;
+  shortlistId?: string;
   email: string;
   name: string;
   title: string;

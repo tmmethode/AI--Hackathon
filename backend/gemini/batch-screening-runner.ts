@@ -211,6 +211,9 @@ export class GeminiBatchScreeningRunnerService {
         processedApplicants: applicants.length,
         maxApplicants,
         truncatedApplicants,
+        unscoredApplicants: response.meta?.unscoredApplicants ?? 0,
+        failedChunks: response.meta?.failedChunks ?? 0,
+        failureReasons: response.meta?.failureReasons ?? [],
       },
     };
   }

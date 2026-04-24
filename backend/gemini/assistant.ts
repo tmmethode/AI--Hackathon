@@ -23,8 +23,8 @@ import {
   GeminiRecruiterAssistantShortlistContext,
 } from "./types";
 
-const DEFAULT_APPLICANT_LIMIT = 25;
-const MAX_APPLICANT_LIMIT = 60;
+const DEFAULT_APPLICANT_LIMIT = 50;
+const MAX_APPLICANT_LIMIT = 100;
 const MAX_HISTORY_MESSAGES = 30;
 const MAX_HISTORY_CHARS = 24_000;
 const MAX_HISTORY_TURN_CHARS = 1_500;
@@ -118,6 +118,7 @@ function hydrateShortlistEntriesFromScreening(
       gapsOrRisks: entry.gapsOrRisks || [],
       finalRecommendation: entry.finalRecommendation,
       summaryExplanation: entry.summaryExplanation,
+      pipelineStatus: entry.pipelineStatus || "shortlisted",
     };
   });
 }
@@ -778,7 +779,7 @@ export class GeminiRecruiterAssistantService {
         ? "Applicant profiles were prioritized from the selected shortlist's ranked and scored candidates before filling remaining slots from the same job."
         : undefined,
       truncatedApplicants
-        ? `Applicant list truncated to the first ${opts.applicantLimit} of a larger set; ask to narrow by skill, score range, or email list for deeper review.`
+        ? `Detailed APPLICANT profile blocks are limited to the top ${opts.applicantLimit} most relevant candidates by ranking — but the SHORTLIST and SCREENING RESULTS blocks include EVERY candidate's name, email, scores, and pipelineStatus. Use those blocks to determine who is shortlisted, rejected, in interview/exam/assessment/practical, or to count candidates by status. Only the deep profile fields (skills lists, work history, projects, etc.) are limited.`
         : undefined,
     ]
       .filter(Boolean)

@@ -23,7 +23,7 @@ const navItems = [
   { label: "Ingest Applicants", href: "/ingest", icon: UserPlus },
   { label: "Screening", href: "/screening", icon: ShieldCheck },
   { label: "Shortlists", href: "/shortlists", icon: ListOrdered },
-  { label: "Candidates", href: "/candidates", icon: Users },
+  { label: "Selected Candidates", href: "/candidates", icon: Users },
   { label: "Exports", href: "/exports", icon: FileOutput },
   { label: "User Management", href: "/users/new", icon: UserPlus },
   { label: "Screening History", href: "/history", icon: Settings },

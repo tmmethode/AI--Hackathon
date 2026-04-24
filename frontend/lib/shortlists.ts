@@ -290,7 +290,7 @@ export async function deleteShortlist(id: string) {
 export async function updateShortlistCandidateStatus(
   id: string,
   email: string,
-  status: "shortlisted" | "rejected"
+  status: "shortlisted" | "rejected" | "interview" | "exam" | "assessment" | "practical"
 ) {
   const encoded = encodeURIComponent(email);
   const response = await fetch(`${getApiBaseUrl()}/shortlists/${id}/candidates/${encoded}`, {

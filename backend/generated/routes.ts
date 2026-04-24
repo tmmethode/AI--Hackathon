@@ -155,6 +155,11 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "PipelineStatus": {
+        "dataType": "refAlias",
+        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["shortlisted"]},{"dataType":"enum","enums":["interview"]},{"dataType":"enum","enums":["exam"]},{"dataType":"enum","enums":["assessment"]},{"dataType":"enum","enums":["practical"]}],"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "ShortlistEntryDTO": {
         "dataType": "refObject",
         "properties": {
@@ -173,6 +178,7 @@ const models: TsoaRoute.Models = {
             "gapsOrRisks": {"dataType":"array","array":{"dataType":"string"},"required":true},
             "finalRecommendation": {"ref":"ShortlistRecommendation","required":true},
             "summaryExplanation": {"dataType":"string","required":true},
+            "pipelineStatus": {"ref":"PipelineStatus"},
         },
         "additionalProperties": false,
     },
@@ -233,7 +239,7 @@ const models: TsoaRoute.Models = {
     "UpdateShortlistCandidateStatusRequest": {
         "dataType": "refObject",
         "properties": {
-            "status": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["shortlisted"]},{"dataType":"enum","enums":["rejected"]}],"required":true},
+            "status": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["shortlisted"]},{"dataType":"enum","enums":["rejected"]},{"dataType":"enum","enums":["interview"]},{"dataType":"enum","enums":["exam"]},{"dataType":"enum","enums":["assessment"]},{"dataType":"enum","enums":["practical"]}],"required":true},
         },
         "additionalProperties": false,
     },
@@ -740,6 +746,11 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiPipelineStatus": {
+        "dataType": "refAlias",
+        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["shortlisted"]},{"dataType":"enum","enums":["interview"]},{"dataType":"enum","enums":["exam"]},{"dataType":"enum","enums":["assessment"]},{"dataType":"enum","enums":["practical"]}],"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "GeminiBatchShortlistEntry": {
         "dataType": "refObject",
         "properties": {
@@ -758,6 +769,7 @@ const models: TsoaRoute.Models = {
             "gapsOrRisks": {"dataType":"array","array":{"dataType":"string"},"required":true},
             "finalRecommendation": {"ref":"GeminiBatchRecommendation","required":true},
             "summaryExplanation": {"dataType":"string","required":true},
+            "pipelineStatus": {"ref":"GeminiPipelineStatus"},
         },
         "additionalProperties": false,
     },

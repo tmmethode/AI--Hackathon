@@ -886,6 +886,10 @@ export class GeminiScreeningService {
         summaryExplanation: entry.summaryExplanation,
       }));
 
+    const unscoredApplicants = screeningResults.filter(
+      (entry) => entry.matchScore === 0 && entry.gapsOrRisks.some((reason) => reason.startsWith("Gemini did not return"))
+    ).length;
+
     return {
       jobTitle: request.job.title,
       weightCriteria: deriveScoringWeightCriteria(request.job),
@@ -894,6 +898,15 @@ export class GeminiScreeningService {
       screeningResults,
       shortlist,
       model: explanationModel || lastModel,
+      meta: {
+        requestedApplicants: totalApplicants,
+        processedApplicants: totalApplicants - unscoredApplicants,
+        maxApplicants: totalApplicants,
+        truncatedApplicants: false,
+        unscoredApplicants,
+        failedChunks: failures.length,
+        failureReasons: failures.map((failure) => failure.reason).slice(0, 3),
+      },
     };
   }
 }

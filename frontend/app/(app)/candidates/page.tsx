@@ -18,6 +18,7 @@ import { Field, Input, Textarea, Select } from "@/components/ui/Input";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/Modal";
 import { type CandidateStatus } from "@/lib/candidates";
 import { listAllJobs } from "@/lib/jobs";
+import { updateShortlistCandidateStatus } from "@/lib/shortlists";
 import { createPdfFromLines } from "@/lib/pdf";
 import { downloadCsv, downloadJson, downloadBlob, sanitizeFilename } from "@/lib/download";
 import {
@@ -247,6 +248,7 @@ export default function CandidatesPage() {
     new: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("matchScore");
@@ -354,6 +356,7 @@ export default function CandidatesPage() {
       } finally {
         if (!cancelled) {
           setLoading(false);
+          setHasLoadedOnce(true);
         }
       }
     }, 220);
@@ -362,7 +365,11 @@ export default function CandidatesPage() {
       cancelled = true;
       window.clearTimeout(timeoutId);
     };
-  }, [filterJob, filterStatus, page, search, sortAsc, sortKey, localStatusOverrides, defaultJobResolved]);
+    // We deliberately exclude localStatusOverrides — refetching on every
+    // optimistic status change would cause a full reload + UI flicker after
+    // each Advance/Reject click.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterJob, filterStatus, page, search, sortAsc, sortKey, defaultJobResolved]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) setSortAsc((v) => !v);
@@ -371,16 +378,41 @@ export default function CandidatesPage() {
     setPage(1);
   }
 
-  function handleAdvance(id: string, status: AdvanceKey | "rejected") {
+  async function handleAdvance(id: string, status: AdvanceKey | "rejected" | "shortlisted") {
     const target = candidates.find((entry) => entry.id === id);
+    if (!target) {
+      setAdvanceDropdownId(null);
+      return;
+    }
+
+    const previousStatus = target.status;
     setCandidates((prev) => prev.map((c) => c.id === id ? { ...c, status } : c));
-    if (target && target.status !== status) {
+    if (target.status !== status) {
       setLocalStatusOverrides((prev) => ({
         ...prev,
         [id]: { previous: target.status, next: status, job: target.job },
       }));
     }
     setAdvanceDropdownId(null);
+
+    if (!target.shortlistId) {
+      return;
+    }
+
+    try {
+      await updateShortlistCandidateStatus(target.shortlistId, target.email, status);
+    } catch (error) {
+      // Roll back optimistic update on failure
+      setCandidates((prev) => prev.map((c) => c.id === id ? { ...c, status: previousStatus } : c));
+      setLocalStatusOverrides((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setLoadError(
+        error instanceof Error ? error.message : "Failed to save candidate status."
+      );
+    }
   }
 
   function handleJobSwitch(job: string) {
@@ -511,18 +543,19 @@ export default function CandidatesPage() {
       next[override.next as keyof CandidateStatusCounts] += 1;
     });
     next.advanced = next.interview + next.exam + next.assessment + next.practical;
+    next.all = next.shortlisted + next.advanced;
     return next;
   }, [counts, filterJob, localStatusOverrides]);
 
-  if (loading) {
+  if (loading && !hasLoadedOnce) {
     return <CandidatesPageSkeleton />;
   }
 
   return (
     <div className="w-full px-4 py-4 sm:px-6 sm:py-5">
       <PageHeader
-        title="Candidate Pool"
-        description="Browse, search, and manage all candidates across your hiring pipeline."
+        title="Selected Candidates"
+        description="Review, advance, or reject candidates who passed AI screening."
         actions={
           <>
             <div className="relative">
@@ -635,20 +668,46 @@ export default function CandidatesPage() {
       </div>
       {showJobPicker && <div className="fixed inset-0 z-[15]" onClick={() => setShowJobPicker(false)} />}
 
-      <section className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <section className="mt-4 grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-6">
         {([
-          { label: "Active Total", value: displayCounts.shortlisted + displayCounts.advanced, tone: "brand" },
-          { label: "Shortlisted", value: displayCounts.shortlisted, tone: "brand" },
-          { label: "Advanced", value: displayCounts.advanced, tone: "success" },
-          { label: "Interviews", value: displayCounts.interview, tone: "success" },
-        ] as const).map((s) => (
-          <Card key={s.label} className="p-4">
-            <p className="text-xs text-ink-muted">{s.label}</p>
-            <p className={`mt-1 font-display text-2xl font-bold ${
-              s.tone === "success" ? "text-success" : "text-brand"
-            }`}>{s.value}</p>
-          </Card>
-        ))}
+          { label: "Active Total", value: displayCounts.shortlisted + displayCounts.advanced, tone: "brand", icon: Users, status: "all" as FilterStatus },
+          { label: "Shortlisted", value: displayCounts.shortlisted, tone: "brand", icon: Check, status: "shortlisted" as FilterStatus },
+          { label: "Interview", value: displayCounts.interview, tone: "success", icon: Calendar, status: "interview" as FilterStatus },
+          { label: "Technical Exam", value: displayCounts.exam, tone: "success", icon: ClipboardCheck, status: "exam" as FilterStatus },
+          { label: "Assessment", value: displayCounts.assessment, tone: "success", icon: GraduationCap, status: "assessment" as FilterStatus },
+          { label: "Practical", value: displayCounts.practical, tone: "success", icon: Wrench, status: "practical" as FilterStatus },
+        ] as const).map((s) => {
+          const Icon = s.icon;
+          const isActive = filterStatus === s.status;
+          return (
+            <Card
+              key={s.label}
+              role="button"
+              tabIndex={0}
+              onClick={() => { setFilterStatus(s.status); setPage(1); }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  setFilterStatus(s.status);
+                  setPage(1);
+                }
+              }}
+              className={`group cursor-pointer p-4 transition-all hover:shadow-soft ${isActive ? "border-brand ring-1 ring-brand/30" : ""}`}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-xs text-ink-muted">{s.label}</p>
+                <span className={`flex h-7 w-7 items-center justify-center rounded-md transition-colors ${
+                  s.tone === "success" ? "bg-success/10 text-success" : "bg-brand/10 text-brand"
+                }`}>
+                  <Icon className="h-3.5 w-3.5" />
+                </span>
+              </div>
+              <p className={`mt-1 font-display text-2xl font-bold ${
+                s.tone === "success" ? "text-success" : "text-brand"
+              }`}>{s.value}</p>
+            </Card>
+          );
+        })}
       </section>
 
       <Card className="mt-6">

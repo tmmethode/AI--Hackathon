@@ -18,6 +18,7 @@ import Shortlist, {
   IShortlistEntry,
   IShortlistResultEntry,
   IShortlistWeightCriterion,
+  PipelineStatus,
   ShortlistRecommendation,
 } from '../models/Shortlist';
 import Job from '../models/Job';
@@ -58,6 +59,7 @@ export interface ShortlistEntryDTO {
   gapsOrRisks: string[];
   finalRecommendation: ShortlistRecommendation;
   summaryExplanation: string;
+  pipelineStatus?: PipelineStatus;
 }
 
 export interface ShortlistWeightCriterionDTO {
@@ -162,7 +164,7 @@ export interface DeleteShortlistResponse {
 }
 
 export interface UpdateShortlistCandidateStatusRequest {
-  status: 'shortlisted' | 'rejected';
+  status: 'shortlisted' | 'rejected' | 'interview' | 'exam' | 'assessment' | 'practical';
 }
 
 @Tags('Shortlists')
@@ -249,6 +251,7 @@ export class ShortlistController {
       gapsOrRisks: entry.gapsOrRisks || [],
       finalRecommendation: entry.finalRecommendation,
       summaryExplanation: entry.summaryExplanation || '',
+      pipelineStatus: entry.pipelineStatus || 'shortlisted',
     };
   }
 
@@ -274,6 +277,7 @@ export class ShortlistController {
       gapsOrRisks: entry.gapsOrRisks || [],
       finalRecommendation: entry.finalRecommendation,
       summaryExplanation: entry.summaryExplanation || '',
+      pipelineStatus: entry.pipelineStatus || 'shortlisted',
     };
   }
 
@@ -573,8 +577,18 @@ export class ShortlistController {
       }
 
       const normalizedStatus = body?.status;
-      if (normalizedStatus !== 'shortlisted' && normalizedStatus !== 'rejected') {
-        throw new Error('Invalid status; expected "shortlisted" or "rejected".');
+      const allowedStatuses: Array<typeof normalizedStatus> = [
+        'shortlisted',
+        'rejected',
+        'interview',
+        'exam',
+        'assessment',
+        'practical',
+      ];
+      if (!allowedStatuses.includes(normalizedStatus)) {
+        throw new Error(
+          'Invalid status; expected one of: shortlisted, rejected, interview, exam, assessment, practical.'
+        );
       }
 
       const normalizedEmail = this.normalizeEmail(decodeURIComponent(email));
@@ -595,12 +609,19 @@ export class ShortlistController {
         throw new Error('Candidate is not part of this screening run.');
       }
 
-      const alreadyShortlisted = shortlist.shortlist.some(
+      const existingIndex = shortlist.shortlist.findIndex(
         (entry) => this.normalizeEmail(entry.applicantEmail) === normalizedEmail
       );
 
-      if (normalizedStatus === 'shortlisted') {
-        if (!alreadyShortlisted) {
+      if (normalizedStatus === 'rejected') {
+        if (existingIndex !== -1) {
+          shortlist.shortlist = shortlist.shortlist.filter(
+            (entry) => this.normalizeEmail(entry.applicantEmail) !== normalizedEmail
+          ) as typeof shortlist.shortlist;
+        }
+      } else {
+        const pipelineStatus = normalizedStatus as PipelineStatus;
+        if (existingIndex === -1) {
           shortlist.shortlist.push({
             candidateRank: screeningEntry.candidateRank,
             applicantEmail: screeningEntry.applicantEmail,
@@ -617,12 +638,12 @@ export class ShortlistController {
             gapsOrRisks: screeningEntry.gapsOrRisks,
             finalRecommendation: screeningEntry.finalRecommendation,
             summaryExplanation: screeningEntry.summaryExplanation,
+            pipelineStatus,
           } as IShortlistEntry);
+        } else {
+          shortlist.shortlist[existingIndex].pipelineStatus = pipelineStatus;
+          shortlist.markModified('shortlist');
         }
-      } else if (alreadyShortlisted) {
-        shortlist.shortlist = shortlist.shortlist.filter(
-          (entry) => this.normalizeEmail(entry.applicantEmail) !== normalizedEmail
-        ) as typeof shortlist.shortlist;
       }
 
       shortlist.shortlistCount = shortlist.shortlist.length;

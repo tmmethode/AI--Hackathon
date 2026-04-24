@@ -363,6 +363,22 @@ export default function ScreeningProgressPage() {
                 </div>
               )}
 
+              {(run.response.meta?.failedChunks ?? 0) > 0 && (
+                <div className="mt-4 rounded-md border border-danger/30 bg-danger/5 px-4 py-3 text-xs text-danger">
+                  <p className="font-semibold">
+                    {run.response.meta?.unscoredApplicants ?? 0} applicant{run.response.meta?.unscoredApplicants === 1 ? "" : "s"} could not be scored ({run.response.meta?.failedChunks ?? 0} batch{run.response.meta?.failedChunks === 1 ? "" : "es"} failed).
+                  </p>
+                  {(run.response.meta?.failureReasons?.length ?? 0) > 0 && (
+                    <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                      {run.response.meta?.failureReasons?.map((reason, index) => (
+                        <li key={`${reason}-${index}`}>{reason}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <p className="mt-1">Re-run screening or reduce the batch size in the backend if this persists.</p>
+                </div>
+              )}
+
               {run.response.shortlist.length > 0 ? (
                 <ul className="mt-5 space-y-3">
                   {run.response.shortlist.slice(0, 5).map((candidate) => (

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   Bot,
   Expand,
@@ -196,6 +197,9 @@ function normalizeAssistantContent(content: string) {
     .replace(/\\t/g, "  ")
     .replace(/\\"/g, '"')
     .replace(/\\([*_`#[\]()!>~-])/g, "$1")
+    // Collapse blank lines between consecutive list items so they render as a tight list.
+    .replace(/(^|\n)([-*+] [^\n]+)\n{2,}(?=[-*+] )/g, "$1$2\n")
+    .replace(/(^|\n)(\d+\. [^\n]+)\n{2,}(?=\d+\. )/g, "$1$2\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
@@ -204,17 +208,17 @@ function AssistantMarkdownMessage({ content }: { content: string }) {
   const normalizedContent = normalizeAssistantContent(content);
 
   return (
-    <div className="break-words text-[13px] leading-5 sm:text-sm sm:leading-relaxed [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+    <div className="break-words text-[13px] leading-snug sm:text-sm sm:leading-snug [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_li>p]:mb-0 [&_li>p]:inline">
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkBreaks]}
         components={{
-          p: ({ children }) => <p className="mb-1.5 whitespace-pre-wrap sm:mb-2">{children}</p>,
-          ul: ({ children }) => <ul className="mb-1.5 list-disc space-y-1 pl-5 sm:mb-2">{children}</ul>,
-          ol: ({ children }) => <ol className="mb-1.5 list-decimal space-y-1 pl-5 sm:mb-2">{children}</ol>,
-          li: ({ children }) => <li className="whitespace-pre-wrap">{children}</li>,
-          h1: ({ children }) => <h1 className="mb-1.5 text-base font-semibold sm:mb-2">{children}</h1>,
-          h2: ({ children }) => <h2 className="mb-1.5 text-sm font-semibold sm:mb-2">{children}</h2>,
-          h3: ({ children }) => <h3 className="mb-1 text-sm font-semibold sm:mb-1.5">{children}</h3>,
+          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+          ul: ({ children }) => <ul className="mb-2 list-disc space-y-0.5 pl-5 last:mb-0">{children}</ul>,
+          ol: ({ children }) => <ol className="mb-2 list-decimal space-y-0.5 pl-5 last:mb-0">{children}</ol>,
+          li: ({ children }) => <li className="leading-snug">{children}</li>,
+          h1: ({ children }) => <h1 className="mb-1.5 mt-2 text-base font-semibold first:mt-0">{children}</h1>,
+          h2: ({ children }) => <h2 className="mb-1.5 mt-2 text-sm font-semibold first:mt-0">{children}</h2>,
+          h3: ({ children }) => <h3 className="mb-1 mt-2 text-sm font-semibold first:mt-0">{children}</h3>,
           strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
           em: ({ children }) => <em className="italic">{children}</em>,
           blockquote: ({ children }) => (
@@ -255,6 +259,8 @@ function AssistantMarkdownMessage({ content }: { content: string }) {
 }
 
 export function AIAssistant() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isVisible, setIsVisible] = useState(false);
   const [panelState, setPanelState] = useState<PanelState>("closed");
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -382,6 +388,49 @@ export function AIAssistant() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadScope(true);
   }, [loadScope, panelOpen]);
+
+  useEffect(() => {
+    if (jobs.length === 0 && shortlists.length === 0) return;
+
+    const path = pathname || "";
+    const queryShortlistId = searchParams?.get("id") || "";
+    const candidateMatch = path.match(/^\/candidates\/([^/]+)/);
+
+    if (path.startsWith("/shortlists") && queryShortlistId) {
+      const match = shortlists.find((entry) => entry._id === queryShortlistId);
+      if (match) {
+        setScope((prev) =>
+          prev.shortlistId === match._id && prev.jobId === match.job
+            ? prev
+            : { ...prev, shortlistId: match._id, jobId: match.job }
+        );
+        return;
+      }
+    }
+
+    if (candidateMatch) {
+      const candidateId = decodeURIComponent(candidateMatch[1]);
+      const jobIdFromCandidate = candidateId.split(":")[0];
+      const candidateEmail = candidateId.split(":")[1];
+
+      const matchingShortlist = shortlists.find((entry) => entry.job === jobIdFromCandidate);
+      if (matchingShortlist) {
+        setScope((prev) =>
+          prev.shortlistId === matchingShortlist._id
+            ? prev
+            : { ...prev, shortlistId: matchingShortlist._id, jobId: matchingShortlist.job }
+        );
+      } else if (jobs.some((job) => job._id === jobIdFromCandidate)) {
+        setScope((prev) =>
+          prev.jobId === jobIdFromCandidate && !prev.shortlistId
+            ? prev
+            : { ...prev, jobId: jobIdFromCandidate, shortlistId: "" }
+        );
+      }
+      // candidateEmail kept for potential future "focus on this candidate" wiring
+      void candidateEmail;
+    }
+  }, [pathname, searchParams, jobs, shortlists]);
 
   useEffect(() => {
     if (!panelOpen) return;

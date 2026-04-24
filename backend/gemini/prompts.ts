@@ -445,10 +445,11 @@ STRICT RULES
 10. If the recruiter asks a question that requires recalculation, clearly state that you are making a fresh analysis.
 11. Treat saved screening results and shortlist entries as the authoritative source for ranks, scores, and shortlist status.
 12. If only workspace overview data is available, answer only at workspace-overview level and ask the recruiter to select a job or shortlist for candidate-specific questions.
-13. If the context says applicant profiles were truncated or limited, mention that limitation whenever it materially affects the answer.
+13. The APPLICANTS block contains DETAILED PROFILES for the top-ranked candidates and may be limited in size, but the SHORTLIST and SCREENING RESULTS blocks ALWAYS list every candidate's name, email, scores, recommendation, and pipelineStatus. NEVER claim you cannot determine who is shortlisted/rejected/in-pipeline because the APPLICANTS block is truncated — read the SHORTLIST and SCREENING RESULTS blocks instead. Only mention the truncation when the user is asking about deep profile fields (full work history, project lists, etc.) for candidates outside the top profiles shown.
 14. Use the ANALYTICS CONTEXT block for counts, rates, run comparisons, and pipeline summaries before using heuristics.
 15. When asked for totals or comparisons, provide the number first, then a brief explanation of how you derived it from context.
 16. For run comparisons, use saved run metadata and scoring metrics; call out what improved, declined, or stayed similar.
+17. Each shortlist entry has a pipelineStatus that reflects where the recruiter has placed the candidate in the pipeline: "shortlisted" (just shortlisted, no advance step yet), "interview", "exam" (technical exam), "assessment", or "practical". Candidates not in the SHORTLIST block have been rejected. Use these statuses when answering questions about hiring stages, who is moving forward, or which candidates have been moved to interview/exam/assessment/practical. Use the PIPELINE STAGE COUNTS line for quick stage tallies.
 
 WHAT YOU CAN DO
 - explain why a candidate is ranked in a certain position
@@ -631,9 +632,10 @@ function formatAssistantScreeningResult(entry: GeminiBatchScreeningResultEntry):
 function formatAssistantShortlistEntry(entry: GeminiBatchShortlistEntry): string {
   const strengths = entry.strengths?.length ? entry.strengths.join("; ") : "—";
   const risks = entry.gapsOrRisks?.length ? entry.gapsOrRisks.join("; ") : "—";
+  const pipelineStatus = entry.pipelineStatus || "shortlisted";
   const lines = [
     `  #${entry.candidateRank} ${entry.fullName} <${entry.applicantEmail}>`,
-    `    match=${entry.matchScore} recommendation=${entry.finalRecommendation}`,
+    `    pipelineStatus=${pipelineStatus} match=${entry.matchScore} recommendation=${entry.finalRecommendation}`,
   ];
   if (entry.criticalRequirementGap) {
     lines.push(`    criticalRequirementGap=true`);
@@ -680,8 +682,22 @@ function formatAssistantShortlistContext(shortlist?: GeminiRecruiterAssistantSho
         .join("\n")}`
     : "SCREENING RESULTS: None provided";
 
+  let stageBreakdown = "";
+  if (shortlist.shortlist && shortlist.shortlist.length > 0) {
+    const counts: Record<string, number> = {};
+    for (const entry of shortlist.shortlist) {
+      const stage = entry.pipelineStatus || "shortlisted";
+      counts[stage] = (counts[stage] || 0) + 1;
+    }
+    const breakdown = Object.entries(counts)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([stage, count]) => `${stage}=${count}`)
+      .join(" ");
+    stageBreakdown = `\nPIPELINE STAGE COUNTS: ${breakdown}`;
+  }
+
   const shortlisted = shortlist.shortlist && shortlist.shortlist.length > 0
-    ? `SHORTLIST (${shortlist.shortlist.length}):\n${shortlist.shortlist
+    ? `SHORTLIST (${shortlist.shortlist.length}):${stageBreakdown}\n${shortlist.shortlist
         .map(formatAssistantShortlistEntry)
         .join("\n")}`
     : "SHORTLIST: None provided";

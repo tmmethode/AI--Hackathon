@@ -346,6 +346,16 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"PipelineStatus": {
+				"type": "string",
+				"enum": [
+					"shortlisted",
+					"interview",
+					"exam",
+					"assessment",
+					"practical"
+				]
+			},
 			"ShortlistEntryDTO": {
 				"properties": {
 					"candidateRank": {
@@ -408,6 +418,9 @@
 					},
 					"summaryExplanation": {
 						"type": "string"
+					},
+					"pipelineStatus": {
+						"$ref": "#/components/schemas/PipelineStatus"
 					}
 				},
 				"required": [
@@ -600,7 +613,11 @@
 						"type": "string",
 						"enum": [
 							"shortlisted",
-							"rejected"
+							"rejected",
+							"interview",
+							"exam",
+							"assessment",
+							"practical"
 						]
 					}
 				},
@@ -2090,6 +2107,16 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"GeminiPipelineStatus": {
+				"type": "string",
+				"enum": [
+					"shortlisted",
+					"interview",
+					"exam",
+					"assessment",
+					"practical"
+				]
+			},
 			"GeminiBatchShortlistEntry": {
 				"properties": {
 					"candidateRank": {
@@ -2152,6 +2179,9 @@
 					},
 					"summaryExplanation": {
 						"type": "string"
+					},
+					"pipelineStatus": {
+						"$ref": "#/components/schemas/GeminiPipelineStatus"
 					}
 				},
 				"required": [

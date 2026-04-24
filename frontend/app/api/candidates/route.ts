@@ -6,6 +6,7 @@ import type { ApplicantRecord, ApplicantSource } from "@/lib/applicants";
 import type { JobRecord, JobsResponse } from "@/lib/jobs";
 import type { ShortlistRecord, ShortlistSummary } from "@/lib/shortlists";
 import type { CandidateDirectoryResponse, CandidateFilterStatus, CandidateSortKey, CandidateListItem } from "@/lib/candidate-directory";
+import type { CandidateStatus } from "@/lib/candidates";
 import { ADVANCED_STATUSES } from "@/lib/candidate-directory";
 
 const PAGE_SIZE_DEFAULT = 10;
@@ -108,7 +109,7 @@ async function listAllShortlistSummaries(token: string): Promise<ShortlistSummar
 
 function buildStatusCounts(candidates: CandidateListItem[]) {
   return {
-    all: candidates.length,
+    all: candidates.filter((c) => c.status !== "rejected" && c.status !== "new").length,
     shortlisted: candidates.filter((c) => c.status === "shortlisted").length,
     advanced: candidates.filter((c) => ADVANCED_STATUSES.includes(c.status)).length,
     interview: candidates.filter((c) => c.status === "interview").length,
@@ -206,17 +207,24 @@ export async function GET(request: Request) {
     for (const shortlist of shortlistRecords) {
       const applicants = applicantsByJob.get(shortlist.job) ?? [];
       const applicantsByEmail = new Map(applicants.map((a) => [a.email.trim().toLowerCase(), a]));
-      const shortlistedEmails = new Set((shortlist.shortlist || []).map((entry) => entry.applicantEmail.trim().toLowerCase()));
+      const shortlistEntriesByEmail = new Map(
+        (shortlist.shortlist || []).map((entry) => [entry.applicantEmail.trim().toLowerCase(), entry])
+      );
 
       for (const result of shortlist.screeningResults || []) {
         const emailKey = result.applicantEmail.trim().toLowerCase();
         const applicant = applicantsByEmail.get(emailKey);
         const candidateId = buildCandidateId(shortlist.job, result.applicantEmail);
         const expYears = calculateApplicantExperienceYears(applicant);
+        const shortlistEntry = shortlistEntriesByEmail.get(emailKey);
+        const derivedStatus: CandidateStatus = shortlistEntry
+          ? ((shortlistEntry.pipelineStatus as CandidateStatus | undefined) || "shortlisted")
+          : "rejected";
 
         candidates.push({
           id: candidateId,
           jobId: shortlist.job,
+          shortlistId: shortlist._id,
           email: result.applicantEmail,
           name: applicantDisplayName(applicant, result.fullName || result.applicantEmail),
           title: applicant?.headline?.trim() || result.finalRecommendation,
@@ -226,7 +234,7 @@ export async function GET(request: Request) {
           experienceYears: expYears,
           location: applicant?.location?.trim() || "—",
           source: applicant ? humanizeApplicantSource(applicant.source) : "Screening Run",
-          status: shortlistedEmails.has(emailKey) ? "shortlisted" : "rejected",
+          status: derivedStatus,
           job: shortlist.jobTitle || jobsById.get(shortlist.job)?.title || "Unknown Job",
           appliedDate: formatAppliedDate(applicant?.createdAt || shortlist.createdAt),
           summary: result.summaryExplanation,
@@ -294,6 +302,9 @@ export async function GET(request: Request) {
     const start = (safePage - 1) * pageSize;
     const paginated = filtered.slice(start, start + pageSize);
 
+    const isActiveCandidate = (candidate: CandidateListItem) =>
+      candidate.status !== "rejected" && candidate.status !== "new";
+
     const response: CandidateDirectoryResponse = {
       data: paginated,
       page: safePage,
@@ -305,7 +316,9 @@ export async function GET(request: Request) {
         .sort((a, b) => a.localeCompare(b))
         .map((jobName) => ({
           job: jobName,
-          count: candidates.filter((candidate) => candidate.job === jobName).length,
+          count: candidates.filter(
+            (candidate) => candidate.job === jobName && isActiveCandidate(candidate)
+          ).length,
         })),
       message: "Candidates retrieved successfully",
     };

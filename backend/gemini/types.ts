@@ -291,6 +291,9 @@ export interface GeminiBatchScreeningMeta {
   processedApplicants: number;
   maxApplicants: number;
   truncatedApplicants: boolean;
+  unscoredApplicants?: number;
+  failedChunks?: number;
+  failureReasons?: string[];
 }
 
 export interface GeminiBatchNarrativeTarget {
@@ -333,6 +336,13 @@ export interface GeminiBatchScreeningResultEntry {
   summaryExplanation: string;
 }
 
+export type GeminiPipelineStatus =
+  | "shortlisted"
+  | "interview"
+  | "exam"
+  | "assessment"
+  | "practical";
+
 export interface GeminiBatchShortlistEntry {
   candidateRank: number;
   applicantEmail: string;
@@ -349,6 +359,7 @@ export interface GeminiBatchShortlistEntry {
   gapsOrRisks: string[];
   finalRecommendation: GeminiBatchRecommendation;
   summaryExplanation: string;
+  pipelineStatus?: GeminiPipelineStatus;
 }
 
 export interface GeminiBatchScreeningResponse {

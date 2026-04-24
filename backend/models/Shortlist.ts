@@ -7,6 +7,21 @@ export type ShortlistRecommendation =
   | 'Shortlist'
   | 'Strong Shortlist';
 
+export type PipelineStatus =
+  | 'shortlisted'
+  | 'interview'
+  | 'exam'
+  | 'assessment'
+  | 'practical';
+
+export const PIPELINE_STATUS_VALUES: PipelineStatus[] = [
+  'shortlisted',
+  'interview',
+  'exam',
+  'assessment',
+  'practical',
+];
+
 export interface IShortlistResultEntry {
   candidateRank: number;
   applicantEmail: string;
@@ -41,6 +56,7 @@ export interface IShortlistEntry {
   gapsOrRisks: string[];
   finalRecommendation: ShortlistRecommendation;
   summaryExplanation: string;
+  pipelineStatus?: PipelineStatus;
 }
 
 export interface IShortlistWeightCriterion {
@@ -160,6 +176,11 @@ const ShortlistEntrySchema: Schema = new Schema(
       required: true,
     },
     summaryExplanation: { type: String, default: '' },
+    pipelineStatus: {
+      type: String,
+      enum: PIPELINE_STATUS_VALUES,
+      default: 'shortlisted',
+    },
   },
   { _id: false }
 );
