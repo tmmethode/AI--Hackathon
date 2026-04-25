@@ -46,11 +46,15 @@ export function proxy(request: NextRequest) {
   if (pathname === "/login") {
     const authError = nextUrl.searchParams.get("error");
     const nextParam = nextUrl.searchParams.get("next");
+    const demoParam = nextUrl.searchParams.get("demo");
 
     if (!token || authError) {
       if (!nextParam && !authError) {
         const loginUrl = new URL("/login", request.url);
         loginUrl.searchParams.set("next", DEFAULT_APP_PATH);
+        if (demoParam) {
+          loginUrl.searchParams.set("demo", demoParam);
+        }
         return withNoStore(NextResponse.redirect(loginUrl));
       }
       return withNoStore(NextResponse.next());
