@@ -189,14 +189,14 @@ The [Talent Profile Schema Specification](https://github.com/tmmethode/AI--Hacka
 
 | Section | What's enforced |
 |---|---|
-| §3.1 Basic Info | `firstName`, `lastName`, `email` (unique per job), `headline`, `location` are required. `bio` optional. |
-| §3.2 Skills & Languages | `skills` non-empty; `level` ∈ `Beginner / Intermediate / Advanced / Expert`. `languages` optional; `proficiency` ∈ `Basic / Conversational / Fluent / Native`. |
-| §3.3 Experience | Non-empty array; `company` + `role` required; `startDate` / `endDate` match `YYYY-MM` (or `Present`). |
-| §3.4 Education | Non-empty; `institution` required; year range 1950..currentYear+10. |
-| §3.5 Certifications | Optional; `issueDate` matches `YYYY-MM`. |
-| §3.6 Projects | Non-empty; date format `YYYY-MM`. |
-| §3.7 Availability | Required object; `status` ∈ enum, `type` ∈ enum; `startDate` matches `YYYY-MM-DD`. |
-| §3.8 Social Links | Optional. |
+| 3.1 Basic Info | `firstName`, `lastName`, `email` (unique per job), `headline`, `location` are required. `bio` optional. |
+| 3.2 Skills & Languages | `skills` non-empty; `level` ∈ `Beginner / Intermediate / Advanced / Expert`. `languages` optional; `proficiency` ∈ `Basic / Conversational / Fluent / Native`. |
+| 3.3 Experience | Non-empty array; `company` + `role` required; `startDate` / `endDate` match `YYYY-MM` (or `Present`). |
+| 3.4 Education | Non-empty; `institution` required; year range 1950..currentYear+10. |
+| 3.5 Certifications | Optional; `issueDate` matches `YYYY-MM`. |
+| 3.6 Projects | Non-empty; date format `YYYY-MM`. |
+| 3.7 Availability | Required object; `status` ∈ enum, `type` ∈ enum; `startDate` matches `YYYY-MM-DD`. |
+| 3.8 Social Links | Optional. |
 
 **Where the rules live:**
 - [`backend/models/Applicant.ts`](backend/models/Applicant.ts) — Mongoose validators (`enum`, `match`, non-empty, conditional `required`).
