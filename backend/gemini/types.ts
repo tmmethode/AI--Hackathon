@@ -258,23 +258,23 @@ export interface GeminiApplicantSocialLinks {
 }
 
 // Mirrors the Talent Profile Schema (§3.1 – §3.8). Source-of-truth lives in
-// backend/models/Applicant.ts; this shape is only built from already-validated
-// Mongo documents (see batch-screening-runner.ts and assistant.ts), so the
-// required fields below are guaranteed populated by the persistence layer.
+// backend/models/Applicant.ts. Only the identity fields are guaranteed
+// populated; all other Talent Profile sections are stored when present and
+// remain optional so ingest never blocks on incomplete applicants.
 export interface GeminiBatchApplicant {
   firstName: string;
   lastName: string;
   email: string;
-  headline: string;
+  headline?: string;
   bio?: string;
-  location: string;
+  location?: string;
   skills: GeminiApplicantSkill[];
   languages?: GeminiApplicantLanguage[];
   experience: GeminiApplicantExperience[];
   education: GeminiApplicantEducation[];
   certifications?: GeminiApplicantCertification[];
   projects: GeminiApplicantProject[];
-  availability: GeminiApplicantAvailability;
+  availability?: GeminiApplicantAvailability;
   socialLinks?: GeminiApplicantSocialLinks;
 }
 

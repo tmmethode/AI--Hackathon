@@ -483,30 +483,21 @@ function buildApplicantUpdatePayload(form: ApplicantEditFormState): UpdateApplic
   const availabilityStatus = form.availabilityStatus.trim();
   const availabilityType = form.availabilityType.trim();
 
-  // Required-field checks aligned with the Talent Profile Schema (§3.1, §3.7)
-  // and the backend Mongoose model.
-  const missing: string[] = [];
-  if (!firstName) missing.push("First Name");
-  if (!lastName) missing.push("Last Name");
-  if (!email) missing.push("Email");
-  if (!headline) missing.push("Headline");
-  if (!location) missing.push("Location");
-  if (!availabilityStatus) missing.push("Availability Status");
-  if (!availabilityType) missing.push("Availability Type");
-  if (form.skills.filter((skill) => skill.name.trim()).length === 0) missing.push("at least one Skill");
-  if (form.experience.filter((entry) => entry.company.trim() || entry.role.trim()).length === 0) missing.push("at least one Experience entry");
-  if (form.education.filter((entry) => entry.institution.trim()).length === 0) missing.push("at least one Education entry");
-  if (form.projects.filter((entry) => entry.name.trim()).length === 0) missing.push("at least one Project");
-
-  if (missing.length > 0) {
-    throw new Error(`Required field(s) missing: ${missing.join(", ")}.`);
+  // Only identity fields are hard-required; everything else is stored when
+  // provided and left empty otherwise so an edit never blocks on incomplete
+  // applicants.
+  if (!firstName || !lastName || !email) {
+    throw new Error("Required field(s) missing: First Name, Last Name, Email.");
   }
 
-  const availability = {
-    status: availabilityStatus,
-    type: availabilityType,
-    startDate: form.availabilityStartDate.trim() || undefined,
-  };
+  const availability =
+    availabilityStatus || availabilityType || form.availabilityStartDate.trim()
+      ? {
+          status: availabilityStatus || undefined,
+          type: availabilityType || undefined,
+          startDate: form.availabilityStartDate.trim() || undefined,
+        }
+      : undefined;
 
   const socialLinks =
     form.linkedin.trim() || form.github.trim() || form.portfolio.trim()
@@ -587,9 +578,9 @@ function buildApplicantUpdatePayload(form: ApplicantEditFormState): UpdateApplic
     firstName,
     lastName,
     email,
-    headline,
+    headline: headline || undefined,
     bio: form.bio.trim() || undefined,
-    location,
+    location: location || undefined,
     skills,
     languages,
     experience,
@@ -982,7 +973,60 @@ function normalizeProjectEntries(value: unknown) {
     .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
 }
 
-function normalizeApplicantInput(raw: unknown): ApplicantProfileInput {
+// Critical fields drive AI screening accuracy — without them the LLM has
+// nothing useful to score. Recruiters cannot bypass these.
+const CRITICAL_REQUIRED_FIELDS = new Set(["skills", "experience", "education"]);
+
+// Soft fields are required by the spec but recruiters can opt to backfill
+// safe defaults and accept the record so it still enters the workspace.
+const SOFT_REQUIRED_FIELD_DEFAULTS: Record<string, string> = {
+  headline: "Untitled candidate",
+  location: "Not provided",
+  projects: "1 placeholder project will be added — please review.",
+  "availability.status": "Open to Opportunities",
+  "availability.type": "Full-time",
+};
+
+interface NormalizedApplicantResult {
+  profile: ApplicantProfileInput;
+  missing: string[];
+}
+
+function partitionMissing(missing: string[]) {
+  const critical = missing.filter((field) => CRITICAL_REQUIRED_FIELDS.has(field));
+  const soft = missing.filter((field) => !CRITICAL_REQUIRED_FIELDS.has(field));
+  return { critical, soft };
+}
+
+// Backfill safe defaults for the soft-required fields so an accepted record
+// passes the model's strict spec validators. Critical fields are NEVER
+// auto-filled — those records must be skipped.
+function applySoftDefaults(profile: ApplicantProfileInput, missing: string[]): ApplicantProfileInput {
+  const next: ApplicantProfileInput = { ...profile };
+  if (missing.includes("headline") && !next.headline?.trim()) {
+    next.headline = SOFT_REQUIRED_FIELD_DEFAULTS.headline;
+  }
+  if (missing.includes("location") && !next.location?.trim()) {
+    next.location = SOFT_REQUIRED_FIELD_DEFAULTS.location;
+  }
+  if (missing.includes("projects") && (!next.projects || next.projects.length === 0)) {
+    next.projects = [{
+      name: "Placeholder — projects not provided at import",
+      description: "Auto-filled when the recruiter chose to accept this applicant despite missing project data.",
+    }];
+  }
+  if (missing.some((field) => field.startsWith("availability"))) {
+    const current = next.availability || {};
+    next.availability = {
+      status: current.status?.trim() || SOFT_REQUIRED_FIELD_DEFAULTS["availability.status"],
+      type: current.type?.trim() || SOFT_REQUIRED_FIELD_DEFAULTS["availability.type"],
+      startDate: current.startDate,
+    };
+  }
+  return next;
+}
+
+function normalizeApplicantInput(raw: unknown): NormalizedApplicantResult {
   if (!raw || typeof raw !== "object") {
     throw new Error("Each applicant entry must be an object.");
   }
@@ -1201,23 +1245,11 @@ function normalizeApplicantInput(raw: unknown): ApplicantProfileInput {
       },
   };
 
-  const missing: string[] = [];
-  if (!normalized.headline?.trim()) missing.push("headline");
-  if (!normalized.location?.trim()) missing.push("location");
-  if (!normalized.skills || normalized.skills.length === 0) missing.push("skills");
-  if (!normalized.experience || normalized.experience.length === 0) missing.push("experience");
-  if (!normalized.education || normalized.education.length === 0) missing.push("education");
-  if (!normalized.projects || normalized.projects.length === 0) missing.push("projects");
-  if (!normalized.availability?.status?.trim()) missing.push("availability.status");
-  if (!normalized.availability?.type?.trim()) missing.push("availability.type");
-
-  if (missing.length > 0) {
-    throw new Error(
-      `Applicant ${normalized.email} is missing required Talent Profile Schema fields: ${missing.join(", ")}.`
-    );
-  }
-
-  return normalized;
+  // Talent Profile Schema fields beyond firstName / lastName / email are now
+  // stored when present but no longer hard-required, so ingest never blocks
+  // on incomplete applicants. Returning an empty `missing[]` keeps the
+  // existing call sites + validation modal as no-ops.
+  return { profile: normalized, missing: [] };
 }
 
 function parseCsvRow(line: string) {
@@ -1676,6 +1708,20 @@ export default function IngestPage() {
   const [managementError, setManagementError] = useState("");
   const [lastImportSummary, setLastImportSummary] = useState<IngestSummary | null>(null);
   const [lastImportTab, setLastImportTab] = useState<TabId>("pdf");
+  const [pendingImport, setPendingImport] = useState<{
+    source: "json" | "csv";
+    targetJobId: string;
+    valid: ApplicantProfileInput[];
+    invalid: {
+      email: string;
+      profile: ApplicantProfileInput;
+      missing: string[];
+      criticalMissing: string[];
+      softMissing: string[];
+      sourceFile: string;
+    }[];
+    totalRecords: number;
+  } | null>(null);
 
   const currentJob = useMemo(
     () => jobs.find((job) => job._id === selectedJob) ?? null,
@@ -1954,6 +2000,93 @@ export default function IngestPage() {
     });
   }
 
+  async function handleImportSuccess(summary: IngestSummary, importTab: TabId) {
+    updateImportProgress(importTab, "refreshing", 92, "Refreshing jobs and applicant preview…");
+    setLastImportSummary(summary);
+    setLastImportTab(importTab);
+    setPage(1);
+    await loadJobs();
+    updateImportProgress(importTab, "refreshing", 96, "Reloading live applicant records…");
+    await loadApplicants(selectedJob);
+    updateImportProgress(importTab, "refreshing", 100, "Import complete. Preparing summary…");
+    setShowSuccessModal(true);
+  }
+
+  // Push the validated applicants to the backend (called either directly when
+  // every record passes validation, or after the user confirms skipping the
+  // non-compliant ones in the validation review modal).
+  async function uploadValidatedProfiles(input: {
+    source: "json" | "csv";
+    targetJobId: string;
+    profiles: ApplicantProfileInput[];
+  }): Promise<IngestSummary> {
+    const importTab: TabId = input.source === "json" ? "json" : "csv";
+    if (input.source === "json") {
+      updateImportProgress(
+        importTab,
+        "uploading",
+        44,
+        `Uploading ${input.profiles.length} applicant records to the backend…`
+      );
+      return ingestApplicantsFromPlatform(input.targetJobId, input.profiles, (progress: IngestUploadProgress) => {
+        updateImportProgress(
+          importTab,
+          "uploading",
+          mapPercentToRange(progress.percent, 44, 88),
+          `Uploading ${input.profiles.length} applicant records… ${progress.percent}%`
+        );
+      });
+    }
+
+    updateImportProgress(
+      importTab,
+      "uploading",
+      44,
+      `Uploading ${input.profiles.length} CSV applicant records…`
+    );
+    return ingestApplicantsFromCsv(input.targetJobId, { applicants: input.profiles }, (progress: IngestUploadProgress) => {
+      updateImportProgress(
+        importTab,
+        "uploading",
+        mapPercentToRange(progress.percent, 44, 88),
+        `Uploading parsed CSV applicants… ${progress.percent}%`
+      );
+    });
+  }
+
+  async function finalizeUpload(input: {
+    source: "json" | "csv";
+    targetJobId: string;
+    profiles: ApplicantProfileInput[];
+    skippedCount: number;
+  }): Promise<void> {
+    const importTab: TabId = input.source === "json" ? "json" : "csv";
+    setIsImporting(true);
+    updateImportProgress(importTab, "uploading", 44, `Uploading ${input.profiles.length} applicant records…`);
+    try {
+      const summary = await uploadValidatedProfiles({
+        source: input.source,
+        targetJobId: input.targetJobId,
+        profiles: input.profiles,
+      });
+
+      if (input.skippedCount > 0) {
+        summary.skipped = (summary.skipped || 0) + input.skippedCount;
+        const note = `${input.skippedCount} applicant${input.skippedCount === 1 ? "" : "s"} skipped — schema requirements not met.`;
+        summary.message = summary.message ? `${summary.message} ${note}` : note;
+      }
+
+      handleImportSuccess(summary, importTab);
+      if (input.source === "json") setJsonFiles([]);
+      if (input.source === "csv") setCsvFiles([]);
+    } catch (importError) {
+      setError(importError instanceof Error ? importError.message : "Import failed.");
+      setImportProgress(null);
+    } finally {
+      setIsImporting(false);
+    }
+  }
+
   async function handleImport() {
     setError("");
 
@@ -1970,91 +2103,91 @@ export default function IngestPage() {
     try {
       let summary: IngestSummary;
 
-      if (importTab === "json") {
-        if (jsonFiles.length === 0) {
-          throw new Error("Add at least one JSON file before importing.");
+      if (importTab === "json" || importTab === "csv") {
+        const filesToProcess = importTab === "json" ? jsonFiles : csvFiles;
+        if (filesToProcess.length === 0) {
+          throw new Error(
+            importTab === "json"
+              ? "Add at least one JSON file before importing."
+              : "Add at least one CSV file before importing."
+          );
         }
 
-        const applicantGroups: ApplicantProfileInput[][] = [];
+        const valid: ApplicantProfileInput[] = [];
+        const invalid: NonNullable<typeof pendingImport>["invalid"] = [];
 
-        for (let index = 0; index < jsonFiles.length; index += 1) {
-          const { file } = jsonFiles[index];
+        for (let index = 0; index < filesToProcess.length; index += 1) {
+          const { file } = filesToProcess[index];
           updateImportProgress(
             importTab,
             "preparing",
-            mapPercentToRange((index / jsonFiles.length) * 100, 8, 38),
-            `Reading ${file.name} (${index + 1}/${jsonFiles.length})…`
+            mapPercentToRange((index / filesToProcess.length) * 100, 8, 38),
+            `${importTab === "json" ? "Reading" : "Parsing"} ${file.name} (${index + 1}/${filesToProcess.length})…`
           );
 
           const text = await readFileAsText(file);
-          const payload = JSON.parse(text);
-          const records = extractApplicantRecordsFromJsonPayload(payload);
+          let records: unknown[] | null;
 
-          if (!records) {
-            throw new Error(
-              `${file.name} must contain a single applicant object, an applicants array, or an object with applicants[].`
-            );
+          if (importTab === "json") {
+            const payload = JSON.parse(text);
+            records = extractApplicantRecordsFromJsonPayload(payload);
+            if (!records) {
+              throw new Error(
+                `${file.name} must contain a single applicant object, an applicants array, or an object with applicants[].`
+              );
+            }
+          } else {
+            records = parseCsvText(text);
+            if (records.length === 0) {
+              throw new Error(`${file.name} does not contain any applicant rows.`);
+            }
           }
 
-          applicantGroups.push(records.map((entry) => normalizeApplicantInput(entry)));
-        }
-
-        updateImportProgress(
-          importTab,
-          "uploading",
-          44,
-          `Uploading ${applicantGroups.flat().length} applicant records to the backend…`
-        );
-        summary = await ingestApplicantsFromPlatform(targetJobId, applicantGroups.flat(), (progress: IngestUploadProgress) => {
-          updateImportProgress(
-            importTab,
-            "uploading",
-            mapPercentToRange(progress.percent, 44, 88),
-            `Uploading ${applicantGroups.flat().length} applicant records… ${progress.percent}%`
-          );
-        });
-        setJsonFiles([]);
-      } else if (importTab === "csv") {
-        if (csvFiles.length === 0) {
-          throw new Error("Add at least one CSV file before importing.");
-        }
-
-        const applicantGroups: ApplicantProfileInput[][] = [];
-
-        for (let index = 0; index < csvFiles.length; index += 1) {
-          const { file } = csvFiles[index];
-          updateImportProgress(
-            importTab,
-            "preparing",
-            mapPercentToRange((index / csvFiles.length) * 100, 8, 38),
-            `Parsing ${file.name} (${index + 1}/${csvFiles.length})…`
-          );
-
-          const text = await readFileAsText(file);
-          const rows = parseCsvText(text);
-
-          if (rows.length === 0) {
-            throw new Error(`${file.name} does not contain any applicant rows.`);
+          for (const entry of records) {
+            const result = normalizeApplicantInput(entry);
+            if (result.missing.length === 0) {
+              valid.push(result.profile);
+            } else {
+              const { critical, soft } = partitionMissing(result.missing);
+              invalid.push({
+                email: result.profile.email,
+                profile: result.profile,
+                missing: result.missing,
+                criticalMissing: critical,
+                softMissing: soft,
+                sourceFile: file.name,
+              });
+            }
           }
-
-          applicantGroups.push(rows.map((row) => normalizeApplicantInput(row)));
         }
 
-        updateImportProgress(
-          importTab,
-          "uploading",
-          44,
-          `Uploading ${applicantGroups.flat().length} CSV applicant records…`
-        );
-        summary = await ingestApplicantsFromCsv(targetJobId, { applicants: applicantGroups.flat() }, (progress: IngestUploadProgress) => {
-          updateImportProgress(
-            importTab,
-            "uploading",
-            mapPercentToRange(progress.percent, 44, 88),
-            `Uploading parsed CSV applicants… ${progress.percent}%`
+        // Stop the inline upload and let the user decide whether to skip the
+        // non-compliant applicants. uploadValidatedProfiles runs after they
+        // confirm in the modal.
+        if (invalid.length > 0) {
+          setIsImporting(false);
+          setImportProgress(null);
+          setPendingImport({
+            source: importTab,
+            targetJobId,
+            valid,
+            invalid,
+            totalRecords: valid.length + invalid.length,
+          });
+          return;
+        }
+
+        if (valid.length === 0) {
+          throw new Error(
+            importTab === "json"
+              ? "No applicant records were found in the uploaded JSON."
+              : "No applicant rows were found in the uploaded CSV."
           );
-        });
-        setCsvFiles([]);
+        }
+
+        summary = await uploadValidatedProfiles({ source: importTab, targetJobId, profiles: valid });
+        if (importTab === "json") setJsonFiles([]);
+        if (importTab === "csv") setCsvFiles([]);
       } else if (importTab === "pdf") {
         if (files.length === 0) {
           throw new Error("Add at least one resume file before importing.");
@@ -2668,13 +2801,13 @@ export default function IngestPage() {
                     onChange={(event) => setEditForm((previous) => previous ? { ...previous, email: event.target.value } : previous)}
                   />
                 </Field>
-                <Field label="Headline" className="md:col-span-2" required>
+                <Field label="Headline" className="md:col-span-2">
                   <Input
                     value={editForm.headline}
                     onChange={(event) => setEditForm((previous) => previous ? { ...previous, headline: event.target.value } : previous)}
                   />
                 </Field>
-                <Field label="Location" className="md:col-span-2" required>
+                <Field label="Location" className="md:col-span-2">
                   <Input
                     value={editForm.location}
                     onChange={(event) => setEditForm((previous) => previous ? { ...previous, location: event.target.value } : previous)}
@@ -2690,7 +2823,7 @@ export default function IngestPage() {
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <Field label="Availability Status" required>
+                <Field label="Availability Status">
                   <Select
                     value={editForm.availabilityStatus}
                     onChange={(event) => setEditForm((previous) => previous ? { ...previous, availabilityStatus: event.target.value } : previous)}
@@ -2701,7 +2834,7 @@ export default function IngestPage() {
                     <option value="Not Available">Not Available</option>
                   </Select>
                 </Field>
-                <Field label="Availability Type" required>
+                <Field label="Availability Type">
                   <Select
                     value={editForm.availabilityType}
                     onChange={(event) => setEditForm((previous) => previous ? { ...previous, availabilityType: event.target.value } : previous)}
@@ -2744,9 +2877,9 @@ export default function IngestPage() {
 
               <CollectionEditor
                 title="Skills"
-                description="Add each skill the applicant is strong in. At least one skill is required."
+                description="Add each skill the applicant is strong in."
                 items={editForm.skills}
-                emptyMessage="No skills added yet — at least one skill is required."
+                emptyMessage="No skills added yet."
                 onAdd={() =>
                   setEditForm((previous) =>
                     previous ? { ...previous, skills: [...previous.skills, { name: "", level: "", yearsOfExperience: undefined }] } : previous
@@ -2890,9 +3023,8 @@ export default function IngestPage() {
 
               <CollectionEditor
                 title="Experience"
-                description="At least one experience entry is required."
                 items={editForm.experience}
-                emptyMessage="No work experience added yet — at least one entry is required."
+                emptyMessage="No work experience added yet."
                 onAdd={() =>
                   setEditForm((previous) =>
                     previous
@@ -3046,9 +3178,8 @@ export default function IngestPage() {
 
               <CollectionEditor
                 title="Education"
-                description="At least one education entry is required."
                 items={editForm.education}
-                emptyMessage="No education added yet — at least one entry is required."
+                emptyMessage="No education added yet."
                 onAdd={() =>
                   setEditForm((previous) =>
                     previous
@@ -3250,9 +3381,8 @@ export default function IngestPage() {
 
               <CollectionEditor
                 title="Projects"
-                description="At least one project is required."
                 items={editForm.projects}
-                emptyMessage="No projects added yet — at least one entry is required."
+                emptyMessage="No projects added yet."
                 onAdd={() =>
                   setEditForm((previous) =>
                     previous
@@ -3545,7 +3675,156 @@ export default function IngestPage() {
         </ModalBody>
       </Modal>
 
-      <Modal open={showSuccessModal} onClose={() => setShowSuccessModal(false)} size="sm">
+      <Modal open={Boolean(pendingImport)} onClose={() => setPendingImport(null)} size="lg">
+        <ModalHeader
+          title="Some applicants don't meet the Talent Profile Schema"
+          subtitle={pendingImport ? `${pendingImport.invalid.length} of ${pendingImport.totalRecords} applicant${pendingImport.totalRecords === 1 ? "" : "s"} cannot be imported as-is.` : ""}
+          onClose={() => setPendingImport(null)}
+        />
+        <ModalBody className="flex flex-col gap-4">
+          {(() => {
+            if (!pendingImport) return null;
+            const acceptable = pendingImport.invalid.filter((entry) => entry.criticalMissing.length === 0);
+            const skipOnly = pendingImport.invalid.filter((entry) => entry.criticalMissing.length > 0);
+
+            return (
+              <>
+                <div className="rounded-md border border-warning/30 bg-warning/10 p-4 text-sm text-warning-deep">
+                  <p className="font-semibold">Choose how to handle the incomplete records.</p>
+                  <p className="mt-1 text-xs">
+                    <strong>Critical fields</strong> (skills, experience, education) are required for AI screening — applicants missing these can only be skipped.
+                    <br />
+                    <strong>Soft fields</strong> (headline, location, projects, availability) can be auto-filled with safe defaults so the applicant still enters the workspace.
+                  </p>
+                </div>
+
+                {acceptable.length > 0 && (
+                  <div className="overflow-hidden rounded-md border border-success/30">
+                    <div className="border-b border-success/30 bg-success/5 px-3 py-2 text-xs font-semibold text-success">
+                      ✓ {acceptable.length} can be accepted with auto-filled defaults
+                    </div>
+                    <div className="grid grid-cols-[1.6fr_1fr_1.4fr] gap-2 border-b border-line bg-surface-soft/40 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                      <span>Email</span>
+                      <span>Source file</span>
+                      <span>Soft fields missing</span>
+                    </div>
+                    <ul className="max-h-48 divide-y divide-line overflow-y-auto">
+                      {acceptable.map((entry, index) => (
+                        <li key={`accept-${entry.email}-${index}`} className="grid grid-cols-[1.6fr_1fr_1.4fr] gap-2 px-3 py-2 text-xs">
+                          <span className="truncate text-ink">{entry.email}</span>
+                          <span className="truncate text-ink-muted">{entry.sourceFile}</span>
+                          <span className="flex flex-wrap gap-1">
+                            {entry.softMissing.map((field) => (
+                              <Badge key={`${entry.email}-${field}`} tone="warning">{field}</Badge>
+                            ))}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {skipOnly.length > 0 && (
+                  <div className="overflow-hidden rounded-md border border-danger/30">
+                    <div className="border-b border-danger/30 bg-danger/5 px-3 py-2 text-xs font-semibold text-danger">
+                      ✕ {skipOnly.length} must be skipped — critical data missing
+                    </div>
+                    <div className="grid grid-cols-[1.6fr_1fr_1.4fr] gap-2 border-b border-line bg-surface-soft/40 px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                      <span>Email</span>
+                      <span>Source file</span>
+                      <span>Critical · Soft missing</span>
+                    </div>
+                    <ul className="max-h-48 divide-y divide-line overflow-y-auto">
+                      {skipOnly.map((entry, index) => (
+                        <li key={`skip-${entry.email}-${index}`} className="grid grid-cols-[1.6fr_1fr_1.4fr] gap-2 px-3 py-2 text-xs">
+                          <span className="truncate text-ink">{entry.email}</span>
+                          <span className="truncate text-ink-muted">{entry.sourceFile}</span>
+                          <span className="flex flex-wrap gap-1">
+                            {entry.criticalMissing.map((field) => (
+                              <Badge key={`${entry.email}-c-${field}`} tone="danger">{field}</Badge>
+                            ))}
+                            {entry.softMissing.map((field) => (
+                              <Badge key={`${entry.email}-s-${field}`} tone="warning">{field}</Badge>
+                            ))}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {pendingImport.valid.length > 0 && (
+                  <p className="text-xs text-ink-muted">
+                    <strong className="text-ink">{pendingImport.valid.length}</strong> applicant{pendingImport.valid.length === 1 ? "" : "s"} {pendingImport.valid.length === 1 ? "passes" : "pass"} the schema check and {pendingImport.valid.length === 1 ? "is" : "are"} ready to import.
+                  </p>
+                )}
+              </>
+            );
+          })()}
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setPendingImport(null)}>
+            Cancel
+          </Button>
+          {(() => {
+            if (!pendingImport) return null;
+            const acceptable = pendingImport.invalid.filter((entry) => entry.criticalMissing.length === 0);
+            const skipOnly = pendingImport.invalid.filter((entry) => entry.criticalMissing.length > 0);
+            const skipOnlyImportCount = pendingImport.valid.length;
+            const acceptImportCount = pendingImport.valid.length + acceptable.length;
+            const skipOnlySkipCount = pendingImport.invalid.length;
+            const acceptSkipCount = skipOnly.length;
+
+            return (
+              <>
+                <Button
+                  variant="secondary"
+                  disabled={skipOnlyImportCount === 0 || isImporting}
+                  onClick={() => {
+                    const proceed = pendingImport;
+                    setPendingImport(null);
+                    void finalizeUpload({
+                      source: proceed.source,
+                      targetJobId: proceed.targetJobId,
+                      profiles: proceed.valid,
+                      skippedCount: skipOnlySkipCount,
+                    });
+                  }}
+                >
+                  {skipOnlyImportCount > 0
+                    ? `Skip all ${skipOnlySkipCount} & import ${skipOnlyImportCount}`
+                    : "Nothing to import"}
+                </Button>
+                <Button
+                  disabled={acceptImportCount === 0 || acceptable.length === 0 || isImporting}
+                  onClick={() => {
+                    const proceed = pendingImport;
+                    setPendingImport(null);
+                    const accepted = acceptable.map((entry) => applySoftDefaults(entry.profile, entry.softMissing));
+                    void finalizeUpload({
+                      source: proceed.source,
+                      targetJobId: proceed.targetJobId,
+                      profiles: [...proceed.valid, ...accepted],
+                      skippedCount: acceptSkipCount,
+                    });
+                  }}
+                  title={
+                    acceptable.length === 0
+                      ? "No applicants are eligible for the soft-default backfill"
+                      : `Accept ${acceptable.length} record${acceptable.length === 1 ? "" : "s"} with safe defaults and import everything else`
+                  }
+                >
+                  {acceptable.length > 0
+                    ? `Accept ${acceptable.length} & import ${acceptImportCount}`
+                    : "No soft-only records"}
+                </Button>
+              </>
+            );
+          })()}
+        </ModalFooter>
+      </Modal>
+
+      <Modal open={showSuccessModal} onClose={() => setShowSuccessModal(false)} size="md">
         <ModalBody className="flex flex-col items-center gap-5 py-8 text-center">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
             <CheckCircle2 className="h-8 w-8 text-success" />
@@ -3557,6 +3836,46 @@ export default function IngestPage() {
               {lastImportSummary ? ` ${lastImportSummary.message}` : ""}
             </p>
           </div>
+
+          {lastImportSummary && (
+            <div className="grid w-full grid-cols-3 gap-2">
+              <div className="rounded-lg border border-success/30 bg-success/5 p-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-success">Created</p>
+                <p className="mt-1 font-display text-2xl font-bold text-success">{lastImportSummary.created}</p>
+              </div>
+              <div className="rounded-lg border border-warning/30 bg-warning/10 p-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-warning-deep">Skipped</p>
+                <p className="mt-1 font-display text-2xl font-bold text-warning-deep">{lastImportSummary.skipped}</p>
+                <p className="text-[10px] text-ink-muted">duplicates</p>
+              </div>
+              <div className="rounded-lg border border-danger/30 bg-danger/5 p-3">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-danger">Failed</p>
+                <p className="mt-1 font-display text-2xl font-bold text-danger">{lastImportSummary.failed}</p>
+                <p className="text-[10px] text-ink-muted">validation</p>
+              </div>
+            </div>
+          )}
+
+          {lastImportSummary && lastImportSummary.errors && lastImportSummary.errors.length > 0 && (
+            <div className="w-full rounded-md border border-line bg-surface-soft/30 text-left">
+              <p className="border-b border-line px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                Why some applicants were not created
+              </p>
+              <ul className="max-h-44 divide-y divide-line overflow-y-auto">
+                {lastImportSummary.errors.slice(0, 10).map((entry, index) => (
+                  <li key={`err-${index}`} className="px-3 py-2 text-xs">
+                    <p className="truncate font-medium text-ink">{entry.email || `Record #${entry.index + 1}`}</p>
+                    <p className="text-[11px] leading-snug text-ink-muted">{entry.message}</p>
+                  </li>
+                ))}
+                {lastImportSummary.errors.length > 10 && (
+                  <li className="px-3 py-2 text-[11px] italic text-ink-muted">
+                    + {lastImportSummary.errors.length - 10} more — open the Live Preview to inspect.
+                  </li>
+                )}
+              </ul>
+            </div>
+          )}
 
           <div className="w-full rounded-lg border border-line bg-surface-soft/30 p-4">
             <div className="flex items-center gap-3">

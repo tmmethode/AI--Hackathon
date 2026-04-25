@@ -84,11 +84,9 @@ export interface IApplicant extends Document {
   firstName: string;
   lastName: string;
   email: string;
-  // Required by the schema since the Talent Profile Schema §3.1 update.
-  // Legacy documents that pre-date this change may still have these missing.
-  headline: string;
+  headline?: string;
   bio?: string;
-  location: string;
+  location?: string;
 
   skills: ISkill[];
   languages: ILanguage[];
@@ -97,8 +95,7 @@ export interface IApplicant extends Document {
   certifications: ICertification[];
   projects: IProject[];
 
-  // Required by the schema since the Talent Profile Schema §3.7 update.
-  availability: IAvailability;
+  availability?: IAvailability;
   socialLinks?: ISocialLinks;
 
   // Ingestion metadata
@@ -195,15 +192,13 @@ const AvailabilitySchema = new Schema(
   {
     status: {
       type: String,
-      required: [true, 'availability.status is required.'],
       trim: true,
-      enum: { values: [...AVAILABILITY_STATUSES], message: 'availability.status must be one of Available, Open to Opportunities, Not Available.' },
+      enum: { values: [...AVAILABILITY_STATUSES, ''], message: 'availability.status must be one of Available, Open to Opportunities, Not Available.' },
     },
     type: {
       type: String,
-      required: [true, 'availability.type is required.'],
       trim: true,
-      enum: { values: [...AVAILABILITY_TYPES], message: 'availability.type must be one of Full-time, Part-time, Contract.' },
+      enum: { values: [...AVAILABILITY_TYPES, ''], message: 'availability.type must be one of Full-time, Part-time, Contract.' },
     },
     startDate: { type: String, trim: true, match: [DATE_YYYY_MM_DD_REGEX, 'availability.startDate must be YYYY-MM-DD.'] },
   },
@@ -223,74 +218,25 @@ const ApplicantSchema: Schema = new Schema(
   {
     job: { type: Schema.Types.ObjectId, ref: 'Job', required: true, index: true },
 
+    // Identity fields — only firstName, lastName, and email are required.
+    // The remaining Talent Profile Schema fields are stored if present (and
+    // still validated for shape via enum / regex / range below) but are no
+    // longer hard-required so ingest never blocks on incomplete applicants.
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true, lowercase: true },
-    headline: {
-      type: String,
-      trim: true,
-      required: [function (this: IApplicant) {
-        return requiresStructuredProfile(this);
-      }, 'headline is required per Talent Profile Schema §3.1.'],
-    },
+    headline: { type: String, trim: true },
     bio: { type: String, trim: true },
-    location: {
-      type: String,
-      trim: true,
-      required: [function (this: IApplicant) {
-        return requiresStructuredProfile(this);
-      }, 'location is required per Talent Profile Schema §3.1.'],
-    },
+    location: { type: String, trim: true },
 
-    skills: {
-      type: [SkillSchema],
-      default: [],
-      validate: {
-        validator: function (this: IApplicant, arr: unknown) {
-          return !requiresStructuredProfile(this) || (Array.isArray(arr) && arr.length > 0);
-        },
-        message: 'At least one skill is required per Talent Profile Schema §3.2.',
-      },
-    },
+    skills: { type: [SkillSchema], default: [] },
     languages: { type: [LanguageSchema], default: [] },
-    experience: {
-      type: [ExperienceSchema],
-      default: [],
-      validate: {
-        validator: function (this: IApplicant, arr: unknown) {
-          return !requiresStructuredProfile(this) || (Array.isArray(arr) && arr.length > 0);
-        },
-        message: 'At least one experience entry is required per Talent Profile Schema §3.3.',
-      },
-    },
-    education: {
-      type: [EducationSchema],
-      default: [],
-      validate: {
-        validator: function (this: IApplicant, arr: unknown) {
-          return !requiresStructuredProfile(this) || (Array.isArray(arr) && arr.length > 0);
-        },
-        message: 'At least one education entry is required per Talent Profile Schema §3.4.',
-      },
-    },
+    experience: { type: [ExperienceSchema], default: [] },
+    education: { type: [EducationSchema], default: [] },
     certifications: { type: [CertificationSchema], default: [] },
-    projects: {
-      type: [ProjectSchema],
-      default: [],
-      validate: {
-        validator: function (this: IApplicant, arr: unknown) {
-          return !requiresStructuredProfile(this) || (Array.isArray(arr) && arr.length > 0);
-        },
-        message: 'At least one project is required per Talent Profile Schema §3.6.',
-      },
-    },
+    projects: { type: [ProjectSchema], default: [] },
 
-    availability: {
-      type: AvailabilitySchema,
-      required: [function (this: IApplicant) {
-        return requiresStructuredProfile(this);
-      }, 'availability is required per Talent Profile Schema §3.7.'],
-    },
+    availability: { type: AvailabilitySchema },
     socialLinks: { type: SocialLinksSchema },
 
     source: {

@@ -40,21 +40,35 @@ interface Tool {
   label: string;
   icon: typeof Bold;
   shortcut?: string;
+  /** execCommand state to reflect in the toolbar (highlights when active). */
+  stateCommand?: string;
   run: () => void;
 }
 
+const INLINE_FORMAT_COMMANDS = ["bold", "italic", "underline", "strikeThrough"];
+
 function exec(command: string, valueArg?: string) {
-  // execCommand is deprecated but is still the most reliable way to apply
-  // inline formatting inside a contentEditable region without pulling in a
-  // full editor framework. All major browsers still implement it.
   document.execCommand(command, false, valueArg);
 }
 
-// Heuristic: treat plain text (no HTML tags) as authored prose and
-// preserve newlines by converting them into <p> / <br> so the WYSIWYG view
-// renders the same shape the user typed. An empty value still seeds an empty
-// <p> so the cursor lives inside a paragraph from the very first keystroke
-// (instead of inheriting whatever block/format state the browser was last in).
+function clearAllInlineFormatting() {
+  // Toggle off any inline formatting that's currently "on" so a fresh
+  // keystroke isn't silently bolded/italicised by stale browser state.
+  try {
+    INLINE_FORMAT_COMMANDS.forEach((command) => {
+      if (document.queryCommandState(command)) {
+        document.execCommand(command);
+      }
+    });
+  } catch {
+    // queryCommandState can throw in some browsers — non-fatal.
+  }
+}
+
+// Treat plain text (no HTML tags) as authored prose and preserve newlines by
+// converting them into <p> / <br> so the WYSIWYG view renders the same shape
+// the user typed. An empty value still seeds an empty <p> so the cursor lives
+// inside a paragraph from the very first keystroke.
 function normalizeInitialContent(input: string): string {
   if (!input) {
     return "<p><br></p>";
@@ -83,6 +97,7 @@ export function RichTextEditor({
   const lastEmittedRef = useRef<string>("");
   const [hasFocus, setHasFocus] = useState(false);
   const [isEmpty, setIsEmpty] = useState(true);
+  const [activeFormats, setActiveFormats] = useState<Record<string, boolean>>({});
 
   // Force "p" as the block element used when Enter is pressed so we don't end
   // up with bare <div> wrappers that can carry stale inline styles.
@@ -90,7 +105,7 @@ export function RichTextEditor({
     try {
       document.execCommand("defaultParagraphSeparator", false, "p");
     } catch {
-      // Older Safari versions throw if the command isn't supported — safe to ignore.
+      // Older Safari versions throw if the command isn't supported — non-fatal.
     }
   }, []);
 
@@ -110,6 +125,38 @@ export function RichTextEditor({
       setIsEmpty(editor.textContent?.trim().length === 0);
     }
   }, [value]);
+
+  const refreshActiveFormats = useCallback(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const next: Record<string, boolean> = {};
+    try {
+      INLINE_FORMAT_COMMANDS.forEach((command) => {
+        next[command] = document.queryCommandState(command);
+      });
+    } catch {
+      // queryCommandState can throw — leave next empty.
+    }
+    setActiveFormats(next);
+  }, []);
+
+  // Keep toolbar active state in sync with the current selection so the user
+  // can SEE which inline formats are on (and click to turn them off).
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const handler = () => {
+      const editor = editorRef.current;
+      if (!editor || !editor.contains(document.getSelection()?.anchorNode || null)) {
+        return;
+      }
+      refreshActiveFormats();
+    };
+    document.addEventListener("selectionchange", handler);
+    return () => document.removeEventListener("selectionchange", handler);
+  }, [refreshActiveFormats]);
 
   const emitChange = useCallback(() => {
     const editor = editorRef.current;
@@ -138,8 +185,9 @@ export function RichTextEditor({
       editor.focus();
       exec(command, valueArg);
       emitChange();
+      refreshActiveFormats();
     },
-    [emitChange]
+    [emitChange, refreshActiveFormats]
   );
 
   const insertLink = useCallback(() => {
@@ -148,7 +196,6 @@ export function RichTextEditor({
       return;
     }
     runCommand("createLink", url);
-    // Make link safe / open in a new tab.
     const editor = editorRef.current;
     if (editor) {
       editor.querySelectorAll("a").forEach((anchor) => {
@@ -160,10 +207,10 @@ export function RichTextEditor({
   }, [emitChange, runCommand]);
 
   const TOOLS: Tool[] = [
-    { key: "bold", label: "Bold", icon: Bold, shortcut: "Ctrl+B", run: () => runCommand("bold") },
-    { key: "italic", label: "Italic", icon: Italic, shortcut: "Ctrl+I", run: () => runCommand("italic") },
-    { key: "underline", label: "Underline", icon: Underline, shortcut: "Ctrl+U", run: () => runCommand("underline") },
-    { key: "strike", label: "Strikethrough", icon: Strikethrough, run: () => runCommand("strikeThrough") },
+    { key: "bold", label: "Bold", icon: Bold, shortcut: "Ctrl+B", stateCommand: "bold", run: () => runCommand("bold") },
+    { key: "italic", label: "Italic", icon: Italic, shortcut: "Ctrl+I", stateCommand: "italic", run: () => runCommand("italic") },
+    { key: "underline", label: "Underline", icon: Underline, shortcut: "Ctrl+U", stateCommand: "underline", run: () => runCommand("underline") },
+    { key: "strike", label: "Strikethrough", icon: Strikethrough, stateCommand: "strikeThrough", run: () => runCommand("strikeThrough") },
     { key: "h2", label: "Heading", icon: Heading2, run: () => runCommand("formatBlock", "H2") },
     { key: "h3", label: "Subheading", icon: Heading3, run: () => runCommand("formatBlock", "H3") },
     { key: "ul", label: "Bulleted list", icon: List, run: () => runCommand("insertUnorderedList") },
@@ -194,8 +241,6 @@ export function RichTextEditor({
     [runCommand]
   );
 
-  // Strip rich formatting from clipboard content so pasted text inherits the
-  // editor's existing styles instead of dragging in inline color/font CSS.
   const handlePaste = useCallback(
     (event: ClipboardEvent<HTMLDivElement>) => {
       event.preventDefault();
@@ -208,6 +253,18 @@ export function RichTextEditor({
     [emitChange]
   );
 
+  const handleBeforeInput = useCallback(() => {
+    // If the editor was empty and we're about to insert the first character,
+    // make sure no inline formatting toggle is silently active.
+    const editor = editorRef.current;
+    if (!editor) {
+      return;
+    }
+    if (editor.textContent?.trim().length === 0) {
+      clearAllInlineFormatting();
+    }
+  }, []);
+
   return (
     <div
       className={cn(
@@ -218,6 +275,7 @@ export function RichTextEditor({
       <div className="flex flex-wrap items-center gap-1 border-b border-line bg-surface-soft px-2 py-1.5">
         {TOOLS.map((tool) => {
           const Icon = tool.icon;
+          const isActive = tool.stateCommand ? Boolean(activeFormats[tool.stateCommand]) : false;
           return (
             <button
               key={tool.key}
@@ -228,7 +286,13 @@ export function RichTextEditor({
               onClick={tool.run}
               title={tool.shortcut ? `${tool.label} (${tool.shortcut})` : tool.label}
               aria-label={tool.label}
-              className="flex h-7 w-7 items-center justify-center rounded text-ink-muted transition-colors hover:bg-brand/10 hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+              aria-pressed={tool.stateCommand ? isActive : undefined}
+              className={cn(
+                "flex h-7 w-7 items-center justify-center rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40",
+                isActive
+                  ? "bg-brand/15 text-brand"
+                  : "text-ink-muted hover:bg-brand/10 hover:text-brand"
+              )}
             >
               <Icon className="h-3.5 w-3.5" />
             </button>
@@ -248,32 +312,32 @@ export function RichTextEditor({
           suppressContentEditableWarning
           spellCheck
           onInput={emitChange}
+          onBeforeInput={handleBeforeInput}
           onBlur={() => {
             setHasFocus(false);
             emitChange();
           }}
           onFocus={() => {
             setHasFocus(true);
-            // Clear any lingering toggle state (bold/italic/underline) carried
-            // over from previous interactions on the page.
-            try {
-              ["bold", "italic", "underline", "strikeThrough"].forEach((command) => {
-                if (document.queryCommandState(command)) {
-                  document.execCommand(command);
-                }
-              });
-            } catch {
-              // queryCommandState can throw in some browsers — non-fatal.
-            }
+            clearAllInlineFormatting();
+            refreshActiveFormats();
           }}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          style={{ minHeight, resize: "vertical" }}
+          // Inline styles win over any inherited CSS — explicitly set the
+          // base font weight and family to defeat any parent styling that
+          // might otherwise leak in (font-display from headings, etc.).
+          style={{
+            minHeight,
+            resize: "vertical",
+            fontWeight: 400,
+            fontStyle: "normal",
+            fontFamily: "var(--font-open-sans), ui-sans-serif, system-ui, sans-serif",
+          }}
           className={cn(
-            "block w-full overflow-auto bg-transparent px-3 py-2.5 text-sm font-normal leading-relaxed text-ink focus:outline-none",
+            "block w-full overflow-auto bg-transparent px-3 py-2.5 text-sm leading-relaxed text-ink focus:outline-none",
             // contentEditable doesn't respect ::placeholder; we render a
             // sibling overlay below when the editor is empty.
-            "[&_p]:font-normal [&_li]:font-normal",
             "[&_h2]:mb-2 [&_h2]:mt-3 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-ink",
             "[&_h3]:mb-1.5 [&_h3]:mt-2.5 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-ink",
             "[&_p]:mb-2 [&_p:last-child]:mb-0",

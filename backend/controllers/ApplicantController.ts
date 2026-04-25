@@ -175,12 +175,43 @@ export class ApplicantController {
         });
         if (existing) {
           summary.skipped += 1;
+          summary.errors.push({
+            index: i,
+            email: profile?.email,
+            message: 'Skipped — an applicant with this email already exists for this job.',
+          });
           continue;
         }
 
+        // Canonicalize structured sections (enums + dates) so non-canonical
+        // inputs like "level": "advanced" or "startDate": "2021-01-01" pass
+        // the strict Mongoose validators on the model.
+        const structured = resolveApplicantStructuredSections({
+          skills: profile.skills,
+          languages: profile.languages,
+          experience: profile.experience,
+          education: profile.education,
+          certifications: profile.certifications,
+          projects: profile.projects,
+          availability: profile.availability,
+          socialLinks: profile.socialLinks,
+        });
+
         const created = await Applicant.create({
-          ...profile,
+          firstName: profile.firstName,
+          lastName: profile.lastName,
           email: profile.email.toLowerCase(),
+          headline: profile.headline,
+          bio: profile.bio,
+          location: profile.location,
+          skills: structured.skills,
+          languages: structured.languages,
+          experience: structured.experience,
+          education: structured.education,
+          certifications: structured.certifications,
+          projects: structured.projects,
+          availability: structured.availability ?? profile.availability,
+          socialLinks: structured.socialLinks ?? profile.socialLinks,
           job: jobId,
           source,
           ingestStatus: 'parsed',
