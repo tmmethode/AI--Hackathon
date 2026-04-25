@@ -40,7 +40,7 @@ export interface GeminiJobContext {
   locationPolicy?: string;
   employmentType?: string;
   salaryBand?: string;
-  summary?: string;
+  description?: string;
   responsibilities?: string[];
   mustHaveQualifications?: string[];
   niceToHaveQualifications?: string[];
@@ -178,7 +178,7 @@ export interface GeminiBatchJob {
   locationPolicy?: "remote" | "hybrid" | "onsite" | string;
   employmentType?: "full-time" | "part-time" | "contract" | "internship" | string;
   salaryBand?: string;
-  summary?: string;
+  description?: string;
   responsibilities?: string;
   mustHaveQualifications?: string;
   niceToHaveQualifications?: string;
@@ -192,20 +192,28 @@ export interface GeminiBatchJob {
   status?: string;
 }
 
+// Talent Profile Schema controlled vocabularies (mirrored from
+// backend/models/Applicant.ts so the Gemini request layer is type-aligned with
+// what is actually persisted).
+export type GeminiSkillLevel = "Beginner" | "Intermediate" | "Advanced" | "Expert";
+export type GeminiLanguageProficiency = "Basic" | "Conversational" | "Fluent" | "Native";
+export type GeminiAvailabilityStatus = "Available" | "Open to Opportunities" | "Not Available";
+export type GeminiAvailabilityType = "Full-time" | "Part-time" | "Contract";
+
 export interface GeminiApplicantSkill {
   name: string;
-  level?: string;
+  level?: GeminiSkillLevel;
   yearsOfExperience?: number;
 }
 
 export interface GeminiApplicantLanguage {
   name: string;
-  proficiency?: string;
+  proficiency?: GeminiLanguageProficiency;
 }
 
 export interface GeminiApplicantExperience {
-  company?: string;
-  role?: string;
+  company: string;
+  role: string;
   startDate?: string;
   endDate?: string;
   description?: string;
@@ -214,7 +222,7 @@ export interface GeminiApplicantExperience {
 }
 
 export interface GeminiApplicantEducation {
-  institution?: string;
+  institution: string;
   degree?: string;
   fieldOfStudy?: string;
   startYear?: number;
@@ -238,8 +246,8 @@ export interface GeminiApplicantProject {
 }
 
 export interface GeminiApplicantAvailability {
-  status?: string;
-  type?: string;
+  status: GeminiAvailabilityStatus;
+  type: GeminiAvailabilityType;
   startDate?: string;
 }
 
@@ -249,20 +257,24 @@ export interface GeminiApplicantSocialLinks {
   portfolio?: string;
 }
 
+// Mirrors the Talent Profile Schema (§3.1 – §3.8). Source-of-truth lives in
+// backend/models/Applicant.ts; this shape is only built from already-validated
+// Mongo documents (see batch-screening-runner.ts and assistant.ts), so the
+// required fields below are guaranteed populated by the persistence layer.
 export interface GeminiBatchApplicant {
-  firstName?: string;
-  lastName?: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  headline?: string;
+  headline: string;
   bio?: string;
-  location?: string;
-  skills?: GeminiApplicantSkill[];
+  location: string;
+  skills: GeminiApplicantSkill[];
   languages?: GeminiApplicantLanguage[];
-  experience?: GeminiApplicantExperience[];
-  education?: GeminiApplicantEducation[];
+  experience: GeminiApplicantExperience[];
+  education: GeminiApplicantEducation[];
   certifications?: GeminiApplicantCertification[];
-  projects?: GeminiApplicantProject[];
-  availability?: GeminiApplicantAvailability;
+  projects: GeminiApplicantProject[];
+  availability: GeminiApplicantAvailability;
   socialLinks?: GeminiApplicantSocialLinks;
 }
 

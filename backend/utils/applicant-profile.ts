@@ -51,6 +51,93 @@ function normalizeText(value: unknown): string | undefined {
   return normalized ? normalized : undefined;
 }
 
+// Map free-form input (any case / whitespace) to one of the spec's controlled
+// vocabulary values, or undefined when no match is found.
+function canonicalizeEnum(
+  value: unknown,
+  allowed: readonly string[]
+): string | undefined {
+  const text = normalizeText(value);
+  if (!text) {
+    return undefined;
+  }
+
+  const folded = text.toLowerCase();
+  for (const candidate of allowed) {
+    if (candidate.toLowerCase() === folded) {
+      return candidate;
+    }
+  }
+  return undefined;
+}
+
+const SKILL_LEVEL_VALUES = ["Beginner", "Intermediate", "Advanced", "Expert"] as const;
+const LANGUAGE_PROFICIENCY_VALUES = ["Basic", "Conversational", "Fluent", "Native"] as const;
+const AVAILABILITY_STATUS_VALUES = ["Available", "Open to Opportunities", "Not Available"] as const;
+const AVAILABILITY_TYPE_VALUES = ["Full-time", "Part-time", "Contract"] as const;
+
+// Coerce common date inputs (e.g. "2024", "2024/06", "2024-6", "Jan 2024",
+// ISO timestamp) into the spec's YYYY-MM. Returns undefined when not parseable.
+function normalizeYearMonth(value: unknown): string | undefined {
+  const text = normalizeText(value);
+  if (!text) {
+    return undefined;
+  }
+  if (/^present$/i.test(text)) {
+    return "Present";
+  }
+
+  // YYYY-MM(-DD) — clip to YYYY-MM
+  const isoMatch = text.match(/^(\d{4})[-/](\d{1,2})(?:[-/]\d{1,2})?/);
+  if (isoMatch) {
+    const month = isoMatch[2].padStart(2, "0");
+    if (Number(month) >= 1 && Number(month) <= 12) {
+      return `${isoMatch[1]}-${month}`;
+    }
+  }
+
+  // Just a year — accept as January
+  const yearOnly = text.match(/^(\d{4})$/);
+  if (yearOnly) {
+    return `${yearOnly[1]}-01`;
+  }
+
+  // "Jan 2024" / "January 2024"
+  const months: Record<string, string> = {
+    jan: "01", january: "01", feb: "02", february: "02", mar: "03", march: "03",
+    apr: "04", april: "04", may: "05", jun: "06", june: "06", jul: "07", july: "07",
+    aug: "08", august: "08", sep: "09", sept: "09", september: "09",
+    oct: "10", october: "10", nov: "11", november: "11", dec: "12", december: "12",
+  };
+  const monthMatch = text.match(/^([A-Za-z]+)\s+(\d{4})$/);
+  if (monthMatch) {
+    const month = months[monthMatch[1].toLowerCase()];
+    if (month) {
+      return `${monthMatch[2]}-${month}`;
+    }
+  }
+
+  return undefined;
+}
+
+function normalizeYearMonthDay(value: unknown): string | undefined {
+  const text = normalizeText(value);
+  if (!text) {
+    return undefined;
+  }
+
+  const isoMatch = text.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (isoMatch) {
+    const month = isoMatch[2].padStart(2, "0");
+    const day = isoMatch[3].padStart(2, "0");
+    if (Number(month) >= 1 && Number(month) <= 12 && Number(day) >= 1 && Number(day) <= 31) {
+      return `${isoMatch[1]}-${month}-${day}`;
+    }
+  }
+
+  return undefined;
+}
+
 function toNumber(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
@@ -229,7 +316,7 @@ function normalizeSkills(value: unknown): SkillDTO[] {
 
       return {
         name,
-        level: normalizeText(pickValue(skill, "level", "proficiency")),
+        level: canonicalizeEnum(pickValue(skill, "level", "proficiency"), SKILL_LEVEL_VALUES),
         yearsOfExperience: years !== undefined ? Math.max(0, Math.min(60, Math.round(years))) : undefined,
       };
     })
@@ -247,7 +334,7 @@ function normalizeLanguages(value: unknown): LanguageDTO[] {
       const [namePart, proficiencyPart] = entry.split(/[:/]-?/);
       return {
         name: namePart.trim(),
-        proficiency: proficiencyPart?.trim() || undefined,
+        proficiency: canonicalizeEnum(proficiencyPart, LANGUAGE_PROFICIENCY_VALUES),
       };
     });
   }
@@ -263,7 +350,7 @@ function normalizeLanguages(value: unknown): LanguageDTO[] {
         const [namePart, proficiencyPart] = normalized.split(/[:/]-?/);
         return {
           name: namePart.trim(),
-          proficiency: proficiencyPart?.trim() || undefined,
+          proficiency: canonicalizeEnum(proficiencyPart, LANGUAGE_PROFICIENCY_VALUES),
         };
       }
 
@@ -275,7 +362,7 @@ function normalizeLanguages(value: unknown): LanguageDTO[] {
 
       return {
         name,
-        proficiency: normalizeText(pickValue(language, "proficiency", "level")),
+        proficiency: canonicalizeEnum(pickValue(language, "proficiency", "level"), LANGUAGE_PROFICIENCY_VALUES),
       };
     })
     .filter(Boolean) as LanguageDTO[];
@@ -300,13 +387,14 @@ function normalizeExperience(value: unknown): ExperienceDTO[] {
         return null;
       }
 
-      const endDate = normalizeText(pickValue(experience, "endDate", "End Date", "end"));
+      const rawEnd = pickValue(experience, "endDate", "End Date", "end");
       const currentFlag = pickValue(experience, "isCurrent", "Is Current", "current");
+      const endDate = normalizeYearMonth(rawEnd);
 
       return {
         company,
         role,
-        startDate: normalizeText(pickValue(experience, "startDate", "Start Date", "start")),
+        startDate: normalizeYearMonth(pickValue(experience, "startDate", "Start Date", "start")),
         endDate,
         description: normalizeText(
           pickValue(experience, "description", "summary", "details", "responsibilities")
@@ -377,7 +465,7 @@ function normalizeCertifications(value: unknown): CertificationDTO[] {
       return {
         name,
         issuer: normalizeText(pickValue(certification, "issuer", "organization")),
-        issueDate: normalizeText(pickValue(certification, "issueDate", "Issue Date", "date")),
+        issueDate: normalizeYearMonth(pickValue(certification, "issueDate", "Issue Date", "date")),
       };
     })
     .filter(Boolean) as CertificationDTO[];
@@ -404,8 +492,8 @@ function normalizeProjects(value: unknown): ProjectDTO[] {
         ),
         role: normalizeText(pickValue(project, "role", "position")),
         link: normalizeText(pickValue(project, "link", "url")),
-        startDate: normalizeText(pickValue(project, "startDate", "Start Date")),
-        endDate: normalizeText(pickValue(project, "endDate", "End Date")),
+        startDate: normalizeYearMonth(pickValue(project, "startDate", "Start Date")),
+        endDate: normalizeYearMonth(pickValue(project, "endDate", "End Date")),
       };
     })
     .filter(Boolean) as ProjectDTO[];
@@ -418,9 +506,9 @@ function normalizeAvailability(value: unknown): AvailabilityDTO | undefined {
   }
 
   const normalized: AvailabilityDTO = {
-    status: normalizeText(pickValue(availability, "status")),
-    type: normalizeText(pickValue(availability, "type")),
-    startDate: normalizeText(pickValue(availability, "startDate", "Start Date")),
+    status: canonicalizeEnum(pickValue(availability, "status"), AVAILABILITY_STATUS_VALUES),
+    type: canonicalizeEnum(pickValue(availability, "type"), AVAILABILITY_TYPE_VALUES),
+    startDate: normalizeYearMonthDay(pickValue(availability, "startDate", "Start Date")),
   };
 
   return normalized.status || normalized.type || normalized.startDate ? normalized : undefined;

@@ -219,7 +219,38 @@ function buildCsvRows(record: ShortlistRecord): (readonly unknown[])[] {
   return rows;
 }
 
-function buildJsonData(record: ShortlistRecord) {
+// Convert internal camelCase candidate entries to the Talent Profile Schema's
+// PascalCase-with-spaces variants for fields whose spec example uses them
+// (work experience, education, certifications, projects, availability).
+function toSpecCandidate(entry: Record<string, unknown>): Record<string, unknown> {
+  const SPEC_KEY_MAP: Record<string, string> = {
+    startDate: "Start Date",
+    endDate: "End Date",
+    isCurrent: "Is Current",
+    fieldOfStudy: "Field of Study",
+    startYear: "Start Year",
+    endYear: "End Year",
+    issueDate: "Issue Date",
+  };
+
+  const remap = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(remap);
+    if (value && typeof value === "object") {
+      const out: Record<string, unknown> = {};
+      for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+        const mappedKey = SPEC_KEY_MAP[key] || key;
+        out[mappedKey] = remap(val);
+      }
+      return out;
+    }
+    return value;
+  };
+
+  return remap(entry) as Record<string, unknown>;
+}
+
+function buildJsonData(record: ShortlistRecord, useSpecKeys = false) {
+  const candidates = selectCandidates(record);
   return {
     job: record.jobTitle,
     runName: record.runName,
@@ -227,7 +258,9 @@ function buildJsonData(record: ShortlistRecord) {
     shortlistCount: record.shortlistCount,
     weightCriteria: record.weightCriteria || [],
     generatedAt: new Date().toISOString(),
-    candidates: selectCandidates(record),
+    candidates: useSpecKeys
+      ? candidates.map((entry) => toSpecCandidate(entry as unknown as Record<string, unknown>))
+      : candidates,
   };
 }
 
@@ -272,6 +305,7 @@ export default function ExportsPage() {
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>("csv");
   const [selectedShortlistId, setSelectedShortlistId] = useState("");
   const [exportDone, setExportDone] = useState(false);
+  const [useSpecKeys, setUseSpecKeys] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<ExportStatus | "all">("all");
   const [formatFilter, setFormatFilter] = useState<ExportFormat | "all">("all");
@@ -384,7 +418,7 @@ export default function ExportsPage() {
       if (exp.format === "csv") {
         downloadCsv(buildCsvRows(shortlist), `${safeBase}.csv`);
       } else if (exp.format === "json") {
-        downloadJson(buildJsonData(shortlist), `${safeBase}.json`);
+        downloadJson(buildJsonData(shortlist, useSpecKeys), `${safeBase}.json`);
       } else {
         downloadBlob(createPdfFromLines(buildPdfLines(shortlist)), `${safeBase}.pdf`);
       }
@@ -754,6 +788,23 @@ export default function ExportsPage() {
               })}
             </div>
           </div>
+          {selectedFormat === "json" && (
+            <label className="flex cursor-pointer items-start gap-2 rounded-md border border-line bg-surface-soft/30 p-3 text-xs text-ink">
+              <input
+                type="checkbox"
+                checked={useSpecKeys}
+                onChange={(event) => setUseSpecKeys(event.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-line text-brand"
+              />
+              <span>
+                <span className="font-semibold text-ink">Spec-compliant keys</span>
+                <span className="block text-ink-muted">
+                  Re-emit experience / education / certification / project / availability date and label fields with the
+                  Talent Profile Schema's PascalCase-with-spaces convention (e.g. <code>"Start Date"</code>, <code>"Field of Study"</code>).
+                </span>
+              </span>
+            </label>
+          )}
           <div className="rounded-md bg-brand-soft/40 p-3 text-xs text-info-deep">
             <strong>Note:</strong> Export payload is generated from persisted shortlist data in the backend.
           </div>

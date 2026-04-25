@@ -37,7 +37,7 @@ export interface IJobResponse {
   employmentType: EmploymentType;
   salaryBand?: string;
 
-  summary: string;
+  description: string;
   responsibilities: string;
   mustHaveQualifications: string;
   niceToHaveQualifications?: string;
@@ -69,7 +69,7 @@ export interface CreateJobRequest {
   employmentType?: EmploymentType;
   salaryBand?: string;
 
-  summary: string;
+  description: string;
   responsibilities: string;
   mustHaveQualifications: string;
   niceToHaveQualifications?: string;
@@ -96,7 +96,7 @@ export interface UpdateJobRequest {
   employmentType?: EmploymentType;
   salaryBand?: string;
 
-  summary?: string;
+  description?: string;
   responsibilities?: string;
   mustHaveQualifications?: string;
   niceToHaveQualifications?: string;

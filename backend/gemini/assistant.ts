@@ -10,8 +10,11 @@ import {
   GEMINI_RECRUITER_ASSISTANT_SYSTEM_INSTRUCTION,
 } from "./prompts";
 import {
+  GeminiAvailabilityStatus,
+  GeminiAvailabilityType,
   GeminiBatchApplicant,
   GeminiBatchJob,
+  GeminiLanguageProficiency,
   GeminiRecruiterApplicantAnalyticsSummary,
   GeminiRecruiterAssistantAnalyticsContext,
   GeminiRecruiterAssistantContext,
@@ -21,6 +24,7 @@ import {
   GeminiRecruiterRunAnalyticsSummary,
   GeminiRecruiterStageCounts,
   GeminiRecruiterAssistantShortlistContext,
+  GeminiSkillLevel,
 } from "./types";
 
 const DEFAULT_APPLICANT_LIMIT = 50;
@@ -230,7 +234,7 @@ function toBatchJobFromModel(job: IJob): GeminiBatchJob {
     locationPolicy: job.locationPolicy,
     employmentType: job.employmentType,
     salaryBand: job.salaryBand,
-    summary: job.summary,
+    description: job.description,
     responsibilities: job.responsibilities,
     mustHaveQualifications: job.mustHaveQualifications,
     niceToHaveQualifications: job.niceToHaveQualifications,
@@ -273,59 +277,66 @@ function toBatchApplicantFromModel(applicant: IApplicant): GeminiBatchApplicant 
     return items.slice(0, max);
   };
 
+  // Persistence enforces the controlled vocabulary at write time, so by the
+  // time we hit this function the strings are guaranteed to be one of the
+  // canonical values. TS can't see that, so cast at the boundary.
+  const availability = structured.availability ?? applicant.availability;
+
   return {
-    firstName: trimText(applicant.firstName, 80),
-    lastName: trimText(applicant.lastName, 80),
+    firstName: trimText(applicant.firstName, 80) || applicant.firstName,
+    lastName: trimText(applicant.lastName, 80) || applicant.lastName,
     email: applicant.email,
-    headline: trimText(applicant.headline, 160),
+    headline: trimText(applicant.headline, 160) || applicant.headline,
     bio: trimText(applicant.bio, 450),
-    location: trimText(applicant.location, 120),
-    skills: capItems(structured.skills)?.map((skill) => ({
-      name: skill.name,
-      level: skill.level,
-      yearsOfExperience: skill.yearsOfExperience,
-    })),
+    location: trimText(applicant.location, 120) || applicant.location,
+    skills:
+      capItems(structured.skills)?.map((skill) => ({
+        name: skill.name,
+        level: skill.level as GeminiSkillLevel | undefined,
+        yearsOfExperience: skill.yearsOfExperience,
+      })) ?? [],
     languages: capItems(structured.languages, 8)?.map((language) => ({
       name: language.name,
-      proficiency: language.proficiency,
+      proficiency: language.proficiency as GeminiLanguageProficiency | undefined,
     })),
-    experience: capItems(structured.experience, 8)?.map((entry) => ({
-      company: entry.company,
-      role: entry.role,
-      startDate: entry.startDate,
-      endDate: entry.endDate,
-      description: trimText(entry.description, 320),
-      technologies: capItems(entry.technologies, 8),
-      isCurrent: entry.isCurrent,
-    })),
-    education: capItems(structured.education, 6)?.map((entry) => ({
-      institution: entry.institution,
-      degree: entry.degree,
-      fieldOfStudy: entry.fieldOfStudy,
-      startYear: entry.startYear,
-      endYear: entry.endYear,
-    })),
+    experience:
+      capItems(structured.experience, 8)?.map((entry) => ({
+        company: entry.company,
+        role: entry.role,
+        startDate: entry.startDate,
+        endDate: entry.endDate,
+        description: trimText(entry.description, 320),
+        technologies: capItems(entry.technologies, 8),
+        isCurrent: entry.isCurrent,
+      })) ?? [],
+    education:
+      capItems(structured.education, 6)?.map((entry) => ({
+        institution: entry.institution,
+        degree: entry.degree,
+        fieldOfStudy: entry.fieldOfStudy,
+        startYear: entry.startYear,
+        endYear: entry.endYear,
+      })) ?? [],
     certifications: capItems(structured.certifications, 8)?.map((entry) => ({
       name: entry.name,
       issuer: entry.issuer,
       issueDate: entry.issueDate,
     })),
-    projects: capItems(structured.projects, 6)?.map((project) => ({
-      name: project.name,
-      description: trimText(project.description, 320),
-      technologies: capItems(project.technologies, 8),
-      role: project.role,
-      link: project.link,
-      startDate: project.startDate,
-      endDate: project.endDate,
-    })),
-    availability: structured.availability
-      ? {
-          status: structured.availability.status,
-          type: structured.availability.type,
-          startDate: structured.availability.startDate,
-        }
-      : undefined,
+    projects:
+      capItems(structured.projects, 6)?.map((project) => ({
+        name: project.name,
+        description: trimText(project.description, 320),
+        technologies: capItems(project.technologies, 8),
+        role: project.role,
+        link: project.link,
+        startDate: project.startDate,
+        endDate: project.endDate,
+      })) ?? [],
+    availability: {
+      status: (availability?.status as GeminiAvailabilityStatus) ?? "Open to Opportunities",
+      type: (availability?.type as GeminiAvailabilityType) ?? "Full-time",
+      startDate: availability?.startDate,
+    },
     socialLinks: structured.socialLinks
       ? {
           linkedin: structured.socialLinks.linkedin,

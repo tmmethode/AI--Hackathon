@@ -28,7 +28,7 @@ export interface JobRecord {
   locationPolicy: LocationPolicy;
   employmentType: EmploymentType;
   salaryBand?: string;
-  summary: string;
+  description: string;
   responsibilities: string;
   mustHaveQualifications: string;
   niceToHaveQualifications?: string;
@@ -105,7 +105,7 @@ export interface CreateJobPayload {
   locationPolicy: LocationPolicy;
   employmentType: EmploymentType;
   salaryBand?: string;
-  summary: string;
+  description: string;
   responsibilities: string;
   mustHaveQualifications: string;
   niceToHaveQualifications?: string;

@@ -31,7 +31,7 @@ interface JobFormFields {
   locationPolicy: LocationPolicy | "";
   employmentType: EmploymentType | "";
   salaryBand: string;
-  summary: string;
+  description: string;
   responsibilities: string;
   mustHaveQualifications: string;
   niceToHaveQualifications: string;
@@ -49,7 +49,7 @@ export interface ParsedJobImportData {
   locationPolicy?: LocationPolicy;
   employmentType?: EmploymentType;
   salaryBand?: string;
-  summary?: string;
+  description?: string;
   responsibilities?: string;
   mustHaveQualifications?: string;
   niceToHaveQualifications?: string;
@@ -77,7 +77,7 @@ const initialForm: JobFormFields = {
   locationPolicy: "",
   employmentType: "",
   salaryBand: "",
-  summary: "",
+  description: "",
   responsibilities: "",
   mustHaveQualifications: "",
   niceToHaveQualifications: "",
@@ -239,7 +239,7 @@ function buildPayload(state: JobFormState, status: CreateJobPayload["status"]): 
     locationPolicy: state.form.locationPolicy as LocationPolicy,
     employmentType: state.form.employmentType as EmploymentType,
     salaryBand: state.form.salaryBand.trim() || undefined,
-    summary: state.form.summary.trim(),
+    description: state.form.description.trim(),
     responsibilities: state.form.responsibilities.trim(),
     mustHaveQualifications: state.form.mustHaveQualifications.trim(),
     niceToHaveQualifications: state.form.niceToHaveQualifications.trim() || undefined,
@@ -271,7 +271,7 @@ export const submitJob = createAsyncThunk<
     if (
       !payload.title ||
       !payload.location ||
-      !payload.summary ||
+      !payload.description ||
       !getState().jobForm.form.locationPolicy ||
       !getState().jobForm.form.employmentType ||
       !getState().jobForm.form.seniorityLevel ||
@@ -333,7 +333,7 @@ const jobFormSlice = createSlice({
       if (parsed.locationPolicy) nextForm.locationPolicy = parsed.locationPolicy;
       if (parsed.employmentType) nextForm.employmentType = parsed.employmentType;
       if (parsed.salaryBand) nextForm.salaryBand = parsed.salaryBand;
-      if (parsed.summary) nextForm.summary = parsed.summary;
+      if (parsed.description) nextForm.description = parsed.description;
       if (parsed.responsibilities) nextForm.responsibilities = parsed.responsibilities;
       if (parsed.mustHaveQualifications) nextForm.mustHaveQualifications = parsed.mustHaveQualifications;
       if (parsed.niceToHaveQualifications) nextForm.niceToHaveQualifications = parsed.niceToHaveQualifications;

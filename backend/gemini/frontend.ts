@@ -32,7 +32,7 @@ export class GeminiFrontendService {
       contracts: {
         jobFields: [
           "title",
-          "summary",
+          "description",
           "responsibilities",
           "mustHaveQualifications",
           "niceToHaveQualifications",

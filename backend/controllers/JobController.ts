@@ -109,7 +109,7 @@ export class JobController {
       locationPolicy: job.locationPolicy,
       employmentType: job.employmentType,
       salaryBand: job.salaryBand,
-      summary: job.summary,
+      description: job.description,
       responsibilities: job.responsibilities,
       mustHaveQualifications: job.mustHaveQualifications,
       niceToHaveQualifications: job.niceToHaveQualifications,

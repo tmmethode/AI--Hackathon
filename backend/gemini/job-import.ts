@@ -29,7 +29,7 @@ interface ImportCandidatePayload {
   locationPolicy?: unknown;
   employmentType?: unknown;
   salaryBand?: unknown;
-  summary?: unknown;
+  description?: unknown;
   responsibilities?: unknown;
   mustHaveQualifications?: unknown;
   niceToHaveQualifications?: unknown;
@@ -49,7 +49,7 @@ export interface ImportedJobDraft {
   locationPolicy?: "remote" | "hybrid" | "onsite";
   employmentType?: "full-time" | "part-time" | "contract" | "internship" | "temporary";
   salaryBand?: string;
-  summary?: string;
+  description?: string;
   responsibilities?: string;
   mustHaveQualifications?: string;
   niceToHaveQualifications?: string;
@@ -174,10 +174,10 @@ function sanitizeImportedDraft(payload: ImportCandidatePayload): ImportedJobDraf
         ? (employmentType as ImportedJobDraft["employmentType"])
         : undefined,
     salaryBand: clampText(payload.salaryBand, 160),
-    summary: clampText(payload.summary, 3_500),
-    responsibilities: clampText(payload.responsibilities, 7_000),
-    mustHaveQualifications: clampText(payload.mustHaveQualifications, 5_000),
-    niceToHaveQualifications: clampText(payload.niceToHaveQualifications, 5_000),
+    description: clampText(payload.description, 6_000),
+    responsibilities: clampText(payload.responsibilities, 10_000),
+    mustHaveQualifications: clampText(payload.mustHaveQualifications, 7_000),
+    niceToHaveQualifications: clampText(payload.niceToHaveQualifications, 7_000),
     coreHardSkills: normalizeStringArray(payload.coreHardSkills, 30),
     coreSoftSkills: normalizeStringArray(payload.coreSoftSkills, 30),
     experienceYears: Number.isFinite(Number(payload.experienceYears))
@@ -222,9 +222,21 @@ function truncateSourceText(input: string): string {
 function buildExtractionPrompt(sourceType: "url" | "file", sourceValue: string, sourceText: string): string {
   return [
     "Extract a job posting into strict JSON for a recruiting system.",
-    "Only include information that is explicit in the source.",
-    "If unknown, return null or empty arrays. Do not hallucinate.",
-    "Put preferred or bonus qualifications in niceToHaveQualifications; do not create a separate preferred skills field.",
+    "Be exhaustive: capture as much job-relevant information as is explicit in the source. Do not summarize or omit details that the source provides — preserve them in the appropriate field.",
+    "Only include information that is explicit in the source. If unknown, return null or empty arrays. Do not hallucinate or invent details.",
+    "Field guidance — extract everything available; do not paraphrase away useful detail:",
+    "- title: the exact job title.",
+    "- hiringManager: name of the hiring manager / reporting manager / contact person if listed.",
+    "- location: the city/region/country (or 'Remote' if explicitly remote-only). Capture every location mentioned.",
+    "- salaryBand: full compensation info as written (range, currency, period, equity, bonus) when disclosed.",
+    "- description: a comprehensive overview of the role and the team/company context. Include the company/team intro, mission, what the role is about, why the role exists, what success looks like, the work environment, perks/benefits, and any application instructions or deadlines that don't fit other fields. Preserve sentences from the source where useful — do not over-condense.",
+    "- responsibilities: a complete list of duties / day-to-day activities / deliverables / KPIs. Use bullet points (one per line) and keep every distinct responsibility from the source.",
+    "- mustHaveQualifications: every required/non-negotiable qualification, including required years of experience, required degrees/certifications, required hard skills with required proficiency, languages, work authorization, travel, on-call, security clearances, etc. One bullet per requirement.",
+    "- niceToHaveQualifications: every preferred / bonus / 'plus' / 'a plus' qualification, including preferred certifications, preferred tools, additional languages, domain experience, etc. Put preferred/bonus skills here — do not create a separate preferred skills field.",
+    "- coreHardSkills: deduplicated list of concrete technical skills, tools, languages, frameworks, platforms, and methodologies the role uses (e.g. 'Python', 'AWS', 'React', 'SQL', 'Figma'). Pull from anywhere in the post.",
+    "- coreSoftSkills: deduplicated list of soft skills / behavioral traits explicitly called out (e.g. 'communication', 'leadership', 'attention to detail').",
+    "- experienceYears: the minimum required years of professional experience as a single integer. If a range is given, use the lower bound.",
+    "- weightCriteria: only include if the source explicitly weights criteria; otherwise return an empty array.",
     "Enums must exactly match allowed values:",
     '- locationPolicy: "remote" | "hybrid" | "onsite"',
     '- employmentType: "full-time" | "part-time" | "contract" | "internship" | "temporary"',
@@ -232,7 +244,7 @@ function buildExtractionPrompt(sourceType: "url" | "file", sourceValue: string, 
     '- educationLevel: "none" | "hs" | "associate" | "bs" | "ms" | "mba" | "phd" | "professional"',
     '- status: "Active" | "Draft" | "Closed"',
     "Return only valid JSON with this exact top-level shape:",
-    '{"title":string|null,"hiringManager":string|null,"location":string|null,"locationPolicy":string|null,"employmentType":string|null,"salaryBand":string|null,"summary":string|null,"responsibilities":string|null,"mustHaveQualifications":string|null,"niceToHaveQualifications":string|null,"coreHardSkills":string[],"coreSoftSkills":string[],"experienceYears":number|null,"seniorityLevel":string|null,"educationLevel":string|null,"weightCriteria":[{"id":string,"label":string,"value":number}],"status":string|null}',
+    '{"title":string|null,"hiringManager":string|null,"location":string|null,"locationPolicy":string|null,"employmentType":string|null,"salaryBand":string|null,"description":string|null,"responsibilities":string|null,"mustHaveQualifications":string|null,"niceToHaveQualifications":string|null,"coreHardSkills":string[],"coreSoftSkills":string[],"experienceYears":number|null,"seniorityLevel":string|null,"educationLevel":string|null,"weightCriteria":[{"id":string,"label":string,"value":number}],"status":string|null}',
     `Source Type: ${sourceType}`,
     `Source Reference: ${sourceValue}`,
     "Source Content:",
@@ -307,7 +319,7 @@ export class GeminiJobImportService {
       prompt: buildExtractionPrompt(sourceType, sourceValue, preparedText),
       responseMimeType: "application/json",
       temperature: 0,
-      maxOutputTokens: 2200,
+      maxOutputTokens: 4500,
     });
 
     const parsed = parseModelResponse(response.text);
@@ -355,7 +367,7 @@ export class GeminiJobImportService {
     const imported = await this.parseTextWithGemini("url", parsedUrl.toString(), readable);
 
     const warnings: string[] = [];
-    if (!imported.title || !imported.summary) {
+    if (!imported.title || !imported.description) {
       warnings.push("Some key fields were not confidently detected and were left unchanged.");
     }
 
@@ -407,7 +419,7 @@ export class GeminiJobImportService {
     const imported = await this.parseTextWithGemini("file", fileName, extractedText);
 
     const warnings: string[] = [];
-    if (!imported.title || !imported.summary) {
+    if (!imported.title || !imported.description) {
       warnings.push("Some key fields were not confidently detected and were left unchanged.");
     }
 

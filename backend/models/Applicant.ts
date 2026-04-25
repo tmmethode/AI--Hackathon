@@ -8,6 +8,18 @@ export type ApplicantSource =
 
 export type IngestStatus = 'parsed' | 'pending' | 'failed';
 
+// Spec-defined controlled vocabularies (Talent Profile Schema §3.2 / §3.7)
+export const SKILL_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Expert'] as const;
+export const LANGUAGE_PROFICIENCIES = ['Basic', 'Conversational', 'Fluent', 'Native'] as const;
+export const AVAILABILITY_STATUSES = ['Available', 'Open to Opportunities', 'Not Available'] as const;
+export const AVAILABILITY_TYPES = ['Full-time', 'Part-time', 'Contract'] as const;
+
+// Date-format regexes per spec.
+//   YYYY-MM  (work experience, projects, certifications) — also accepts "Present" for endDate.
+//   YYYY-MM-DD (availability.startDate).
+export const DATE_YYYY_MM_REGEX = /^(\d{4}-(0[1-9]|1[0-2])(-\d{2})?|Present)$/i;
+export const DATE_YYYY_MM_DD_REGEX = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+
 export interface ISkill {
   name: string;
   level?: string;
@@ -72,9 +84,11 @@ export interface IApplicant extends Document {
   firstName: string;
   lastName: string;
   email: string;
-  headline?: string;
+  // Required by the schema since the Talent Profile Schema §3.1 update.
+  // Legacy documents that pre-date this change may still have these missing.
+  headline: string;
   bio?: string;
-  location?: string;
+  location: string;
 
   skills: ISkill[];
   languages: ILanguage[];
@@ -83,7 +97,8 @@ export interface IApplicant extends Document {
   certifications: ICertification[];
   projects: IProject[];
 
-  availability?: IAvailability;
+  // Required by the schema since the Talent Profile Schema §3.7 update.
+  availability: IAvailability;
   socialLinks?: ISocialLinks;
 
   // Ingestion metadata
@@ -99,11 +114,17 @@ export interface IApplicant extends Document {
   updatedAt: Date;
 }
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 const SkillSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
-    level: { type: String, trim: true },
-    yearsOfExperience: { type: Number, min: 0 },
+    level: {
+      type: String,
+      trim: true,
+      enum: { values: [...SKILL_LEVELS, ''], message: 'Skill level must be one of Beginner, Intermediate, Advanced, Expert.' },
+    },
+    yearsOfExperience: { type: Number, min: 0, max: 80 },
   },
   { _id: false }
 );
@@ -111,7 +132,11 @@ const SkillSchema = new Schema(
 const LanguageSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
-    proficiency: { type: String, trim: true },
+    proficiency: {
+      type: String,
+      trim: true,
+      enum: { values: [...LANGUAGE_PROFICIENCIES, ''], message: 'Language proficiency must be one of Basic, Conversational, Fluent, Native.' },
+    },
   },
   { _id: false }
 );
@@ -120,8 +145,8 @@ const ExperienceSchema = new Schema(
   {
     company: { type: String, required: true, trim: true },
     role: { type: String, required: true, trim: true },
-    startDate: { type: String, trim: true },
-    endDate: { type: String, trim: true },
+    startDate: { type: String, trim: true, match: [DATE_YYYY_MM_REGEX, 'experience.startDate must be YYYY-MM.'] },
+    endDate: { type: String, trim: true, match: [DATE_YYYY_MM_REGEX, 'experience.endDate must be YYYY-MM or "Present".'] },
     description: { type: String, trim: true },
     technologies: { type: [String], default: [] },
     isCurrent: { type: Boolean, default: false },
@@ -134,8 +159,8 @@ const EducationSchema = new Schema(
     institution: { type: String, required: true, trim: true },
     degree: { type: String, trim: true },
     fieldOfStudy: { type: String, trim: true },
-    startYear: { type: Number },
-    endYear: { type: Number },
+    startYear: { type: Number, min: 1950, max: CURRENT_YEAR + 10 },
+    endYear: { type: Number, min: 1950, max: CURRENT_YEAR + 10 },
   },
   { _id: false }
 );
@@ -144,7 +169,7 @@ const CertificationSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
     issuer: { type: String, trim: true },
-    issueDate: { type: String, trim: true },
+    issueDate: { type: String, trim: true, match: [DATE_YYYY_MM_REGEX, 'certifications.issueDate must be YYYY-MM.'] },
   },
   { _id: false }
 );
@@ -156,17 +181,27 @@ const ProjectSchema = new Schema(
     technologies: { type: [String], default: [] },
     role: { type: String, trim: true },
     link: { type: String, trim: true },
-    startDate: { type: String, trim: true },
-    endDate: { type: String, trim: true },
+    startDate: { type: String, trim: true, match: [DATE_YYYY_MM_REGEX, 'projects.startDate must be YYYY-MM.'] },
+    endDate: { type: String, trim: true, match: [DATE_YYYY_MM_REGEX, 'projects.endDate must be YYYY-MM or "Present".'] },
   },
   { _id: false }
 );
 
 const AvailabilitySchema = new Schema(
   {
-    status: { type: String, trim: true },
-    type: { type: String, trim: true },
-    startDate: { type: String, trim: true },
+    status: {
+      type: String,
+      required: [true, 'availability.status is required.'],
+      trim: true,
+      enum: { values: [...AVAILABILITY_STATUSES], message: 'availability.status must be one of Available, Open to Opportunities, Not Available.' },
+    },
+    type: {
+      type: String,
+      required: [true, 'availability.type is required.'],
+      trim: true,
+      enum: { values: [...AVAILABILITY_TYPES], message: 'availability.type must be one of Full-time, Part-time, Contract.' },
+    },
+    startDate: { type: String, trim: true, match: [DATE_YYYY_MM_DD_REGEX, 'availability.startDate must be YYYY-MM-DD.'] },
   },
   { _id: false }
 );
@@ -187,18 +222,46 @@ const ApplicantSchema: Schema = new Schema(
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true, lowercase: true },
-    headline: { type: String, trim: true },
+    headline: { type: String, required: [true, 'headline is required per Talent Profile Schema §3.1.'], trim: true },
     bio: { type: String, trim: true },
-    location: { type: String, trim: true },
+    location: { type: String, required: [true, 'location is required per Talent Profile Schema §3.1.'], trim: true },
 
-    skills: { type: [SkillSchema], default: [] },
+    skills: {
+      type: [SkillSchema],
+      default: [],
+      validate: {
+        validator: (arr: unknown) => Array.isArray(arr) && arr.length > 0,
+        message: 'At least one skill is required per Talent Profile Schema §3.2.',
+      },
+    },
     languages: { type: [LanguageSchema], default: [] },
-    experience: { type: [ExperienceSchema], default: [] },
-    education: { type: [EducationSchema], default: [] },
+    experience: {
+      type: [ExperienceSchema],
+      default: [],
+      validate: {
+        validator: (arr: unknown) => Array.isArray(arr) && arr.length > 0,
+        message: 'At least one experience entry is required per Talent Profile Schema §3.3.',
+      },
+    },
+    education: {
+      type: [EducationSchema],
+      default: [],
+      validate: {
+        validator: (arr: unknown) => Array.isArray(arr) && arr.length > 0,
+        message: 'At least one education entry is required per Talent Profile Schema §3.4.',
+      },
+    },
     certifications: { type: [CertificationSchema], default: [] },
-    projects: { type: [ProjectSchema], default: [] },
+    projects: {
+      type: [ProjectSchema],
+      default: [],
+      validate: {
+        validator: (arr: unknown) => Array.isArray(arr) && arr.length > 0,
+        message: 'At least one project is required per Talent Profile Schema §3.6.',
+      },
+    },
 
-    availability: { type: AvailabilitySchema },
+    availability: { type: AvailabilitySchema, required: [true, 'availability is required per Talent Profile Schema §3.7.'] },
     socialLinks: { type: SocialLinksSchema },
 
     source: {

@@ -849,7 +849,7 @@
 					"salaryBand": {
 						"type": "string"
 					},
-					"summary": {
+					"description": {
 						"type": "string"
 					},
 					"responsibilities": {
@@ -919,7 +919,7 @@
 					"location",
 					"locationPolicy",
 					"employmentType",
-					"summary",
+					"description",
 					"responsibilities",
 					"mustHaveQualifications",
 					"coreHardSkills",
@@ -1053,7 +1053,7 @@
 					"salaryBand": {
 						"type": "string"
 					},
-					"summary": {
+					"description": {
 						"type": "string"
 					},
 					"responsibilities": {
@@ -1106,7 +1106,7 @@
 				"required": [
 					"title",
 					"location",
-					"summary",
+					"description",
 					"responsibilities",
 					"mustHaveQualifications"
 				],
@@ -1134,7 +1134,7 @@
 					"salaryBand": {
 						"type": "string"
 					},
-					"summary": {
+					"description": {
 						"type": "string"
 					},
 					"responsibilities": {
@@ -1203,6 +1203,49 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"HistoryStageCountsDTO": {
+				"properties": {
+					"shortlisted": {
+						"type": "number",
+						"format": "double"
+					},
+					"interview": {
+						"type": "number",
+						"format": "double"
+					},
+					"exam": {
+						"type": "number",
+						"format": "double"
+					},
+					"assessment": {
+						"type": "number",
+						"format": "double"
+					},
+					"practical": {
+						"type": "number",
+						"format": "double"
+					},
+					"rejected": {
+						"type": "number",
+						"format": "double"
+					},
+					"active": {
+						"type": "number",
+						"format": "double"
+					}
+				},
+				"required": [
+					"shortlisted",
+					"interview",
+					"exam",
+					"assessment",
+					"practical",
+					"rejected",
+					"active"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"HistoryRunSummaryDTO": {
 				"properties": {
 					"_id": {
@@ -1238,6 +1281,13 @@
 					},
 					"createdAt": {
 						"type": "string"
+					},
+					"stageCounts": {
+						"$ref": "#/components/schemas/HistoryStageCountsDTO"
+					},
+					"averageMatchScore": {
+						"type": "number",
+						"format": "double"
 					}
 				},
 				"required": [
@@ -1248,7 +1298,9 @@
 					"shortlistCount",
 					"topMatchScore",
 					"topCandidateName",
-					"createdAt"
+					"createdAt",
+					"stageCounts",
+					"averageMatchScore"
 				],
 				"type": "object",
 				"additionalProperties": false
@@ -1675,7 +1727,7 @@
 					"salaryBand": {
 						"type": "string"
 					},
-					"summary": {
+					"description": {
 						"type": "string"
 					},
 					"responsibilities": {
@@ -2512,7 +2564,7 @@
 					"salaryBand": {
 						"type": "string"
 					},
-					"summary": {
+					"description": {
 						"type": "string"
 					},
 					"responsibilities": {

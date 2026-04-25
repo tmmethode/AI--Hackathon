@@ -5,10 +5,14 @@ import { HttpError } from "../utils/HttpError";
 import { resolveApplicantStructuredSections } from "../utils/applicant-profile";
 import { GeminiScreeningService } from "./screening";
 import {
+  GeminiAvailabilityStatus,
+  GeminiAvailabilityType,
   GeminiBatchApplicant,
   GeminiBatchJob,
   GeminiBatchScreeningDbRequest,
   GeminiBatchScreeningResponse,
+  GeminiLanguageProficiency,
+  GeminiSkillLevel,
 } from "./types";
 
 const DEFAULT_MAX_SCREENING_APPLICANTS = 200;
@@ -25,7 +29,7 @@ function toBatchJobFromModel(job: IJob): GeminiBatchJob {
     locationPolicy: job.locationPolicy,
     employmentType: job.employmentType,
     salaryBand: job.salaryBand,
-    summary: job.summary,
+    description: job.description,
     responsibilities: job.responsibilities,
     mustHaveQualifications: job.mustHaveQualifications,
     niceToHaveQualifications: job.niceToHaveQualifications,
@@ -57,6 +61,11 @@ function toBatchApplicantFromModel(applicant: IApplicant): GeminiBatchApplicant 
     rawPayload: applicant.rawPayload,
   });
 
+  // Persistence enforces the controlled vocabulary at write time, so by the
+  // time we hit this function the strings are guaranteed to be one of the
+  // canonical values. TS can't see that, so cast at the boundary.
+  const availability = structured.availability ?? applicant.availability;
+
   return {
     firstName: applicant.firstName,
     lastName: applicant.lastName,
@@ -66,12 +75,12 @@ function toBatchApplicantFromModel(applicant: IApplicant): GeminiBatchApplicant 
     location: applicant.location,
     skills: structured.skills.map((skill) => ({
       name: skill.name,
-      level: skill.level,
+      level: skill.level as GeminiSkillLevel | undefined,
       yearsOfExperience: skill.yearsOfExperience,
     })),
     languages: structured.languages.map((language) => ({
       name: language.name,
-      proficiency: language.proficiency,
+      proficiency: language.proficiency as GeminiLanguageProficiency | undefined,
     })),
     experience: structured.experience.map((entry) => ({
       company: entry.company,
@@ -103,13 +112,11 @@ function toBatchApplicantFromModel(applicant: IApplicant): GeminiBatchApplicant 
       startDate: project.startDate,
       endDate: project.endDate,
     })),
-    availability: structured.availability
-      ? {
-          status: structured.availability.status,
-          type: structured.availability.type,
-          startDate: structured.availability.startDate,
-        }
-      : undefined,
+    availability: {
+      status: (availability?.status as GeminiAvailabilityStatus) ?? "Open to Opportunities",
+      type: (availability?.type as GeminiAvailabilityType) ?? "Full-time",
+      startDate: availability?.startDate,
+    },
     socialLinks: structured.socialLinks
       ? {
           linkedin: structured.socialLinks.linkedin,

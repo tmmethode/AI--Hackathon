@@ -29,7 +29,7 @@ export interface IJob extends Document {
   employmentType: EmploymentType;
   salaryBand?: string;
 
-  summary: string;
+  description: string;
   responsibilities: string;
   mustHaveQualifications: string;
   niceToHaveQualifications?: string;
@@ -84,7 +84,7 @@ const JobSchema: Schema = new Schema(
     },
     salaryBand: { type: String, trim: true },
 
-    summary: { type: String, required: true, trim: true },
+    description: { type: String, required: true, trim: true },
     responsibilities: { type: String, required: true, trim: true },
     mustHaveQualifications: { type: String, required: true, trim: true },
     niceToHaveQualifications: { type: String, trim: true },
@@ -141,7 +141,7 @@ const JobSchema: Schema = new Schema(
   }
 );
 
-JobSchema.index({ title: 'text', summary: 'text' });
+JobSchema.index({ title: 'text', description: 'text' });
 JobSchema.index({ status: 1 });
 JobSchema.index({ createdBy: 1 });
 JobSchema.index({ hiringManager: 1 });

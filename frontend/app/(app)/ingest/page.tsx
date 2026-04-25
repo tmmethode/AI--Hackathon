@@ -54,7 +54,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Avatar } from "@/components/ui/Avatar";
-import { Field, Input, Textarea } from "@/components/ui/Input";
+import { Field, Input, Select, Textarea } from "@/components/ui/Input";
 import { Modal, ModalBody, ModalFooter, ModalHeader } from "@/components/ui/Modal";
 import { IngestPageSkeleton } from "@/components/page-skeletons";
 import { Progress } from "@/components/ui/Progress";
@@ -112,6 +112,11 @@ const importStages = [
   { id: "refreshing", label: "Refresh Live Preview", icon: RefreshCw },
 ] as const;
 
+// Talent Profile Schema v1 — every controlled-vocabulary value below
+// (skills.level, languages.proficiency, availability.status, availability.type)
+// must use one of the canonical Title-Case strings shown across the two example
+// applicants. Dates use YYYY-MM (experience / projects / certifications),
+// "Present" for ongoing roles, or YYYY-MM-DD (availability.startDate).
 const EXAMPLE_JSON_SCHEMA = `{
   "applicants": [
     {
@@ -122,31 +127,31 @@ const EXAMPLE_JSON_SCHEMA = `{
       "bio": "Strong product-thinking and mentoring experience.",
       "location": "Kigali, Rwanda",
       "skills": [
-        {
-          "name": "React",
-          "level": "advanced",
-          "yearsOfExperience": 4
-        },
-        {
-          "name": "TypeScript",
-          "level": "advanced",
-          "yearsOfExperience": 4
-        }
+        { "name": "React",      "level": "Advanced",     "yearsOfExperience": 4 },
+        { "name": "TypeScript", "level": "Advanced",     "yearsOfExperience": 4 },
+        { "name": "Figma",      "level": "Intermediate", "yearsOfExperience": 2 }
       ],
       "languages": [
-        {
-          "name": "English",
-          "proficiency": "fluent"
-        }
+        { "name": "English",    "proficiency": "Fluent" },
+        { "name": "Kinyarwanda","proficiency": "Native" }
       ],
       "experience": [
         {
           "company": "Acme Labs",
           "role": "Senior Frontend Engineer",
-          "startDate": "2021-01-01",
-          "endDate": "2024-12-31",
-          "description": "Led frontend delivery for customer-facing dashboards.",
+          "startDate": "2023-02",
+          "endDate": "Present",
+          "description": "Lead frontend delivery for customer-facing dashboards.",
           "technologies": ["React", "TypeScript", "Next.js"],
+          "isCurrent": true
+        },
+        {
+          "company": "Bridge Labs",
+          "role": "Frontend Engineer",
+          "startDate": "2020-06",
+          "endDate": "2023-01",
+          "description": "Shipped the candidate experience platform.",
+          "technologies": ["React", "Redux"],
           "isCurrent": false
         }
       ],
@@ -160,38 +165,94 @@ const EXAMPLE_JSON_SCHEMA = `{
         }
       ],
       "certifications": [
-        {
-          "name": "AWS Certified Developer",
-          "issuer": "Amazon",
-          "issueDate": "2023-06-15"
-        }
+        { "name": "AWS Certified Developer", "issuer": "Amazon", "issueDate": "2023-06" }
       ],
       "projects": [
         {
           "name": "Recruiting Analytics Platform",
-          "description": "Built a recruiter reporting workspace.",
+          "description": "Recruiter reporting workspace.",
           "technologies": ["React", "Node.js", "PostgreSQL"],
           "role": "Frontend Lead",
           "link": "https://portfolio.example.com/sarah",
-          "startDate": "2023-01-01",
-          "endDate": "2023-10-01"
+          "startDate": "2023-01",
+          "endDate": "2023-10"
         }
       ],
       "availability": {
-        "status": "open",
-        "type": "full-time",
-        "startDate": "2025-01-15"
+        "status": "Open to Opportunities",
+        "type": "Full-time",
+        "startDate": "2026-01-15"
       },
       "socialLinks": {
         "linkedin": "https://linkedin.com/in/sarah-jenkins",
         "github": "https://github.com/sarahjenkins",
         "portfolio": "https://portfolio.example.com/sarah"
       }
+    },
+    {
+      "firstName": "Daniel",
+      "lastName": "Mukasa",
+      "email": "daniel.mukasa@example.com",
+      "headline": "Backend Engineer — Node.js & AI Systems",
+      "bio": "Backend engineer focused on data pipelines and LLM integrations.",
+      "location": "Kampala, Uganda",
+      "skills": [
+        { "name": "Node.js",    "level": "Expert",   "yearsOfExperience": 6 },
+        { "name": "PostgreSQL", "level": "Advanced", "yearsOfExperience": 5 },
+        { "name": "Python",     "level": "Beginner", "yearsOfExperience": 1 }
+      ],
+      "languages": [
+        { "name": "English",  "proficiency": "Fluent" },
+        { "name": "Luganda",  "proficiency": "Native" },
+        { "name": "Swahili",  "proficiency": "Conversational" }
+      ],
+      "experience": [
+        {
+          "company": "Kibo Pay",
+          "role": "Senior Backend Engineer",
+          "startDate": "2021-09",
+          "endDate": "Present",
+          "description": "Owns ingest and ranking services for the screening platform.",
+          "technologies": ["Node.js", "TypeScript", "PostgreSQL", "Redis"],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "Makerere University",
+          "degree": "BSc Software Engineering",
+          "fieldOfStudy": "Software Engineering",
+          "startYear": 2014,
+          "endYear": 2018
+        }
+      ],
+      "certifications": [
+        { "name": "Google Cloud Professional Cloud Architect", "issuer": "Google", "issueDate": "2024-02" }
+      ],
+      "projects": [
+        {
+          "name": "Open Source Resume Parser",
+          "description": "PDF/DOCX parser used by Umurava ingestion.",
+          "technologies": ["Node.js", "Tesseract", "pdf.js"],
+          "role": "Maintainer",
+          "link": "https://github.com/danmukasa/resume-parser",
+          "startDate": "2022-04",
+          "endDate": "Present"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Contract"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/danmukasa",
+        "github": "https://github.com/danmukasa"
+      }
     }
   ]
 }`;
 const CSV_TEMPLATE = `firstName,lastName,email,headline,bio,location,skills,languages,experienceCompany,experienceRole,experienceStartDate,experienceEndDate,experienceDescription,experienceTechnologies,experienceIsCurrent,educationInstitution,educationDegree,educationFieldOfStudy,educationStartYear,educationEndYear,certificationName,certificationIssuer,certificationIssueDate,projectName,projectDescription,projectTechnologies,projectRole,projectLink,projectStartDate,projectEndDate,availabilityStatus,availabilityType,availabilityStartDate,linkedin,github,portfolio
-"Sarah","Jenkins","sarah.jenkins@example.com","Senior Frontend Engineer","Strong product-thinking and mentoring experience.","Kigali, Rwanda","React|TypeScript|Node.js","English:fluent","Acme Labs","Senior Frontend Engineer","2021-01-01","2024-12-31","Led frontend delivery for customer-facing dashboards.","React|TypeScript|Next.js","false","University of Rwanda","BSc Computer Science","Computer Science","2015","2019","AWS Certified Developer","Amazon","2023-06-15","Recruiting Analytics Platform","Built a recruiter reporting workspace.","React|Node.js|PostgreSQL","Frontend Lead","https://portfolio.example.com/sarah","2023-01-01","2023-10-01","open","full-time","2025-01-15","https://linkedin.com/in/sarah-jenkins","https://github.com/sarahjenkins","https://portfolio.example.com/sarah"
+"Sarah","Jenkins","sarah.jenkins@example.com","Senior Frontend Engineer","Strong product-thinking and mentoring experience.","Kigali, Rwanda","React|TypeScript|Node.js","English:Fluent","Acme Labs","Senior Frontend Engineer","2021-01","2024-12","Led frontend delivery for customer-facing dashboards.","React|TypeScript|Next.js","false","University of Rwanda","BSc Computer Science","Computer Science","2015","2019","AWS Certified Developer","Amazon","2023-06","Recruiting Analytics Platform","Built a recruiter reporting workspace.","React|Node.js|PostgreSQL","Frontend Lead","https://portfolio.example.com/sarah","2023-01","2023-10","Open to Opportunities","Full-time","2025-01-15","https://linkedin.com/in/sarah-jenkins","https://github.com/sarahjenkins","https://portfolio.example.com/sarah"
 `;
 
 function formatBytes(value: number) {
@@ -405,19 +466,35 @@ function buildApplicantUpdatePayload(form: ApplicantEditFormState): UpdateApplic
   const firstName = form.firstName.trim();
   const lastName = form.lastName.trim();
   const email = form.email.trim().toLowerCase();
+  const headline = form.headline.trim();
+  const location = form.location.trim();
+  const availabilityStatus = form.availabilityStatus.trim();
+  const availabilityType = form.availabilityType.trim();
 
-  if (!firstName || !lastName || !email) {
-    throw new Error("First name, last name, and email are required.");
+  // Required-field checks aligned with the Talent Profile Schema (§3.1, §3.7)
+  // and the backend Mongoose model.
+  const missing: string[] = [];
+  if (!firstName) missing.push("First Name");
+  if (!lastName) missing.push("Last Name");
+  if (!email) missing.push("Email");
+  if (!headline) missing.push("Headline");
+  if (!location) missing.push("Location");
+  if (!availabilityStatus) missing.push("Availability Status");
+  if (!availabilityType) missing.push("Availability Type");
+  if (form.skills.filter((skill) => skill.name.trim()).length === 0) missing.push("at least one Skill");
+  if (form.experience.filter((entry) => entry.company.trim() || entry.role.trim()).length === 0) missing.push("at least one Experience entry");
+  if (form.education.filter((entry) => entry.institution.trim()).length === 0) missing.push("at least one Education entry");
+  if (form.projects.filter((entry) => entry.name.trim()).length === 0) missing.push("at least one Project");
+
+  if (missing.length > 0) {
+    throw new Error(`Required field(s) missing: ${missing.join(", ")}.`);
   }
 
-  const availability =
-    form.availabilityStatus.trim() || form.availabilityType.trim() || form.availabilityStartDate.trim()
-      ? {
-          status: form.availabilityStatus.trim() || undefined,
-          type: form.availabilityType.trim() || undefined,
-          startDate: form.availabilityStartDate.trim() || undefined,
-        }
-      : undefined;
+  const availability = {
+    status: availabilityStatus,
+    type: availabilityType,
+    startDate: form.availabilityStartDate.trim() || undefined,
+  };
 
   const socialLinks =
     form.linkedin.trim() || form.github.trim() || form.portfolio.trim()
@@ -498,9 +575,9 @@ function buildApplicantUpdatePayload(form: ApplicantEditFormState): UpdateApplic
     firstName,
     lastName,
     email,
-    headline: form.headline.trim() || undefined,
+    headline,
     bio: form.bio.trim() || undefined,
-    location: form.location.trim() || undefined,
+    location,
     skills,
     languages,
     experience,
@@ -2448,17 +2525,20 @@ export default function IngestPage() {
 
       <Modal open={showSchemaModal} onClose={() => setShowSchemaModal(false)} size="lg">
         <ModalHeader
-          title="Example JSON Schema"
-          subtitle="Use this structure when uploading applicants through the JSON importer."
+          title="Talent Profile JSON Schema"
+          subtitle="Conforms to the Umurava Talent Profile Schema v1 — every applicant uses this exact shape."
           onClose={() => setShowSchemaModal(false)}
         />
         <ModalBody className="flex flex-col gap-4">
           <div className="rounded-md border border-line bg-surface-soft/30 p-4">
-            <p className="text-sm font-medium text-ink">Recommended fields</p>
-            <p className="mt-1 text-xs text-ink-muted">
-              This example matches the backend-supported applicant shape. You can upload it directly as one applicant,
-              wrap multiple applicants in an array, or use a top-level `applicants` array.
-            </p>
+            <p className="text-sm font-medium text-ink">Required + optional fields at a glance</p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-ink-muted">
+              <li><strong className="text-ink">Required:</strong> firstName, lastName, email (unique per job), headline, location, skills (≥ 1), experience (≥ 1), education (≥ 1), projects (≥ 1), availability (with status + type).</li>
+              <li><strong className="text-ink">Optional:</strong> bio, languages, certifications, socialLinks.</li>
+              <li><strong className="text-ink">Controlled vocabulary:</strong> skills.level = Beginner | Intermediate | Advanced | Expert; languages.proficiency = Basic | Conversational | Fluent | Native; availability.status = Available | Open to Opportunities | Not Available; availability.type = Full-time | Part-time | Contract.</li>
+              <li><strong className="text-ink">Date format:</strong> YYYY-MM for experience / projects / certifications (use "Present" for ongoing roles); YYYY-MM-DD for availability.startDate; integer years for education.</li>
+              <li>Upload one applicant directly, an array of applicants, or wrap them in <code>{`{ "applicants": [...] }`}</code>.</li>
+            </ul>
           </div>
           <pre className="overflow-x-auto rounded-lg border border-line bg-ink px-4 py-4 text-xs leading-6 text-white">
             <code>{EXAMPLE_JSON_SCHEMA}</code>
@@ -2481,32 +2561,32 @@ export default function IngestPage() {
           {editForm && (
             <>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Field label="First Name">
+                <Field label="First Name" required>
                   <Input
                     value={editForm.firstName}
                     onChange={(event) => setEditForm((previous) => previous ? { ...previous, firstName: event.target.value } : previous)}
                   />
                 </Field>
-                <Field label="Last Name">
+                <Field label="Last Name" required>
                   <Input
                     value={editForm.lastName}
                     onChange={(event) => setEditForm((previous) => previous ? { ...previous, lastName: event.target.value } : previous)}
                   />
                 </Field>
-                <Field label="Email" className="md:col-span-2">
+                <Field label="Email" className="md:col-span-2" required>
                   <Input
                     type="email"
                     value={editForm.email}
                     onChange={(event) => setEditForm((previous) => previous ? { ...previous, email: event.target.value } : previous)}
                   />
                 </Field>
-                <Field label="Headline" className="md:col-span-2">
+                <Field label="Headline" className="md:col-span-2" required>
                   <Input
                     value={editForm.headline}
                     onChange={(event) => setEditForm((previous) => previous ? { ...previous, headline: event.target.value } : previous)}
                   />
                 </Field>
-                <Field label="Location" className="md:col-span-2">
+                <Field label="Location" className="md:col-span-2" required>
                   <Input
                     value={editForm.location}
                     onChange={(event) => setEditForm((previous) => previous ? { ...previous, location: event.target.value } : previous)}
@@ -2522,17 +2602,27 @@ export default function IngestPage() {
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <Field label="Availability Status">
-                  <Input
+                <Field label="Availability Status" required>
+                  <Select
                     value={editForm.availabilityStatus}
                     onChange={(event) => setEditForm((previous) => previous ? { ...previous, availabilityStatus: event.target.value } : previous)}
-                  />
+                  >
+                    <option value="">Select status</option>
+                    <option value="Available">Available</option>
+                    <option value="Open to Opportunities">Open to Opportunities</option>
+                    <option value="Not Available">Not Available</option>
+                  </Select>
                 </Field>
-                <Field label="Availability Type">
-                  <Input
+                <Field label="Availability Type" required>
+                  <Select
                     value={editForm.availabilityType}
                     onChange={(event) => setEditForm((previous) => previous ? { ...previous, availabilityType: event.target.value } : previous)}
-                  />
+                  >
+                    <option value="">Select type</option>
+                    <option value="Full-time">Full-time</option>
+                    <option value="Part-time">Part-time</option>
+                    <option value="Contract">Contract</option>
+                  </Select>
                 </Field>
                 <Field label="Availability Start Date">
                   <Input
@@ -2566,9 +2656,9 @@ export default function IngestPage() {
 
               <CollectionEditor
                 title="Skills"
-                description="Add each skill the applicant is strong in."
+                description="Add each skill the applicant is strong in. At least one skill is required."
                 items={editForm.skills}
-                emptyMessage="No skills added yet."
+                emptyMessage="No skills added yet — at least one skill is required."
                 onAdd={() =>
                   setEditForm((previous) =>
                     previous ? { ...previous, skills: [...previous.skills, { name: "", level: "", yearsOfExperience: undefined }] } : previous
@@ -2599,9 +2689,8 @@ export default function IngestPage() {
                       />
                     </Field>
                     <Field label="Level">
-                      <Input
+                      <Select
                         value={skill.level || ""}
-                        placeholder="Beginner, Intermediate, Advanced…"
                         onChange={(event) =>
                           setEditForm((previous) =>
                             previous
@@ -2614,7 +2703,13 @@ export default function IngestPage() {
                               : previous
                           )
                         }
-                      />
+                      >
+                        <option value="">Select level</option>
+                        <option value="Beginner">Beginner</option>
+                        <option value="Intermediate">Intermediate</option>
+                        <option value="Advanced">Advanced</option>
+                        <option value="Expert">Expert</option>
+                      </Select>
                     </Field>
                     <Field label="Years of Experience">
                       <Input
@@ -2679,9 +2774,8 @@ export default function IngestPage() {
                       />
                     </Field>
                     <Field label="Proficiency">
-                      <Input
+                      <Select
                         value={language.proficiency || ""}
-                        placeholder="Native, Fluent, Conversational…"
                         onChange={(event) =>
                           setEditForm((previous) =>
                             previous
@@ -2694,7 +2788,13 @@ export default function IngestPage() {
                               : previous
                           )
                         }
-                      />
+                      >
+                        <option value="">Select proficiency</option>
+                        <option value="Basic">Basic</option>
+                        <option value="Conversational">Conversational</option>
+                        <option value="Fluent">Fluent</option>
+                        <option value="Native">Native</option>
+                      </Select>
                     </Field>
                   </div>
                 )}
@@ -2702,8 +2802,9 @@ export default function IngestPage() {
 
               <CollectionEditor
                 title="Experience"
+                description="At least one experience entry is required."
                 items={editForm.experience}
-                emptyMessage="No work experience added yet."
+                emptyMessage="No work experience added yet — at least one entry is required."
                 onAdd={() =>
                   setEditForm((previous) =>
                     previous
@@ -2857,8 +2958,9 @@ export default function IngestPage() {
 
               <CollectionEditor
                 title="Education"
+                description="At least one education entry is required."
                 items={editForm.education}
-                emptyMessage="No education added yet."
+                emptyMessage="No education added yet — at least one entry is required."
                 onAdd={() =>
                   setEditForm((previous) =>
                     previous
@@ -3060,8 +3162,9 @@ export default function IngestPage() {
 
               <CollectionEditor
                 title="Projects"
+                description="At least one project is required."
                 items={editForm.projects}
-                emptyMessage="No projects added yet."
+                emptyMessage="No projects added yet — at least one entry is required."
                 onAdd={() =>
                   setEditForm((previous) =>
                     previous

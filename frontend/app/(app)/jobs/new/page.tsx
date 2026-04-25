@@ -48,7 +48,7 @@ interface JobFormState {
   locationPolicy: LocationPolicy | "";
   employmentType: EmploymentType | "";
   salaryBand: string;
-  summary: string;
+  description: string;
   responsibilities: string;
   mustHaveQualifications: string;
   niceToHaveQualifications: string;
@@ -413,9 +413,9 @@ export default function NewJobPage() {
           description="Provide a comprehensive description of the role, responsibilities, and what the job entails."
           step={3}
         >
-          <Field label="Job Summary" className="mb-5" required>
-            <Textarea rows={3} value={form.summary} onChange={(event) => updateFormField("summary", event.target.value)} />
-            <span className="mt-1 block text-xs text-ink-muted">A brief overview of the role visible to candidates at the top of the job posting.</span>
+          <Field label="Job Description" className="mb-5" required>
+            <Textarea rows={3} value={form.description} onChange={(event) => updateFormField("description", event.target.value)} />
+            <span className="mt-1 block text-xs text-ink-muted">A comprehensive overview of the role visible to candidates at the top of the job posting.</span>
           </Field>
 
           <Field label="Key Responsibilities" className="mb-5" required>

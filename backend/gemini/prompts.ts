@@ -143,7 +143,7 @@ Job Title: ${job.title}
 Location Policy: ${job.locationPolicy || "Not specified"}
 Employment Type: ${job.employmentType || "Not specified"}
 Salary Band: ${job.salaryBand || "Not specified"}
-Job Summary: ${job.summary || "Not specified"}
+Job Description: ${job.description || "Not specified"}
 ${formatResponsibilities(job.responsibilities)}
 Experience Requirement: ${job.experience || "Not specified"}
 Seniority Level: ${job.seniorityLevel || "Not specified"}
@@ -246,7 +246,7 @@ function formatBatchJob(job: GeminiBatchJob): string {
   }
   appendIf(lines, "Education", job.educationLevel);
 
-  appendIf(lines, "Summary", clip(job.summary, 400));
+  appendIf(lines, "Description", clip(job.description, 400));
   appendIf(lines, "Responsibilities", clip(job.responsibilities, 400));
   appendIf(lines, "Must-have", clip(job.mustHaveQualifications, 400));
   appendIf(lines, "Nice-to-have", clip(job.niceToHaveQualifications, 300));
@@ -589,7 +589,7 @@ function formatAssistantJob(job?: GeminiBatchJob): string {
   appendIf(lines, "- Education Level", job.educationLevel);
   appendIf(lines, "- Salary Band", job.salaryBand);
   appendIf(lines, "- Status", job.status);
-  appendIf(lines, "- Summary", clip(job.summary, 500));
+  appendIf(lines, "- Description", clip(job.description, 500));
   appendIf(lines, "- Responsibilities", clip(job.responsibilities, 500));
   appendIf(lines, "- Must-have", clip(job.mustHaveQualifications, 500));
   appendIf(lines, "- Nice-to-have", clip(job.niceToHaveQualifications, 400));

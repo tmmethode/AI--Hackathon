@@ -71,7 +71,7 @@ interface EditJobForm {
   locationPolicy: LocationPolicy;
   employmentType: EmploymentType;
   salaryBand: string;
-  summary: string;
+  description: string;
   responsibilities: string;
   mustHaveQualifications: string;
   niceToHaveQualifications: string;
@@ -191,7 +191,7 @@ function buildEditForm(job: JobRecord): EditJobForm {
     locationPolicy: job.locationPolicy,
     employmentType: job.employmentType,
     salaryBand: job.salaryBand || "",
-    summary: job.summary,
+    description: job.description,
     responsibilities: job.responsibilities,
     mustHaveQualifications: job.mustHaveQualifications,
     niceToHaveQualifications: job.niceToHaveQualifications || "",
@@ -435,7 +435,7 @@ export default function JobsPage() {
           locationPolicy: editForm.locationPolicy,
           employmentType: editForm.employmentType,
           salaryBand: editForm.salaryBand.trim() || undefined,
-          summary: editForm.summary.trim(),
+          description: editForm.description.trim(),
           responsibilities: editForm.responsibilities.trim(),
           mustHaveQualifications: editForm.mustHaveQualifications.trim(),
           niceToHaveQualifications: editForm.niceToHaveQualifications.trim() || undefined,
@@ -819,7 +819,7 @@ export default function JobsPage() {
 
               <Card className="bg-brand-soft p-5 transition-shadow duration-200 hover:shadow-soft">
                 <h4 className="text-sm font-semibold text-info-deep">Ideal Candidate Profile</h4>
-                <p className="mt-2 text-xs leading-5 text-info-deep/80">{selected.summary}</p>
+                <p className="mt-2 text-xs leading-5 text-info-deep/80">{selected.description}</p>
                 <dl className="mt-4 grid grid-cols-2 gap-3 text-[11px]">
                   <div>
                     <dt className="uppercase tracking-wider text-info-deep/60">Experience Level</dt>
@@ -896,8 +896,8 @@ export default function JobsPage() {
               </dl>
 
               <div>
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">Summary</p>
-                <p className="text-sm leading-6 text-ink">{selected.summary}</p>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">Description</p>
+                <p className="text-sm leading-6 text-ink">{selected.description}</p>
               </div>
 
               <div>
@@ -1048,11 +1048,11 @@ export default function JobsPage() {
               </div>
 
               <div className="mt-6 grid grid-cols-1 gap-5">
-                <Field label="Job Summary" required>
+                <Field label="Job Description" required>
                   <Textarea
                     rows={3}
-                    value={editForm.summary}
-                    onChange={(event) => updateEditField("summary", event.target.value)}
+                    value={editForm.description}
+                    onChange={(event) => updateEditField("description", event.target.value)}
                     required
                   />
                 </Field>

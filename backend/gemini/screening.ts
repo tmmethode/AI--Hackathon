@@ -700,8 +700,20 @@ export class GeminiScreeningService {
         criterionAssessments: entry.criterionAssessments,
         finalRecommendation: entry.finalRecommendation,
         applicant: applicantByEmail.get(entry.applicantEmail.trim().toLowerCase()) || {
+          // Fallback shape — used only when the applicant isn't in the original
+          // request (e.g. screening results pulled from a saved shortlist).
+          // Provides empty arrays / placeholders so the narrative prompt can
+          // skip the missing details gracefully.
           email: entry.applicantEmail,
           firstName: entry.fullName,
+          lastName: "",
+          headline: "",
+          location: "",
+          skills: [],
+          experience: [],
+          education: [],
+          projects: [],
+          availability: { status: "Open to Opportunities", type: "Full-time" },
         },
       }));
 
