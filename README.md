@@ -222,21 +222,23 @@ The [Talent Profile Schema Specification](https://github.com/tmmethode/AI--Hacka
 
 ## AI features
 
-### Batch screening
-- One Gemini call per chunk of applicants. Each chunk is scored against the job's authoritative criteria; the caller re-computes the weighted final score.
-- Failed chunks are tracked and surfaced to the recruiter (count + first 3 reasons) on the screening progress page.
-- Eligibility threshold: `matchScore >= 54`. Final shortlist is min(`shortlistCount`, eligible).
+### 1. Batch screening and ranking
+- Applicants are screened in chunks, but always against the same job definition: title, responsibilities, must-have qualifications, nice-to-haves, skills, experience, education, and recruiter-defined weight criteria.
+- The backend does not blindly trust the model's final ranking. Gemini returns criterion-level scoring, then the server re-computes the weighted match score and sorts the results consistently before building the shortlist.
+- Screening only runs on parsed, schema-valid applicant records, so incomplete placeholder profiles never reach the model.
+- Recruiters see operational visibility during long runs: requested vs processed applicants, truncation when a run hits the configured cap, failed chunk counts, and the first few failure reasons on the progress page.
+- Shortlist eligibility is explicit: candidates must reach `matchScore >= 54`, and the saved shortlist is capped by the recruiter-selected shortlist size.
 
-### Narrative enrichment
-- Second Gemini pass writes recruiter-friendly strengths, gaps, and a one-paragraph summary per shortlisted candidate — does not change scores or ranks.
+### 2. Narrative explanation pass
+- After ranking, a second Gemini pass generates recruiter-friendly strengths, gaps or risks, and a concise summary for each shortlisted candidate.
+- This explanation step is read-only with respect to ranking: it does not alter match scores, reorder candidates, or change shortlist eligibility.
+- The result is a shortlist that is both sortable and explainable: recruiters get a quantitative score plus plain-language reasoning they can review with hiring managers.
 
-### AI Assistant (recruiter chat)
-- Page-aware: auto-scopes to the shortlist or job derived from the URL (`/shortlists?id=…`, `/candidates/[id]`).
-- Sees `pipelineStatus` per shortlist entry and a `PIPELINE STAGE COUNTS:` summary, so questions like *"How many candidates are in interview?"* answer accurately.
-- Uses persisted screening data only — no invented qualifications. System rules cite the spec when explaining what's required.
-
-### Spec-format JSON exports
-- Optional toggle in the Exports modal re-emits PascalCase-with-spaces keys (`"Start Date"`, `"End Date"`, `"Is Current"`, `"Field of Study"`, `"Start Year"`, `"End Year"`, `"Issue Date"`) so downstream consumers that follow the PDF spec verbatim get a perfect match.
+### 3. Recruiter AI Assistant
+- The assistant is page-aware. It automatically scopes itself to the job, shortlist, or candidate the recruiter is currently viewing, including routes like `/shortlists?id=...` and `/candidates/[id]`.
+- Its context is grounded in saved application data, shortlist results, pipeline statuses, and stage counts, so it can answer operational questions such as who is leading a shortlist, how many candidates are in interview, or where gaps are concentrated.
+- It is designed for retrieval and explanation, not invention. Answers are based on persisted jobs, applicants, and shortlists rather than made-up qualifications or generic hiring advice.
+- Conversation history is trimmed and bounded so the assistant stays focused on recent recruiter intent while keeping responses anchored to current workspace data.
 
 ---
 
