@@ -803,12 +803,6 @@ export class GeminiScreeningService {
       }
     }
 
-    if (mergedEntries.size === 0 && failures.length > 0) {
-      throw new Error(
-        `screenBatch: all ${chunks.length} Gemini chunk(s) failed. First error: ${failures[0].reason}`
-      );
-    }
-
     const screeningResults: GeminiBatchScreeningResultEntry[] = sortedApplicants.map(
       (applicant) => {
         const key = applicant.email.trim().toLowerCase();

@@ -215,7 +215,9 @@ export class GeminiBatchScreeningRunnerService {
       ...response,
       meta: {
         requestedApplicants,
-        processedApplicants: applicants.length,
+        processedApplicants:
+          response.meta?.processedApplicants ??
+          Math.max(0, applicants.length - (response.meta?.unscoredApplicants ?? 0)),
         maxApplicants,
         truncatedApplicants,
         unscoredApplicants: response.meta?.unscoredApplicants ?? 0,
