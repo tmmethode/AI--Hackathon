@@ -116,6 +116,10 @@ export interface IApplicant extends Document {
 
 const CURRENT_YEAR = new Date().getFullYear();
 
+function requiresStructuredProfile(applicant: Pick<IApplicant, 'ingestStatus'> | null | undefined) {
+  return applicant?.ingestStatus === 'parsed';
+}
+
 const SkillSchema = new Schema(
   {
     name: { type: String, required: true, trim: true },
@@ -222,15 +226,29 @@ const ApplicantSchema: Schema = new Schema(
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
     email: { type: String, required: true, trim: true, lowercase: true },
-    headline: { type: String, required: [true, 'headline is required per Talent Profile Schema §3.1.'], trim: true },
+    headline: {
+      type: String,
+      trim: true,
+      required: [function (this: IApplicant) {
+        return requiresStructuredProfile(this);
+      }, 'headline is required per Talent Profile Schema §3.1.'],
+    },
     bio: { type: String, trim: true },
-    location: { type: String, required: [true, 'location is required per Talent Profile Schema §3.1.'], trim: true },
+    location: {
+      type: String,
+      trim: true,
+      required: [function (this: IApplicant) {
+        return requiresStructuredProfile(this);
+      }, 'location is required per Talent Profile Schema §3.1.'],
+    },
 
     skills: {
       type: [SkillSchema],
       default: [],
       validate: {
-        validator: (arr: unknown) => Array.isArray(arr) && arr.length > 0,
+        validator: function (this: IApplicant, arr: unknown) {
+          return !requiresStructuredProfile(this) || (Array.isArray(arr) && arr.length > 0);
+        },
         message: 'At least one skill is required per Talent Profile Schema §3.2.',
       },
     },
@@ -239,7 +257,9 @@ const ApplicantSchema: Schema = new Schema(
       type: [ExperienceSchema],
       default: [],
       validate: {
-        validator: (arr: unknown) => Array.isArray(arr) && arr.length > 0,
+        validator: function (this: IApplicant, arr: unknown) {
+          return !requiresStructuredProfile(this) || (Array.isArray(arr) && arr.length > 0);
+        },
         message: 'At least one experience entry is required per Talent Profile Schema §3.3.',
       },
     },
@@ -247,7 +267,9 @@ const ApplicantSchema: Schema = new Schema(
       type: [EducationSchema],
       default: [],
       validate: {
-        validator: (arr: unknown) => Array.isArray(arr) && arr.length > 0,
+        validator: function (this: IApplicant, arr: unknown) {
+          return !requiresStructuredProfile(this) || (Array.isArray(arr) && arr.length > 0);
+        },
         message: 'At least one education entry is required per Talent Profile Schema §3.4.',
       },
     },
@@ -256,12 +278,19 @@ const ApplicantSchema: Schema = new Schema(
       type: [ProjectSchema],
       default: [],
       validate: {
-        validator: (arr: unknown) => Array.isArray(arr) && arr.length > 0,
+        validator: function (this: IApplicant, arr: unknown) {
+          return !requiresStructuredProfile(this) || (Array.isArray(arr) && arr.length > 0);
+        },
         message: 'At least one project is required per Talent Profile Schema §3.6.',
       },
     },
 
-    availability: { type: AvailabilitySchema, required: [true, 'availability is required per Talent Profile Schema §3.7.'] },
+    availability: {
+      type: AvailabilitySchema,
+      required: [function (this: IApplicant) {
+        return requiresStructuredProfile(this);
+      }, 'availability is required per Talent Profile Schema §3.7.'],
+    },
     socialLinks: { type: SocialLinksSchema },
 
     source: {

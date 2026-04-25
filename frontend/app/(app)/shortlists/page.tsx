@@ -128,7 +128,7 @@ function buildCandidateFromResult(
   shortlistJobId: string,
   candidateKey: number,
   pillarLabels: Record<ScorePillarKey, string>,
-  shortlistedEmails: Set<string>,
+  pipelineStatuses: Map<string, Candidate["status"]>,
   experienceYears: number,
   applicant?: ApplicantRecord
 ): Candidate {
@@ -167,7 +167,7 @@ function buildCandidateFromResult(
           { label: pillarLabels.experience, value: entry.experienceScore },
           { label: pillarLabels.education, value: entry.educationScore },
         ],
-    status: shortlistedEmails.has(emailKey) ? "shortlisted" : "rejected",
+    status: pipelineStatuses.get(emailKey) || "rejected",
   };
 }
 
@@ -191,8 +191,11 @@ function buildScreeningJobFromSummary(summary: ShortlistSummary, isCurrent: bool
 
 function buildCandidatesFromRecord(record: ShortlistRecord, applicants: ApplicantRecord[]): Candidate[] {
   const labels = buildPillarLabels(record.weightCriteria);
-  const shortlistedEmails = new Set(
-    (record.shortlist || []).map((entry) => entry.applicantEmail.trim().toLowerCase())
+  const pipelineStatuses = new Map<string, Candidate["status"]>(
+    (record.shortlist || []).map((entry) => [
+      entry.applicantEmail.trim().toLowerCase(),
+      (entry.pipelineStatus || "shortlisted") as Candidate["status"],
+    ])
   );
   const applicantsByEmail = new Map(
     applicants.map((applicant) => [applicant.email.trim().toLowerCase(), applicant])
@@ -205,7 +208,7 @@ function buildCandidatesFromRecord(record: ShortlistRecord, applicants: Applican
       record.job,
       index + 1,
       labels,
-      shortlistedEmails,
+      pipelineStatuses,
       calculateApplicantExperienceYears(applicant),
       applicant
     );

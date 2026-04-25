@@ -980,7 +980,7 @@ function normalizeApplicantInput(raw: unknown): ApplicantProfileInput {
   const nestedCertifications = normalizeCertificationEntries(pickValue(record, "certifications"));
   const nestedProjects = normalizeProjectEntries(pickValue(record, "projects"));
 
-  return {
+  const normalized: ApplicantProfileInput = {
     firstName,
     lastName,
     email: email.trim().toLowerCase(),
@@ -1130,8 +1130,26 @@ function normalizeApplicantInput(raw: unknown): ApplicantProfileInput {
         (typeof pickValue(record, "portfolioUrl", "portfolio") === "string" &&
           String(pickValue(record, "portfolioUrl", "portfolio")).trim()) ||
         undefined,
-    },
+      },
   };
+
+  const missing: string[] = [];
+  if (!normalized.headline?.trim()) missing.push("headline");
+  if (!normalized.location?.trim()) missing.push("location");
+  if (!normalized.skills || normalized.skills.length === 0) missing.push("skills");
+  if (!normalized.experience || normalized.experience.length === 0) missing.push("experience");
+  if (!normalized.education || normalized.education.length === 0) missing.push("education");
+  if (!normalized.projects || normalized.projects.length === 0) missing.push("projects");
+  if (!normalized.availability?.status?.trim()) missing.push("availability.status");
+  if (!normalized.availability?.type?.trim()) missing.push("availability.type");
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Applicant ${normalized.email} is missing required Talent Profile Schema fields: ${missing.join(", ")}.`
+    );
+  }
+
+  return normalized;
 }
 
 function parseCsvRow(line: string) {

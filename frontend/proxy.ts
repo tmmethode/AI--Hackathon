@@ -36,7 +36,11 @@ export function proxy(request: NextRequest) {
   const token = request.cookies.get(AUTH_TOKEN_COOKIE_NAME)?.value;
 
   if (pathname === "/") {
-    return withNoStore(NextResponse.redirect(new URL(token ? DEFAULT_APP_PATH : "/login", request.url)));
+    if (token) {
+      return withNoStore(NextResponse.redirect(new URL(DEFAULT_APP_PATH, request.url)));
+    }
+
+    return withNoStore(NextResponse.next());
   }
 
   if (pathname === "/login") {

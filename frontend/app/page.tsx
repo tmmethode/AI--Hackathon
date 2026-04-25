@@ -460,7 +460,7 @@ export default function LandingPage() {
                     <KeyRound className="h-4 w-4 text-brand" />
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Password</p>
-                      <p className="font-mono text-sm text-ink">demo123</p>
+                      <p className="font-mono text-sm text-ink">demo1234</p>
                     </div>
                   </div>
                 </div>
