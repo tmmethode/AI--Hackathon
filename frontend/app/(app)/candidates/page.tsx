@@ -7,7 +7,7 @@ import {
   Search, Filter, ArrowDownUp, Check, Users, Eye, FileText,
   Download, Mail, Calendar,
   Briefcase, ChevronDown, Send, Video, Phone, X,
-  ClipboardCheck, GraduationCap, Wrench, ChevronRight, Sparkles,
+  ClipboardCheck, GraduationCap, Wrench, ChevronRight, Sparkles, ListOrdered,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -581,7 +581,7 @@ export default function CandidatesPage() {
                 </div>
               )}
             </div>
-            <Link href="/ingest"><Button leftIcon={<Users className="h-4 w-4" />}>Ingest Candidates</Button></Link>
+            <Link href="/shortlists"><Button leftIcon={<ListOrdered className="h-4 w-4" />}>View Shortlist</Button></Link>
           </>
         }
       />

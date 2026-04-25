@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Download,
   FileText,
@@ -94,8 +94,52 @@ function selectCandidates(record: ShortlistRecord) {
   return record.shortlist?.length ? record.shortlist : record.screeningResults;
 }
 
+const PIPELINE_LABELS: Record<string, string> = {
+  shortlisted: "Shortlisted",
+  interview: "Interview",
+  exam: "Technical Exam",
+  assessment: "Assessment",
+  practical: "Practical",
+};
+
+function pipelineStatusOf(entry: object): string {
+  const value = (entry as { pipelineStatus?: string }).pipelineStatus || "shortlisted";
+  return PIPELINE_LABELS[value] || value;
+}
+
+interface PipelineCounts {
+  shortlisted: number;
+  interview: number;
+  exam: number;
+  assessment: number;
+  practical: number;
+  rejected: number;
+  active: number;
+}
+
+function buildPipelineCounts(record: ShortlistRecord): PipelineCounts {
+  const counts: PipelineCounts = {
+    shortlisted: 0,
+    interview: 0,
+    exam: 0,
+    assessment: 0,
+    practical: 0,
+    rejected: Math.max(0, (record.totalApplicants || 0) - (record.shortlist?.length || 0)),
+    active: record.shortlist?.length || 0,
+  };
+  for (const entry of record.shortlist || []) {
+    const stage = (entry.pipelineStatus || "shortlisted") as keyof Omit<PipelineCounts, "rejected" | "active">;
+    if (stage in counts) {
+      counts[stage] = counts[stage] + 1;
+    } else {
+      counts.shortlisted += 1;
+    }
+  }
+  return counts;
+}
+
 function buildPreviewRows(record: ShortlistRecord): string[][] {
-  const headers = ["Rank", "Name", "Email", "Match %", "Recommendation", "Summary"];
+  const headers = ["Rank", "Name", "Email", "Match %", "Stage", "Recommendation", "Summary"];
   const rows = selectCandidates(record)
     .slice(0, 10)
     .map((entry) => [
@@ -103,6 +147,7 @@ function buildPreviewRows(record: ShortlistRecord): string[][] {
       entry.fullName || "Unknown",
       entry.applicantEmail,
       `${entry.matchScore ?? 0}%`,
+      pipelineStatusOf(entry),
       entry.finalRecommendation,
       (entry.summaryExplanation || "").replace(/\s+/g, " ").trim().slice(0, 120),
     ]);
@@ -127,6 +172,7 @@ function buildCsvRows(record: ShortlistRecord): (readonly unknown[])[] {
     "Name",
     "Email",
     "Match %",
+    "Pipeline Stage",
     ...criteria.map((criterion) => `${criterion.label} %`),
     "Recommendation",
     "Strengths",
@@ -151,6 +197,7 @@ function buildCsvRows(record: ShortlistRecord): (readonly unknown[])[] {
       entry.fullName || "",
       entry.applicantEmail || "",
       entry.matchScore ?? 0,
+      pipelineStatusOf(entry),
       ...criteria.map(fallbackScore),
       entry.finalRecommendation || "",
       (entry.strengths || []).join("; "),
@@ -158,6 +205,17 @@ function buildCsvRows(record: ShortlistRecord): (readonly unknown[])[] {
       (entry.summaryExplanation || "").replace(/\s+/g, " ").trim(),
     ]);
   }
+
+  const counts = buildPipelineCounts(record);
+  rows.push([]);
+  rows.push(["Pipeline Stage Counts"]);
+  rows.push(["Active in Pipeline", counts.active]);
+  rows.push(["Shortlisted", counts.shortlisted]);
+  rows.push(["Interview", counts.interview]);
+  rows.push(["Technical Exam", counts.exam]);
+  rows.push(["Assessment", counts.assessment]);
+  rows.push(["Practical", counts.practical]);
+  rows.push(["Rejected", counts.rejected]);
   return rows;
 }
 
@@ -175,6 +233,7 @@ function buildJsonData(record: ShortlistRecord) {
 
 function buildPdfLines(record: ShortlistRecord) {
   const candidates = selectCandidates(record);
+  const counts = buildPipelineCounts(record);
 
   return [
     "Candidate Screening Report",
@@ -184,10 +243,16 @@ function buildPdfLines(record: ShortlistRecord) {
     `Total Applicants Evaluated: ${record.totalApplicants}`,
     `Candidates In Shortlist: ${record.shortlistCount}`,
     "",
+    "Pipeline Stage Counts",
+    `Active in Pipeline: ${counts.active}`,
+    `Shortlisted: ${counts.shortlisted} | Interview: ${counts.interview} | Technical Exam: ${counts.exam} | Assessment: ${counts.assessment} | Practical: ${counts.practical}`,
+    `Rejected: ${counts.rejected}`,
+    "",
     "Candidate Profiles",
     ...candidates.flatMap((candidate, index) => [
       `${index + 1}. ${candidate.fullName || "Unknown Candidate"}`,
       `Email: ${candidate.applicantEmail || "—"}`,
+      `Pipeline Stage: ${pipelineStatusOf(candidate)}`,
       `Recommendation: ${candidate.finalRecommendation || "Review"}`,
       `Scores: Match ${candidate.matchScore ?? 0}% | ${
         candidate.criterionAssessments && candidate.criterionAssessments.length > 0
@@ -219,53 +284,68 @@ export default function ExportsPage() {
   const [actionBusy, setActionBusy] = useState(false);
   const [actionError, setActionError] = useState("");
 
-  useEffect(() => {
-    let cancelled = false;
+  const reloadExports = useCallback(async () => {
+    setLoadError("");
+    try {
+      const response = await listShortlists({ page: 1, pageSize: 100 });
+      const data = response.data;
+      setSummaries(data);
+      setSelectedShortlistId((current) => current || data[0]?._id || "");
 
-    async function load() {
-      setLoading(true);
-      setLoadError("");
-
-      try {
-        const response = await listShortlists({ page: 1, pageSize: 100 });
-        const data = response.data;
-
-        if (cancelled) {
-          return;
-        }
-
-        setSummaries(data);
-        setSelectedShortlistId(data[0]?._id ?? "");
-
-        const hydrated = data.flatMap((summary) =>
-          (["csv", "pdf", "json"] as ExportFormat[]).map((format) => mapSummaryToExport(summary, format))
-        );
-        setRecords(hydrated);
-      } catch (error) {
-        if (cancelled) {
-          return;
-        }
-
-        setSummaries([]);
-        setRecords([]);
-        setLoadError(error instanceof Error ? error.message : "Failed to load export data.");
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
+      const hydrated = data.flatMap((summary) =>
+        (["csv", "pdf", "json"] as ExportFormat[]).map((format) => mapSummaryToExport(summary, format))
+      );
+      setRecords(hydrated);
+      // Drop cached records so the next preview/download refetches the latest
+      // shortlist state (with current pipelineStatus values per candidate).
+      setRecordByShortlist({});
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Failed to load export data.");
     }
-
-    void load();
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
+  useEffect(() => {
+    setLoading(true);
+    void reloadExports().finally(() => setLoading(false));
+  }, [reloadExports]);
+
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === "visible") {
+        void reloadExports();
+      }
+    }
+    window.addEventListener("focus", handleVisibility);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("focus", handleVisibility);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [reloadExports]);
+
   const totalCandidates = records.reduce((sum, exp) => sum + exp.candidates, 0);
-  const readyExports = records.filter((exp) => exp.status === "ready").length;
   const latestExport = records[0] ?? null;
+
+  // Total active-in-pipeline across hydrated shortlist records. Falls back to
+  // summed shortlistCount across summaries when no records are hydrated yet.
+  const activeInPipelineTotal = useMemo(() => {
+    const hydratedIds = Object.keys(recordByShortlist);
+    if (hydratedIds.length === 0) {
+      return summaries.reduce((sum, summary) => sum + (summary.shortlistCount || 0), 0);
+    }
+    let total = 0;
+    const seen = new Set<string>();
+    for (const summary of summaries) {
+      const record = recordByShortlist[summary._id];
+      if (record) {
+        total += record.shortlist?.length || 0;
+      } else {
+        total += summary.shortlistCount || 0;
+      }
+      seen.add(summary._id);
+    }
+    return total;
+  }, [recordByShortlist, summaries]);
   const latestExportTone =
     latestExport?.status === "ready"
       ? "success"
@@ -391,8 +471,8 @@ export default function ExportsPage() {
                   <p className="mt-2 font-display text-2xl font-bold text-ink">{records.length}</p>
                 </div>
                 <div className="rounded-xl border border-line bg-surface/80 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Ready to Download</p>
-                  <p className="mt-2 font-display text-2xl font-bold text-success">{readyExports}</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Active in Pipeline</p>
+                  <p className="mt-2 font-display text-2xl font-bold text-success">{activeInPipelineTotal}</p>
                 </div>
                 <div className="rounded-xl border border-line bg-surface/80 p-4">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">Candidates Exported</p>
@@ -513,6 +593,8 @@ export default function ExportsPage() {
               const FormatIcon = formatIcons[exp.format];
               const statusTone =
                 exp.status === "ready" ? "success" : exp.status === "generating" ? "brand" : "neutral";
+              const cachedRecord = recordByShortlist[exp.shortlistId];
+              const cachedCounts = cachedRecord ? buildPipelineCounts(cachedRecord) : null;
 
               return (
                 <Card key={`${exp.shortlistId}-${exp.format}`} className="p-5">
@@ -543,6 +625,17 @@ export default function ExportsPage() {
                             <span>{exp.size}</span>
                           </div>
                         </div>
+
+                        {cachedCounts && (
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {cachedCounts.shortlisted > 0 && <Badge tone="brand">{cachedCounts.shortlisted} shortlisted</Badge>}
+                            {cachedCounts.interview > 0 && <Badge tone="success">{cachedCounts.interview} interview</Badge>}
+                            {cachedCounts.exam > 0 && <Badge tone="success">{cachedCounts.exam} exam</Badge>}
+                            {cachedCounts.assessment > 0 && <Badge tone="success">{cachedCounts.assessment} assessment</Badge>}
+                            {cachedCounts.practical > 0 && <Badge tone="success">{cachedCounts.practical} practical</Badge>}
+                            {cachedCounts.rejected > 0 && <Badge tone="danger">{cachedCounts.rejected} rejected</Badge>}
+                          </div>
+                        )}
                       </div>
                     </div>
 

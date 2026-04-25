@@ -103,6 +103,16 @@ export interface SidebarUsageSummary {
   totalCount: number;
 }
 
+export interface HistoryStageCounts {
+  shortlisted: number;
+  interview: number;
+  exam: number;
+  assessment: number;
+  practical: number;
+  rejected: number;
+  active: number;
+}
+
 export interface HistoryRunSummary {
   _id: string;
   runName: string;
@@ -114,6 +124,8 @@ export interface HistoryRunSummary {
   screeningCompletedAt?: string;
   screeningDurationSeconds?: number;
   createdAt: string;
+  stageCounts?: HistoryStageCounts;
+  averageMatchScore?: number;
 }
 
 export interface HistorySummaryResponse {

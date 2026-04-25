@@ -180,10 +180,15 @@ export async function GET(request: Request) {
     const sortKey = (searchParams.get("sortKey") || "matchScore") as CandidateSortKey;
     const sortDir = searchParams.get("sortDir") === "asc" ? "asc" : "desc";
 
-    const [jobs, shortlistSummaries] = await Promise.all([listAllJobs(token), listAllShortlistSummaries(token)]);
-    const jobsById = new Map<string, JobRecord>(jobs.map((jobEntry) => [jobEntry._id, jobEntry]));
-    const applicantsByJob = new Map<string, ApplicantRecord[]>();
+    const [allJobs, shortlistSummaries] = await Promise.all([listAllJobs(token), listAllShortlistSummaries(token)]);
+    const jobsById = new Map<string, JobRecord>(allJobs.map((jobEntry) => [jobEntry._id, jobEntry]));
 
+    // When a specific job title is selected, restrict the heavy loads to just that job.
+    const jobs = job === "all"
+      ? allJobs
+      : allJobs.filter((jobEntry) => jobEntry.title === job);
+
+    const applicantsByJob = new Map<string, ApplicantRecord[]>();
     await Promise.all(
       jobs.map(async (jobEntry) => {
         const applicants = await listAllApplicantsForJob(token, jobEntry._id);
@@ -192,7 +197,9 @@ export async function GET(request: Request) {
     );
 
     const latestShortlistByJob = new Map<string, string>();
+    const filteredJobIds = new Set(jobs.map((jobEntry) => jobEntry._id));
     for (const summary of shortlistSummaries) {
+      if (job !== "all" && !filteredJobIds.has(summary.job)) continue;
       if (!latestShortlistByJob.has(summary.job)) latestShortlistByJob.set(summary.job, summary._id);
     }
 
@@ -305,6 +312,14 @@ export async function GET(request: Request) {
     const isActiveCandidate = (candidate: CandidateListItem) =>
       candidate.status !== "rejected" && candidate.status !== "new";
 
+    // Build jobOptions from the full job list so the picker stays complete even
+    // when we only loaded applicants for the currently-filtered job.
+    const candidatesByJobName = new Map<string, number>();
+    for (const candidate of candidates) {
+      if (!isActiveCandidate(candidate)) continue;
+      candidatesByJobName.set(candidate.job, (candidatesByJobName.get(candidate.job) || 0) + 1);
+    }
+
     const response: CandidateDirectoryResponse = {
       data: paginated,
       page: safePage,
@@ -312,14 +327,12 @@ export async function GET(request: Request) {
       total,
       totalPages,
       statusCounts: buildStatusCounts(jobCandidates),
-      jobOptions: Array.from(new Set(candidates.map((candidate) => candidate.job)))
-        .sort((a, b) => a.localeCompare(b))
-        .map((jobName) => ({
-          job: jobName,
-          count: candidates.filter(
-            (candidate) => candidate.job === jobName && isActiveCandidate(candidate)
-          ).length,
-        })),
+      jobOptions: allJobs
+        .map((jobEntry) => ({
+          job: jobEntry.title,
+          count: candidatesByJobName.get(jobEntry.title) ?? jobEntry.applicantsCount ?? 0,
+        }))
+        .sort((a, b) => a.job.localeCompare(b.job)),
       message: "Candidates retrieved successfully",
     };
 

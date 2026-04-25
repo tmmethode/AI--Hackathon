@@ -2219,6 +2219,20 @@
 					},
 					"truncatedApplicants": {
 						"type": "boolean"
+					},
+					"unscoredApplicants": {
+						"type": "number",
+						"format": "double"
+					},
+					"failedChunks": {
+						"type": "number",
+						"format": "double"
+					},
+					"failureReasons": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
 					}
 				},
 				"required": [

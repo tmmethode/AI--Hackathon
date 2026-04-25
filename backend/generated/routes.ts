@@ -468,6 +468,20 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "HistoryStageCountsDTO": {
+        "dataType": "refObject",
+        "properties": {
+            "shortlisted": {"dataType":"double","required":true},
+            "interview": {"dataType":"double","required":true},
+            "exam": {"dataType":"double","required":true},
+            "assessment": {"dataType":"double","required":true},
+            "practical": {"dataType":"double","required":true},
+            "rejected": {"dataType":"double","required":true},
+            "active": {"dataType":"double","required":true},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "HistoryRunSummaryDTO": {
         "dataType": "refObject",
         "properties": {
@@ -481,6 +495,8 @@ const models: TsoaRoute.Models = {
             "screeningCompletedAt": {"dataType":"string"},
             "screeningDurationSeconds": {"dataType":"double"},
             "createdAt": {"dataType":"string","required":true},
+            "stageCounts": {"ref":"HistoryStageCountsDTO","required":true},
+            "averageMatchScore": {"dataType":"double","required":true},
         },
         "additionalProperties": false,
     },
@@ -781,6 +797,9 @@ const models: TsoaRoute.Models = {
             "processedApplicants": {"dataType":"double","required":true},
             "maxApplicants": {"dataType":"double","required":true},
             "truncatedApplicants": {"dataType":"boolean","required":true},
+            "unscoredApplicants": {"dataType":"double"},
+            "failedChunks": {"dataType":"double"},
+            "failureReasons": {"dataType":"array","array":{"dataType":"string"}},
         },
         "additionalProperties": false,
     },
