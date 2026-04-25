@@ -8,6 +8,9 @@ import { Card } from "@/components/ui/Card";
 import { Field, Input } from "@/components/ui/Input";
 import { getGoogleLoginUrl, getStoredAuth, login, persistAuth, resolveSafeNextPath } from "@/lib/auth";
 
+const DEMO_EMAIL = "demo@example.com";
+const DEMO_PASSWORD = "demo1234";
+
 function GoogleIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4">
@@ -39,7 +42,9 @@ export function LoginForm() {
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGoogleRedirecting, setIsGoogleRedirecting] = useState(false);
+  const [demoLoginStarted, setDemoLoginStarted] = useState(false);
   const nextPath = resolveSafeNextPath(searchParams.get("next"));
+  const isDemoLogin = searchParams.get("demo") === "1";
   const serverError = searchParams.get("error");
   const logoutReason = searchParams.get("reason");
 
@@ -48,6 +53,32 @@ export function LoginForm() {
       router.replace(nextPath);
     }
   }, [nextPath, router, serverError]);
+
+  async function submitLogin(nextEmail: string, nextPassword: string) {
+    setSubmitError("");
+    setIsSubmitting(true);
+
+    try {
+      const session = await login({ email: nextEmail.trim(), password: nextPassword });
+      persistAuth(session);
+      router.replace(nextPath);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Login failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!isDemoLogin || serverError || demoLoginStarted || getStoredAuth()?.token) {
+      return;
+    }
+
+    setDemoLoginStarted(true);
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+    void submitLogin(DEMO_EMAIL, DEMO_PASSWORD);
+  }, [demoLoginStarted, isDemoLogin, nextPath, router, serverError]);
 
   const routeError =
     serverError ||
@@ -60,18 +91,7 @@ export function LoginForm() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmitError("");
-    setIsSubmitting(true);
-
-    try {
-      const session = await login({ email: email.trim(), password });
-      persistAuth(session);
-      router.replace(nextPath);
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Login failed. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    await submitLogin(email, password);
   }
 
   function handleGoogleSignIn() {

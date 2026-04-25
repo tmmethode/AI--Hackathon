@@ -200,11 +200,11 @@ export default function LandingPage() {
                   Sign in to the workspace
                 </Button>
               </Link>
-              <a href="#demo">
+              <Link href="/login?demo=1">
                 <Button variant="secondary" size="lg" leftIcon={<KeyRound className="h-4 w-4" />}>
                   Use demo credentials
                 </Button>
-              </a>
+              </Link>
             </div>
 
             <ul className="mt-8 grid gap-3 text-sm text-ink-subtle sm:grid-cols-2">
@@ -467,7 +467,7 @@ export default function LandingPage() {
               </div>
 
               <div className="mt-6 flex flex-wrap gap-3">
-                <Link href="/login">
+                <Link href="/login?demo=1">
                   <Button variant="primary" size="lg" rightIcon={<ArrowRight className="h-4 w-4" />}>
                     Continue to login
                   </Button>
