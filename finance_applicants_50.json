@@ -1,0 +1,4681 @@
+{
+  "applicants": [
+    {
+      "firstName": "Emmanuel",
+      "lastName": "Jenkins",
+      "email": "emmanuel.jenkins1@example.com",
+      "headline": "Finance Analyst",
+      "bio": "Finance professional with strong experience in analysis, reporting, and forecasting.",
+      "location": "Huye, Rwanda",
+      "skills": [
+        {
+          "name": "SQL",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Power BI",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Financial Analysis",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Microsoft Excel",
+          "level": "Expert",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "SAP",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "French",
+          "proficiency": "Intermediate"
+        }
+      ],
+      "experience": [
+        {
+          "company": "EastBridge Capital",
+          "role": "Finance Analyst",
+          "startDate": "2020-06",
+          "endDate": "2021-11",
+          "description": "Analysed expenses, revenue trends, and profitability metrics for management.",
+          "technologies": [
+            "QuickBooks",
+            "Tableau",
+            "SAP"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Kigali",
+          "degree": "BBA Accounting",
+          "fieldOfStudy": "Accounting",
+          "startYear": 2016,
+          "endYear": 2021
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Power BI Data Analyst Associate",
+          "issuer": "Microsoft",
+          "issueDate": "2026-02"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Department Budget Review Tool",
+          "description": "Built a reporting workflow to improve visibility into financial performance.",
+          "technologies": [
+            "Tableau",
+            "Power BI",
+            "Excel"
+          ],
+          "role": "Project Lead",
+          "link": "https://portfolio.example.com/emmanuel",
+          "startDate": "2025-07",
+          "endDate": "2026-07"
+        }
+      ],
+      "availability": {
+        "status": "Not Looking",
+        "type": "Part-time",
+        "startDate": "2026-08-15"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/emmanuel-jenkins",
+        "github": "https://github.com/emmanueljenkins"
+      }
+    },
+    {
+      "firstName": "Jean",
+      "lastName": "Mukamana",
+      "email": "jean.mukamana2@example.com",
+      "headline": "Financial Analyst",
+      "bio": "Finance professional with strong experience in analysis, reporting, and forecasting.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Financial Reporting",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Power BI",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Financial Analysis",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Tableau",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Financial Modelling",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Kigali Holdings",
+          "role": "Financial Analyst",
+          "startDate": "2019-10",
+          "endDate": "Present",
+          "description": "Built financial models and supported planning and reporting cycles.",
+          "technologies": [
+            "SAP",
+            "Power BI",
+            "QuickBooks"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "Kenyatta University",
+          "degree": "BCom Finance",
+          "fieldOfStudy": "Finance",
+          "startYear": 2018,
+          "endYear": 2023
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Microsoft Excel Expert",
+          "issuer": "Microsoft",
+          "issueDate": "2025-08"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Finance Reporting Workspace",
+          "description": "Created an analysis file to track department spending and budget variance.",
+          "technologies": [
+            "SAP",
+            "SQL",
+            "Excel"
+          ],
+          "role": "Contributor",
+          "link": "https://portfolio.example.com/jean",
+          "startDate": "2024-07",
+          "endDate": "2026-01"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Part-time",
+        "startDate": "2026-12-20"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/jean-mukamana",
+        "portfolio": "https://portfolio.example.com/jean"
+      }
+    },
+    {
+      "firstName": "Samuel",
+      "lastName": "Ndahiro",
+      "email": "samuel.ndahiro3@example.com",
+      "headline": "Accounting Analyst",
+      "bio": "Finance professional with strong experience in analysis, reporting, and forecasting.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Financial Analysis",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "SAP",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Budgeting",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "SQL",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Swahili",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Vertex Advisory",
+          "role": "Finance Assistant",
+          "startDate": "2019-10",
+          "endDate": "2020-09",
+          "description": "Built financial models and supported planning and reporting cycles.",
+          "technologies": [
+            "Excel",
+            "QuickBooks",
+            "Tableau"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Crestline Advisory",
+          "role": "Accounting Analyst",
+          "startDate": "2020-04",
+          "endDate": "Present",
+          "description": "Built financial models and supported planning and reporting cycles.",
+          "technologies": [
+            "Excel",
+            "SAP",
+            "Power BI"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Rwanda",
+          "degree": "BSc Accounting",
+          "fieldOfStudy": "Accounting",
+          "startYear": 2012,
+          "endYear": 2014
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Microsoft Excel Expert",
+          "issuer": "Microsoft",
+          "issueDate": "2022-08"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Revenue Forecast Model",
+          "description": "Created an analysis file to track department spending and budget variance.",
+          "technologies": [
+            "SQL",
+            "QuickBooks",
+            "Excel"
+          ],
+          "role": "Project Lead",
+          "link": "https://portfolio.example.com/samuel",
+          "startDate": "2025-05",
+          "endDate": "2026-01"
+        }
+      ],
+      "availability": {
+        "status": "Notice Period",
+        "type": "Full-time"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/samuel-ndahiro",
+        "github": "https://github.com/samuelndahiro"
+      }
+    },
+    {
+      "firstName": "Linda",
+      "lastName": "Mukiza",
+      "email": "linda.mukiza4@example.com",
+      "headline": "Junior Financial Analyst",
+      "bio": "Detail-oriented financial analyst with a practical approach to budgeting and performance tracking.",
+      "location": "Musanze, Rwanda",
+      "skills": [
+        {
+          "name": "Forecasting",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Power BI",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Tableau",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Accounting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Kinyarwanda",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Prime Finance Ltd",
+          "role": "Finance Assistant",
+          "startDate": "2021-07",
+          "endDate": "2024-01",
+          "description": "Built financial models and supported planning and reporting cycles.",
+          "technologies": [
+            "Tableau",
+            "Excel",
+            "Power BI"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Kigali Holdings",
+          "role": "Junior Financial Analyst",
+          "startDate": "2022-09",
+          "endDate": "2023-02",
+          "description": "Analysed expenses, revenue trends, and profitability metrics for management.",
+          "technologies": [
+            "Tableau",
+            "Excel",
+            "SAP"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Rwanda",
+          "degree": "BSc Accounting",
+          "fieldOfStudy": "Accounting",
+          "startYear": 2012,
+          "endYear": 2014
+        }
+      ],
+      "certifications": [],
+      "projects": [
+        {
+          "name": "Department Budget Review Tool",
+          "description": "Developed a dashboard for management reporting and monthly reviews.",
+          "technologies": [
+            "QuickBooks",
+            "SAP",
+            "Excel"
+          ],
+          "role": "Analyst",
+          "link": "https://portfolio.example.com/linda",
+          "startDate": "2025-02",
+          "endDate": "Present"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Full-time",
+        "startDate": "2026-03-25"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/linda-mukiza"
+      }
+    },
+    {
+      "firstName": "Olivia",
+      "lastName": "Mukamana",
+      "email": "olivia.mukamana5@example.com",
+      "headline": "Junior Financial Analyst",
+      "bio": "Finance professional with strong experience in analysis, reporting, and forecasting.",
+      "location": "Remote, Rwanda",
+      "skills": [
+        {
+          "name": "Accounting",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "SAP",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Financial Modelling",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Financial Analysis",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Power BI",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Budgeting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Swahili",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Rwanda Business Group",
+          "role": "Junior Financial Analyst",
+          "startDate": "2021-04",
+          "endDate": "2023-08",
+          "description": "Built financial models and supported planning and reporting cycles.",
+          "technologies": [
+            "SQL",
+            "Power BI",
+            "QuickBooks"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of the People",
+          "degree": "Bachelor of Business Administration",
+          "fieldOfStudy": "Business Administration",
+          "startYear": 2017,
+          "endYear": 2020
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Power BI Data Analyst Associate",
+          "issuer": "Microsoft",
+          "issueDate": "2025-03"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Expense Analysis Automation",
+          "description": "Built a reporting workflow to improve visibility into financial performance.",
+          "technologies": [
+            "SAP",
+            "Excel",
+            "SQL"
+          ],
+          "role": "Finance Assistant",
+          "link": "https://portfolio.example.com/olivia",
+          "startDate": "2024-12",
+          "endDate": "2025-12"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Contract",
+        "startDate": "2026-10-27"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/olivia-mukamana"
+      }
+    },
+    {
+      "firstName": "Chantal",
+      "lastName": "Okello",
+      "email": "chantal.okello6@example.com",
+      "headline": "Accounting Analyst",
+      "bio": "Detail-oriented financial analyst with a practical approach to budgeting and performance tracking.",
+      "location": "Musanze, Rwanda",
+      "skills": [
+        {
+          "name": "Accounting",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Power BI",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Financial Analysis",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "SAP",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Kinyarwanda",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Summit Finance",
+          "role": "Junior Financial Analyst",
+          "startDate": "2018-07",
+          "endDate": "2020-08",
+          "description": "Prepared budgets, forecasts, and monthly financial performance reports.",
+          "technologies": [
+            "SAP",
+            "Tableau",
+            "Excel"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Vertex Advisory",
+          "role": "Accounting Analyst",
+          "startDate": "2019-02",
+          "endDate": "Present",
+          "description": "Prepared budgets, forecasts, and monthly financial performance reports.",
+          "technologies": [
+            "SQL",
+            "Excel",
+            "Tableau"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Rwanda",
+          "degree": "BSc Accounting",
+          "fieldOfStudy": "Accounting",
+          "startYear": 2013,
+          "endYear": 2015
+        }
+      ],
+      "certifications": [
+        {
+          "name": "ACCA Applied Skills",
+          "issuer": "ACCA",
+          "issueDate": "2022-01"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Quarterly Budget Dashboard",
+          "description": "Built a reporting workflow to improve visibility into financial performance.",
+          "technologies": [
+            "QuickBooks",
+            "Tableau",
+            "SQL"
+          ],
+          "role": "Analyst",
+          "link": "https://portfolio.example.com/chantal",
+          "startDate": "2024-09",
+          "endDate": "Present"
+        }
+      ],
+      "availability": {
+        "status": "Not Looking",
+        "type": "Contract",
+        "startDate": "2026-09-05"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/chantal-okello"
+      }
+    },
+    {
+      "firstName": "Michael",
+      "lastName": "Umutoni",
+      "email": "michael.umutoni7@example.com",
+      "headline": "Budget Analyst",
+      "bio": "Experienced in financial modelling, reporting, and business decision support.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Microsoft Excel",
+          "level": "Expert",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Financial Analysis",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Financial Reporting",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "SAP",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Prime Finance Ltd",
+          "role": "Finance Assistant",
+          "startDate": "2020-05",
+          "endDate": "2022-07",
+          "description": "Built financial models and supported planning and reporting cycles.",
+          "technologies": [
+            "SAP",
+            "QuickBooks",
+            "SQL"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Crestline Advisory",
+          "role": "Budget Analyst",
+          "startDate": "2021-09",
+          "endDate": "2023-12",
+          "description": "Built financial models and supported planning and reporting cycles.",
+          "technologies": [
+            "Excel",
+            "Power BI",
+            "QuickBooks"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "Kenyatta University",
+          "degree": "BCom Finance",
+          "fieldOfStudy": "Finance",
+          "startYear": 2017,
+          "endYear": 2019
+        }
+      ],
+      "certifications": [
+        {
+          "name": "CPA Level II",
+          "issuer": "ICPAR",
+          "issueDate": "2024-10"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Department Budget Review Tool",
+          "description": "Created an analysis file to track department spending and budget variance.",
+          "technologies": [
+            "QuickBooks",
+            "SAP",
+            "Excel"
+          ],
+          "role": "Finance Assistant",
+          "link": "https://portfolio.example.com/michael",
+          "startDate": "2025-09",
+          "endDate": "2026-06"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/michael-umutoni"
+      }
+    },
+    {
+      "firstName": "Patrick",
+      "lastName": "Nkurunziza",
+      "email": "patrick.nkurunziza8@example.com",
+      "headline": "Accounting Analyst",
+      "bio": "Experienced in financial modelling, reporting, and business decision support.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Financial Modelling",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Financial Reporting",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Accounting",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "SAP",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Financial Analysis",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Crestline Advisory",
+          "role": "Accounts Officer",
+          "startDate": "2021-09",
+          "endDate": "2022-10",
+          "description": "Prepared budgets, forecasts, and monthly financial performance reports.",
+          "technologies": [
+            "Power BI",
+            "QuickBooks",
+            "Tableau"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Acme Analytics",
+          "role": "Accounting Analyst",
+          "startDate": "2022-05",
+          "endDate": "2023-05",
+          "description": "Analysed expenses, revenue trends, and profitability metrics for management.",
+          "technologies": [
+            "Tableau",
+            "QuickBooks",
+            "SQL"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Rwanda",
+          "degree": "BSc Finance",
+          "fieldOfStudy": "Finance",
+          "startYear": 2013,
+          "endYear": 2015
+        }
+      ],
+      "certifications": [],
+      "projects": [
+        {
+          "name": "Finance Reporting Workspace",
+          "description": "Created an analysis file to track department spending and budget variance.",
+          "technologies": [
+            "Tableau",
+            "QuickBooks",
+            "Excel"
+          ],
+          "role": "Contributor",
+          "link": "https://portfolio.example.com/patrick",
+          "startDate": "2024-08",
+          "endDate": "2026-10"
+        }
+      ],
+      "availability": {
+        "status": "Notice Period",
+        "type": "Contract",
+        "startDate": "2026-05-09"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/patrick-nkurunziza",
+        "github": "https://github.com/patricknkurunziza"
+      }
+    },
+    {
+      "firstName": "Tracy",
+      "lastName": "Mukiza",
+      "email": "tracy.mukiza9@example.com",
+      "headline": "Finance Analyst",
+      "bio": "Finance professional with strong experience in analysis, reporting, and forecasting.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Financial Analysis",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Tableau",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Financial Reporting",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Forecasting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Budgeting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Swahili",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "EastBridge Capital",
+          "role": "Junior Financial Analyst",
+          "startDate": "2020-05",
+          "endDate": "2021-06",
+          "description": "Built financial models and supported planning and reporting cycles.",
+          "technologies": [
+            "SQL",
+            "Power BI",
+            "SAP"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Kigali Holdings",
+          "role": "Finance Analyst",
+          "startDate": "2021-04",
+          "endDate": "Present",
+          "description": "Analysed expenses, revenue trends, and profitability metrics for management.",
+          "technologies": [
+            "QuickBooks",
+            "Power BI",
+            "SQL"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Kigali",
+          "degree": "BBA Accounting",
+          "fieldOfStudy": "Accounting",
+          "startYear": 2018,
+          "endYear": 2020
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Microsoft Excel Expert",
+          "issuer": "Microsoft",
+          "issueDate": "2025-07"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Finance Reporting Workspace",
+          "description": "Developed a dashboard for management reporting and monthly reviews.",
+          "technologies": [
+            "Tableau",
+            "Excel",
+            "SQL"
+          ],
+          "role": "Contributor",
+          "link": "https://portfolio.example.com/tracy",
+          "startDate": "2025-08",
+          "endDate": "2026-04"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time",
+        "startDate": "2026-01-28"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/tracy-mukiza",
+        "portfolio": "https://portfolio.example.com/tracy"
+      }
+    },
+    {
+      "firstName": "Caleb",
+      "lastName": "Kamau",
+      "email": "caleb.kamau10@example.com",
+      "headline": "Junior Financial Analyst",
+      "bio": "Detail-oriented financial analyst with a practical approach to budgeting and performance tracking.",
+      "location": "Rubavu, Rwanda",
+      "skills": [
+        {
+          "name": "Financial Analysis",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Accounting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "SAP",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Financial Reporting",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Financial Modelling",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Kinyarwanda",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Vertex Advisory",
+          "role": "Accounts Officer",
+          "startDate": "2018-03",
+          "endDate": "2019-10",
+          "description": "Built financial models and supported planning and reporting cycles.",
+          "technologies": [
+            "Excel",
+            "QuickBooks",
+            "SQL"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "BluePeak Consulting",
+          "role": "Junior Financial Analyst",
+          "startDate": "2019-03",
+          "endDate": "Present",
+          "description": "Analysed expenses, revenue trends, and profitability metrics for management.",
+          "technologies": [
+            "QuickBooks",
+            "Tableau",
+            "Excel"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of the People",
+          "degree": "Bachelor of Business Administration",
+          "fieldOfStudy": "Business Administration",
+          "startYear": 2015,
+          "endYear": 2020
+        }
+      ],
+      "certifications": [],
+      "projects": [
+        {
+          "name": "Department Budget Review Tool",
+          "description": "Developed a dashboard for management reporting and monthly reviews.",
+          "technologies": [
+            "Power BI",
+            "Tableau",
+            "QuickBooks"
+          ],
+          "role": "Contributor",
+          "link": "https://portfolio.example.com/caleb",
+          "startDate": "2023-06",
+          "endDate": "2024-07"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time",
+        "startDate": "2026-06-08"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/caleb-kamau",
+        "portfolio": "https://portfolio.example.com/caleb"
+      }
+    },
+    {
+      "firstName": "Samuel",
+      "lastName": "Hakizimana",
+      "email": "samuel.hakizimana11@example.com",
+      "headline": "FP&A Analyst",
+      "bio": "Experienced in financial modelling, reporting, and business decision support.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Tableau",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Financial Analysis",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Forecasting",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Financial Modelling",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "SQL",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Prime Finance Ltd",
+          "role": "Finance Assistant",
+          "startDate": "2019-05",
+          "endDate": "2020-01",
+          "description": "Built financial models and supported planning and reporting cycles.",
+          "technologies": [
+            "QuickBooks",
+            "Power BI",
+            "SAP"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Crestline Advisory",
+          "role": "FP&A Analyst",
+          "startDate": "2021-03",
+          "endDate": "Present",
+          "description": "Analysed expenses, revenue trends, and profitability metrics for management.",
+          "technologies": [
+            "Power BI",
+            "QuickBooks",
+            "SAP"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Rwanda",
+          "degree": "BSc Accounting",
+          "fieldOfStudy": "Accounting",
+          "startYear": 2014,
+          "endYear": 2017
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Power BI Data Analyst Associate",
+          "issuer": "Microsoft",
+          "issueDate": "2026-10"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Revenue Forecast Model",
+          "description": "Built a reporting workflow to improve visibility into financial performance.",
+          "technologies": [
+            "Power BI",
+            "SQL",
+            "Tableau"
+          ],
+          "role": "Finance Assistant",
+          "link": "https://portfolio.example.com/samuel",
+          "startDate": "2023-10",
+          "endDate": "2024-09"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Contract",
+        "startDate": "2026-07-14"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/samuel-hakizimana",
+        "portfolio": "https://portfolio.example.com/samuel"
+      }
+    },
+    {
+      "firstName": "Grace",
+      "lastName": "Okello",
+      "email": "grace.okello12@example.com",
+      "headline": "Finance Analyst",
+      "bio": "Finance professional with strong experience in analysis, reporting, and forecasting.",
+      "location": "Huye, Rwanda",
+      "skills": [
+        {
+          "name": "Tableau",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Financial Modelling",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Accounting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "SAP",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "SQL",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Power BI",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Swahili",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "BluePeak Consulting",
+          "role": "Junior Financial Analyst",
+          "startDate": "2021-09",
+          "endDate": "2023-06",
+          "description": "Prepared budgets, forecasts, and monthly financial performance reports.",
+          "technologies": [
+            "Tableau",
+            "Excel",
+            "QuickBooks"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Crestline Advisory",
+          "role": "Finance Analyst",
+          "startDate": "2022-05",
+          "endDate": "Present",
+          "description": "Analysed expenses, revenue trends, and profitability metrics for management.",
+          "technologies": [
+            "SAP",
+            "Excel",
+            "Tableau"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Kigali",
+          "degree": "BBA Accounting",
+          "fieldOfStudy": "Accounting",
+          "startYear": 2018,
+          "endYear": 2022
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Microsoft Excel Expert",
+          "issuer": "Microsoft",
+          "issueDate": "2022-06"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Working Capital Tracker",
+          "description": "Developed a dashboard for management reporting and monthly reviews.",
+          "technologies": [
+            "SQL",
+            "Excel",
+            "Tableau"
+          ],
+          "role": "Contributor",
+          "link": "https://portfolio.example.com/grace",
+          "startDate": "2023-07",
+          "endDate": "2025-02"
+        }
+      ],
+      "availability": {
+        "status": "Not Looking",
+        "type": "Full-time",
+        "startDate": "2026-07-16"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/grace-okello"
+      }
+    },
+    {
+      "firstName": "Denis",
+      "lastName": "Niyomugabo",
+      "email": "denis.niyomugabo13@example.com",
+      "headline": "Finance Analyst",
+      "bio": "Finance professional with strong experience in analysis, reporting, and forecasting.",
+      "location": "Huye, Rwanda",
+      "skills": [
+        {
+          "name": "SQL",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Accounting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Financial Reporting",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Budgeting",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Kinyarwanda",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Kigali Holdings",
+          "role": "Accounts Officer",
+          "startDate": "2020-06",
+          "endDate": "2023-07",
+          "description": "Prepared budgets, forecasts, and monthly financial performance reports.",
+          "technologies": [
+            "Excel",
+            "Power BI",
+            "SQL"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Vertex Advisory",
+          "role": "Finance Analyst",
+          "startDate": "2022-01",
+          "endDate": "2023-12",
+          "description": "Analysed expenses, revenue trends, and profitability metrics for management.",
+          "technologies": [
+            "Power BI",
+            "SQL",
+            "QuickBooks"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "Kenyatta University",
+          "degree": "BCom Finance",
+          "fieldOfStudy": "Finance",
+          "startYear": 2012,
+          "endYear": 2015
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Financial Modelling & Valuation Analyst",
+          "issuer": "CFI",
+          "issueDate": "2026-09"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Revenue Forecast Model",
+          "description": "Developed a dashboard for management reporting and monthly reviews.",
+          "technologies": [
+            "QuickBooks",
+            "SQL",
+            "Tableau"
+          ],
+          "role": "Finance Assistant",
+          "link": "https://portfolio.example.com/denis",
+          "startDate": "2024-03",
+          "endDate": "2026-09"
+        }
+      ],
+      "availability": {
+        "status": "Not Looking",
+        "type": "Full-time",
+        "startDate": "2026-09-17"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/denis-niyomugabo",
+        "portfolio": "https://portfolio.example.com/denis"
+      }
+    },
+    {
+      "firstName": "Ruth",
+      "lastName": "Niyonsaba",
+      "email": "ruth.niyonsaba14@example.com",
+      "headline": "Budget Analyst",
+      "bio": "Detail-oriented financial analyst with a practical approach to budgeting and performance tracking.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Power BI",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "SAP",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Financial Reporting",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Accounting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Tableau",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Microsoft Excel",
+          "level": "Expert",
+          "yearsOfExperience": 5
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "French",
+          "proficiency": "Intermediate"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Vertex Advisory",
+          "role": "Finance Assistant",
+          "startDate": "2021-12",
+          "endDate": "2023-03",
+          "description": "Analysed expenses, revenue trends, and profitability metrics for management.",
+          "technologies": [
+            "Tableau",
+            "QuickBooks",
+            "SQL"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Kigali Holdings",
+          "role": "Budget Analyst",
+          "startDate": "2022-04",
+          "endDate": "Present",
+          "description": "Built financial models and supported planning and reporting cycles.",
+          "technologies": [
+            "SQL",
+            "Excel",
+            "Tableau"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Kigali",
+          "degree": "BBA Accounting",
+          "fieldOfStudy": "Accounting",
+          "startYear": 2018,
+          "endYear": 2021
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Microsoft Excel Expert",
+          "issuer": "Microsoft",
+          "issueDate": "2024-02"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Expense Analysis Automation",
+          "description": "Created an analysis file to track department spending and budget variance.",
+          "technologies": [
+            "SAP",
+            "Power BI",
+            "SQL"
+          ],
+          "role": "Contributor",
+          "link": "https://portfolio.example.com/ruth",
+          "startDate": "2024-07",
+          "endDate": "2026-06"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Part-time"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/ruth-niyonsaba",
+        "portfolio": "https://portfolio.example.com/ruth"
+      }
+    },
+    {
+      "firstName": "Olivia",
+      "lastName": "Mugisha",
+      "email": "olivia.mugisha15@example.com",
+      "headline": "Accounting Analyst",
+      "bio": "Detail-oriented financial analyst with a practical approach to budgeting and performance tracking.",
+      "location": "Rubavu, Rwanda",
+      "skills": [
+        {
+          "name": "Accounting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Power BI",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "SQL",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Financial Reporting",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Budgeting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Kinyarwanda",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Prime Finance Ltd",
+          "role": "Accounting Analyst",
+          "startDate": "2019-03",
+          "endDate": "2021-07",
+          "description": "Prepared budgets, forecasts, and monthly financial performance reports.",
+          "technologies": [
+            "QuickBooks",
+            "Power BI",
+            "SAP"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Rwanda",
+          "degree": "BSc Accounting",
+          "fieldOfStudy": "Accounting",
+          "startYear": 2012,
+          "endYear": 2017
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Financial Modelling & Valuation Analyst",
+          "issuer": "CFI",
+          "issueDate": "2025-02"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Department Budget Review Tool",
+          "description": "Created an analysis file to track department spending and budget variance.",
+          "technologies": [
+            "Power BI",
+            "SQL",
+            "QuickBooks"
+          ],
+          "role": "Project Lead",
+          "link": "https://portfolio.example.com/olivia",
+          "startDate": "2024-02",
+          "endDate": "Present"
+        }
+      ],
+      "availability": {
+        "status": "Not Looking",
+        "type": "Part-time",
+        "startDate": "2026-06-15"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/olivia-mugisha",
+        "portfolio": "https://portfolio.example.com/olivia"
+      }
+    },
+    {
+      "firstName": "Gilbert",
+      "lastName": "Mukiza",
+      "email": "gilbert.mukiza16@example.com",
+      "headline": "Financial Reporting Analyst",
+      "bio": "Experienced in financial modelling, reporting, and business decision support.",
+      "location": "Musanze, Rwanda",
+      "skills": [
+        {
+          "name": "Accounting",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Financial Reporting",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Power BI",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "SQL",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Financial Modelling",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "SAP",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Vertex Advisory",
+          "role": "Accounts Officer",
+          "startDate": "2020-02",
+          "endDate": "2021-10",
+          "description": "Analysed expenses, revenue trends, and profitability metrics for management.",
+          "technologies": [
+            "Power BI",
+            "Tableau",
+            "SQL"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Prime Finance Ltd",
+          "role": "Financial Reporting Analyst",
+          "startDate": "2021-07",
+          "endDate": "Present",
+          "description": "Built financial models and supported planning and reporting cycles.",
+          "technologies": [
+            "Power BI",
+            "Excel",
+            "Tableau"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Rwanda",
+          "degree": "BSc Finance",
+          "fieldOfStudy": "Finance",
+          "startYear": 2014,
+          "endYear": 2017
+        }
+      ],
+      "certifications": [
+        {
+          "name": "ACCA Applied Skills",
+          "issuer": "ACCA",
+          "issueDate": "2025-09"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Quarterly Budget Dashboard",
+          "description": "Built a reporting workflow to improve visibility into financial performance.",
+          "technologies": [
+            "SQL",
+            "QuickBooks",
+            "SAP"
+          ],
+          "role": "Finance Assistant",
+          "link": "https://portfolio.example.com/gilbert",
+          "startDate": "2023-09",
+          "endDate": "2025-11"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Full-time",
+        "startDate": "2026-01-28"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/gilbert-mukiza",
+        "github": "https://github.com/gilbertmukiza",
+        "portfolio": "https://portfolio.example.com/gilbert"
+      }
+    },
+    {
+      "firstName": "Chantal",
+      "lastName": "Musoni",
+      "email": "chantal.musoni17@example.com",
+      "headline": "Finance Analyst",
+      "bio": "Detail-oriented financial analyst with a practical approach to budgeting and performance tracking.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Tableau",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "SQL",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Accounting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Financial Analysis",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Financial Modelling",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "SAP",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "French",
+          "proficiency": "Intermediate"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Rwanda Business Group",
+          "role": "Accounts Officer",
+          "startDate": "2019-05",
+          "endDate": "2021-03",
+          "description": "Built financial models and supported planning and reporting cycles.",
+          "technologies": [
+            "SAP",
+            "Power BI",
+            "Tableau"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Urban Ledger Partners",
+          "role": "Finance Analyst",
+          "startDate": "2020-06",
+          "endDate": "2022-02",
+          "description": "Prepared budgets, forecasts, and monthly financial performance reports.",
+          "technologies": [
+            "Excel",
+            "Tableau",
+            "Power BI"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "Kenyatta University",
+          "degree": "BCom Finance",
+          "fieldOfStudy": "Finance",
+          "startYear": 2018,
+          "endYear": 2023
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Financial Modelling & Valuation Analyst",
+          "issuer": "CFI",
+          "issueDate": "2024-02"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Department Budget Review Tool",
+          "description": "Built a reporting workflow to improve visibility into financial performance.",
+          "technologies": [
+            "SQL",
+            "Excel",
+            "Tableau"
+          ],
+          "role": "Contributor",
+          "link": "https://portfolio.example.com/chantal",
+          "startDate": "2025-08",
+          "endDate": "Present"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Contract"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/chantal-musoni",
+        "portfolio": "https://portfolio.example.com/chantal"
+      }
+    },
+    {
+      "firstName": "Didier",
+      "lastName": "Ishimwe",
+      "email": "didier.ishimwe18@example.com",
+      "headline": "Junior Financial Analyst",
+      "bio": "Detail-oriented financial analyst with a practical approach to budgeting and performance tracking.",
+      "location": "Huye, Rwanda",
+      "skills": [
+        {
+          "name": "Tableau",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Power BI",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "SQL",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Accounting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Kigali Holdings",
+          "role": "Accounts Officer",
+          "startDate": "2019-04",
+          "endDate": "2021-08",
+          "description": "Prepared budgets, forecasts, and monthly financial performance reports.",
+          "technologies": [
+            "SQL",
+            "Tableau",
+            "Excel"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Summit Finance",
+          "role": "Junior Financial Analyst",
+          "startDate": "2021-05",
+          "endDate": "2024-12",
+          "description": "Analysed expenses, revenue trends, and profitability metrics for management.",
+          "technologies": [
+            "QuickBooks",
+            "Excel",
+            "SQL"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Nairobi",
+          "degree": "BSc Economics",
+          "fieldOfStudy": "Economics",
+          "startYear": 2013,
+          "endYear": 2017
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Financial Modelling & Valuation Analyst",
+          "issuer": "CFI",
+          "issueDate": "2022-12"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Department Budget Review Tool",
+          "description": "Built a reporting workflow to improve visibility into financial performance.",
+          "technologies": [
+            "Power BI",
+            "Excel",
+            "SQL"
+          ],
+          "role": "Project Lead",
+          "link": "https://portfolio.example.com/didier",
+          "startDate": "2025-04",
+          "endDate": "2026-08"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Contract",
+        "startDate": "2026-02-26"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/didier-ishimwe",
+        "portfolio": "https://portfolio.example.com/didier"
+      }
+    },
+    {
+      "firstName": "Nathan",
+      "lastName": "Kamau",
+      "email": "nathan.kamau19@example.com",
+      "headline": "Finance Analyst",
+      "bio": "Finance professional with strong experience in analysis, reporting, and forecasting.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Microsoft Excel",
+          "level": "Expert",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Tableau",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Financial Modelling",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Forecasting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Power BI",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "French",
+          "proficiency": "Intermediate"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Kigali Holdings",
+          "role": "Finance Analyst",
+          "startDate": "2021-11",
+          "endDate": "Present",
+          "description": "Prepared budgets, forecasts, and monthly financial performance reports.",
+          "technologies": [
+            "Excel",
+            "Tableau",
+            "Power BI"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Rwanda",
+          "degree": "BSc Finance",
+          "fieldOfStudy": "Finance",
+          "startYear": 2014,
+          "endYear": 2019
+        }
+      ],
+      "certifications": [
+        {
+          "name": "ACCA Applied Skills",
+          "issuer": "ACCA",
+          "issueDate": "2023-12"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Department Budget Review Tool",
+          "description": "Developed a dashboard for management reporting and monthly reviews.",
+          "technologies": [
+            "QuickBooks",
+            "Power BI",
+            "SAP"
+          ],
+          "role": "Analyst",
+          "link": "https://portfolio.example.com/nathan",
+          "startDate": "2025-08",
+          "endDate": "2026-07"
+        }
+      ],
+      "availability": {
+        "status": "Notice Period",
+        "type": "Contract",
+        "startDate": "2026-01-25"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/nathan-kamau",
+        "github": "https://github.com/nathankamau",
+        "portfolio": "https://portfolio.example.com/nathan"
+      }
+    },
+    {
+      "firstName": "Tracy",
+      "lastName": "Ingabire",
+      "email": "tracy.ingabire20@example.com",
+      "headline": "Financial Reporting Analyst",
+      "bio": "Finance professional with strong experience in analysis, reporting, and forecasting.",
+      "location": "Remote, Rwanda",
+      "skills": [
+        {
+          "name": "Financial Reporting",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "SAP",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "SQL",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Financial Modelling",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Urban Ledger Partners",
+          "role": "Finance Assistant",
+          "startDate": "2018-12",
+          "endDate": "2019-10",
+          "description": "Prepared budgets, forecasts, and monthly financial performance reports.",
+          "technologies": [
+            "SAP",
+            "Tableau",
+            "Excel"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Rwanda Business Group",
+          "role": "Financial Reporting Analyst",
+          "startDate": "2019-08",
+          "endDate": "2021-02",
+          "description": "Analysed expenses, revenue trends, and profitability metrics for management.",
+          "technologies": [
+            "QuickBooks",
+            "Power BI",
+            "SQL"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Rwanda",
+          "degree": "BSc Finance",
+          "fieldOfStudy": "Finance",
+          "startYear": 2012,
+          "endYear": 2014
+        }
+      ],
+      "certifications": [
+        {
+          "name": "CPA Level II",
+          "issuer": "ICPAR",
+          "issueDate": "2025-04"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Finance Reporting Workspace",
+          "description": "Built a reporting workflow to improve visibility into financial performance.",
+          "technologies": [
+            "Tableau",
+            "SAP",
+            "Power BI"
+          ],
+          "role": "Finance Assistant",
+          "link": "https://portfolio.example.com/tracy",
+          "startDate": "2024-04",
+          "endDate": "2025-08"
+        }
+      ],
+      "availability": {
+        "status": "Not Looking",
+        "type": "Full-time",
+        "startDate": "2026-06-15"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/tracy-ingabire",
+        "portfolio": "https://portfolio.example.com/tracy"
+      }
+    },
+    {
+      "firstName": "Aline",
+      "lastName": "Musoni",
+      "email": "aline.musoni21@example.com",
+      "headline": "Accounts Officer",
+      "bio": "Supports financial processes and data analysis with growing exposure to planning and reporting.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Bookkeeping",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Forecasting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Financial Modelling",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Financial Reporting",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Accounts Payable",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "French",
+          "proficiency": "Intermediate"
+        }
+      ],
+      "experience": [
+        {
+          "company": "PixelForge",
+          "role": "Operations Analyst",
+          "startDate": "2022-10",
+          "endDate": "2023-01",
+          "description": "Supported finance operations, reconciliations, and routine reporting.",
+          "technologies": [
+            "Google Sheets",
+            "ERP",
+            "Power BI"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Kigali Holdings",
+          "role": "Operations Analyst",
+          "startDate": "2024-02",
+          "endDate": "2026-07",
+          "description": "Supported finance operations, reconciliations, and routine reporting.",
+          "technologies": [
+            "QuickBooks",
+            "ERP",
+            "Excel"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Rwanda",
+          "degree": "BBA Business Administration",
+          "fieldOfStudy": "Business Administration",
+          "startYear": 2018,
+          "endYear": 2020
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Business Analysis Fundamentals",
+          "issuer": "Coursera",
+          "issueDate": "2026-08"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Quarterly Budget Dashboard",
+          "description": "Developed a dashboard for management reporting and monthly reviews.",
+          "technologies": [
+            "Google Sheets",
+            "Power BI",
+            "Excel"
+          ],
+          "role": "Analyst",
+          "link": "https://portfolio.example.com/aline",
+          "startDate": "2025-12",
+          "endDate": "2026-07"
+        }
+      ],
+      "availability": {
+        "status": "Notice Period",
+        "type": "Full-time"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/aline-musoni",
+        "portfolio": "https://portfolio.example.com/aline"
+      }
+    },
+    {
+      "firstName": "Hope",
+      "lastName": "Uwimana",
+      "email": "hope.uwimana22@example.com",
+      "headline": "Data Analyst",
+      "bio": "Early-career finance professional with reporting and operational support experience.",
+      "location": "Rubavu, Rwanda",
+      "skills": [
+        {
+          "name": "Financial Modelling",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Data Analysis",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Forecasting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Financial Reporting",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Power BI",
+          "level": "Beginner",
+          "yearsOfExperience": 1
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Swahili",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Rwanda Business Group",
+          "role": "Business Analyst",
+          "startDate": "2021-06",
+          "endDate": "Present",
+          "description": "Assisted with invoice processing, data entry, and expense tracking.",
+          "technologies": [
+            "QuickBooks",
+            "Power BI",
+            "Google Sheets"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Kigali",
+          "degree": "BSc Economics",
+          "fieldOfStudy": "Economics",
+          "startYear": 2021,
+          "endYear": 2026
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Microsoft Office Specialist Excel",
+          "issuer": "Microsoft",
+          "issueDate": "2024-06"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Revenue Forecast Model",
+          "description": "Built a reporting workflow to improve visibility into financial performance.",
+          "technologies": [
+            "Power BI",
+            "QuickBooks",
+            "Google Sheets"
+          ],
+          "role": "Analyst",
+          "link": "https://portfolio.example.com/hope",
+          "startDate": "2023-11",
+          "endDate": "2025-04"
+        }
+      ],
+      "availability": {
+        "status": "Not Looking",
+        "type": "Part-time"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/hope-uwimana"
+      }
+    },
+    {
+      "firstName": "Rebecca",
+      "lastName": "Mugenzi",
+      "email": "rebecca.mugenzi23@example.com",
+      "headline": "Finance Assistant",
+      "bio": "Developing finance skills with hands-on experience in reporting and reconciliations.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Accounts Payable",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Budget Tracking",
+          "level": "Beginner",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Financial Modelling",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "Budgeting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Kinyarwanda",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Crestline Advisory",
+          "role": "Junior Accountant",
+          "startDate": "2024-12",
+          "endDate": "2026-08",
+          "description": "Supported finance operations, reconciliations, and routine reporting.",
+          "technologies": [
+            "Excel",
+            "Power BI",
+            "ERP"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "QuickSupport",
+          "role": "Accounts Officer",
+          "startDate": "2026-05",
+          "endDate": "2026-02",
+          "description": "Supported finance operations, reconciliations, and routine reporting.",
+          "technologies": [
+            "Excel",
+            "Power BI",
+            "Google Sheets"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Rwanda",
+          "degree": "BBA Business Administration",
+          "fieldOfStudy": "Business Administration",
+          "startYear": 2014,
+          "endYear": 2017
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Microsoft Office Specialist Excel",
+          "issuer": "Microsoft",
+          "issueDate": "2022-03"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Expense Analysis Automation",
+          "description": "Developed a dashboard for management reporting and monthly reviews.",
+          "technologies": [
+            "Power BI",
+            "Google Sheets",
+            "QuickBooks"
+          ],
+          "role": "Contributor",
+          "link": "https://portfolio.example.com/rebecca",
+          "startDate": "2024-08",
+          "endDate": "Present"
+        }
+      ],
+      "availability": {
+        "status": "Not Looking",
+        "type": "Full-time",
+        "startDate": "2026-05-05"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/rebecca-mugenzi",
+        "portfolio": "https://portfolio.example.com/rebecca"
+      }
+    },
+    {
+      "firstName": "Gloria",
+      "lastName": "Ndahiro",
+      "email": "gloria.ndahiro24@example.com",
+      "headline": "Accounts Officer",
+      "bio": "Early-career finance professional with reporting and operational support experience.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Accounts Payable",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "QuickBooks",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Budgeting",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Kinyarwanda",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Crestline Advisory",
+          "role": "Business Analyst",
+          "startDate": "2024-07",
+          "endDate": "2026-12",
+          "description": "Supported finance operations, reconciliations, and routine reporting.",
+          "technologies": [
+            "Google Sheets",
+            "QuickBooks",
+            "Excel"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Crestline Advisory",
+          "role": "Junior Accountant",
+          "startDate": "2026-12",
+          "endDate": "2026-03",
+          "description": "Worked on reports and budget follow-up with supervision.",
+          "technologies": [
+            "Power BI",
+            "ERP",
+            "Google Sheets"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of the People",
+          "degree": "Bachelor of Business Administration",
+          "fieldOfStudy": "Business Administration",
+          "startYear": 2018,
+          "endYear": 2020
+        }
+      ],
+      "certifications": [],
+      "projects": [
+        {
+          "name": "Revenue Forecast Model",
+          "description": "Created an analysis file to track department spending and budget variance.",
+          "technologies": [
+            "Excel",
+            "QuickBooks",
+            "Google Sheets"
+          ],
+          "role": "Analyst",
+          "link": "https://portfolio.example.com/gloria",
+          "startDate": "2024-08",
+          "endDate": "2025-04"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Part-time"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/gloria-ndahiro",
+        "github": "https://github.com/gloriandahiro"
+      }
+    },
+    {
+      "firstName": "Jean",
+      "lastName": "Nshimiyimana",
+      "email": "jean.nshimiyimana25@example.com",
+      "headline": "Bookkeeper",
+      "bio": "Developing finance skills with hands-on experience in reporting and reconciliations.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Financial Reporting",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Microsoft Excel",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Budget Tracking",
+          "level": "Beginner",
+          "yearsOfExperience": 1
+        },
+        {
+          "name": "Power BI",
+          "level": "Beginner",
+          "yearsOfExperience": 1
+        },
+        {
+          "name": "Accounts Payable",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Crestline Advisory",
+          "role": "Data Analyst",
+          "startDate": "2022-05",
+          "endDate": "2024-04",
+          "description": "Supported finance operations, reconciliations, and routine reporting.",
+          "technologies": [
+            "Power BI",
+            "Google Sheets",
+            "ERP"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Acme Analytics",
+          "role": "Accounts Payable Officer",
+          "startDate": "2024-10",
+          "endDate": "2025-09",
+          "description": "Supported finance operations, reconciliations, and routine reporting.",
+          "technologies": [
+            "QuickBooks",
+            "Power BI",
+            "Excel"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "Makerere University",
+          "degree": "Diploma in Accounting",
+          "fieldOfStudy": "Accounting",
+          "startYear": 2014,
+          "endYear": 2017
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Business Analysis Fundamentals",
+          "issuer": "Coursera",
+          "issueDate": "2026-04"
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Notice Period",
+        "type": "Full-time",
+        "startDate": "2026-06-06"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/jean-nshimiyimana",
+        "portfolio": "https://portfolio.example.com/jean"
+      }
+    },
+    {
+      "firstName": "Alice",
+      "lastName": "Murekatete",
+      "email": "alice.murekatete26@example.com",
+      "headline": "Bookkeeper",
+      "bio": "Developing finance skills with hands-on experience in reporting and reconciliations.",
+      "location": "Kampala, Uganda",
+      "skills": [
+        {
+          "name": "Financial Reporting",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Power BI",
+          "level": "Beginner",
+          "yearsOfExperience": 1
+        },
+        {
+          "name": "Budgeting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "QuickBooks",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "French",
+          "proficiency": "Intermediate"
+        }
+      ],
+      "experience": [
+        {
+          "company": "BrightStack",
+          "role": "Accounts Payable Officer",
+          "startDate": "2023-02",
+          "endDate": "Present",
+          "description": "Supported finance operations, reconciliations, and routine reporting.",
+          "technologies": [
+            "Power BI",
+            "Excel",
+            "Google Sheets"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Kigali",
+          "degree": "BSc Economics",
+          "fieldOfStudy": "Economics",
+          "startYear": 2014,
+          "endYear": 2019
+        }
+      ],
+      "certifications": [
+        {
+          "name": "QuickBooks Online Certification",
+          "issuer": "Intuit",
+          "issueDate": "2024-05"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Working Capital Tracker",
+          "description": "Built a reporting workflow to improve visibility into financial performance.",
+          "technologies": [
+            "Google Sheets",
+            "Power BI",
+            "Excel"
+          ],
+          "role": "Project Lead",
+          "link": "https://portfolio.example.com/alice",
+          "startDate": "2023-11",
+          "endDate": "Present"
+        }
+      ],
+      "availability": {
+        "status": "Not Looking",
+        "type": "Part-time"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/alice-murekatete"
+      }
+    },
+    {
+      "firstName": "Patrick",
+      "lastName": "Nsabimana",
+      "email": "patrick.nsabimana27@example.com",
+      "headline": "Data Analyst",
+      "bio": "Early-career finance professional with reporting and operational support experience.",
+      "location": "Musanze, Rwanda",
+      "skills": [
+        {
+          "name": "Financial Analysis",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        },
+        {
+          "name": "QuickBooks",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Budgeting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Budget Tracking",
+          "level": "Beginner",
+          "yearsOfExperience": 1
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Swahili",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Summit Finance",
+          "role": "Accounts Officer",
+          "startDate": "2022-04",
+          "endDate": "2024-05",
+          "description": "Supported finance operations, reconciliations, and routine reporting.",
+          "technologies": [
+            "Power BI",
+            "ERP",
+            "Google Sheets"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "QuickSupport",
+          "role": "Data Analyst",
+          "startDate": "2023-02",
+          "endDate": "2025-09",
+          "description": "Supported finance operations, reconciliations, and routine reporting.",
+          "technologies": [
+            "QuickBooks",
+            "Power BI",
+            "Google Sheets"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of the People",
+          "degree": "Bachelor of Business Administration",
+          "fieldOfStudy": "Business Administration",
+          "startYear": 2016,
+          "endYear": 2021
+        }
+      ],
+      "certifications": [],
+      "projects": [
+        {
+          "name": "Department Budget Review Tool",
+          "description": "Created an analysis file to track department spending and budget variance.",
+          "technologies": [
+            "Power BI",
+            "Excel",
+            "Google Sheets"
+          ],
+          "role": "Project Lead",
+          "link": "https://portfolio.example.com/patrick",
+          "startDate": "2025-10",
+          "endDate": "2026-02"
+        }
+      ],
+      "availability": {
+        "status": "Notice Period",
+        "type": "Part-time",
+        "startDate": "2026-06-10"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/patrick-nsabimana"
+      }
+    },
+    {
+      "firstName": "Olivia",
+      "lastName": "Murekatete",
+      "email": "olivia.murekatete28@example.com",
+      "headline": "Accounts Payable Officer",
+      "bio": "Early-career finance professional with reporting and operational support experience.",
+      "location": "Huye, Rwanda",
+      "skills": [
+        {
+          "name": "Financial Modelling",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Budget Tracking",
+          "level": "Beginner",
+          "yearsOfExperience": 1
+        },
+        {
+          "name": "Accounts Payable",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Crestline Advisory",
+          "role": "Operations Analyst",
+          "startDate": "2022-11",
+          "endDate": "2024-10",
+          "description": "Assisted with invoice processing, data entry, and expense tracking.",
+          "technologies": [
+            "Excel",
+            "ERP",
+            "Google Sheets"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Prime Finance Ltd",
+          "role": "Accounts Payable Officer",
+          "startDate": "2023-07",
+          "endDate": "Present",
+          "description": "Assisted with invoice processing, data entry, and expense tracking.",
+          "technologies": [
+            "Excel",
+            "Power BI",
+            "Google Sheets"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "Makerere University",
+          "degree": "Diploma in Accounting",
+          "fieldOfStudy": "Accounting",
+          "startYear": 2019,
+          "endYear": 2023
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Business Analysis Fundamentals",
+          "issuer": "Coursera",
+          "issueDate": "2023-04"
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Notice Period",
+        "type": "Contract"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/olivia-murekatete",
+        "portfolio": "https://portfolio.example.com/olivia"
+      }
+    },
+    {
+      "firstName": "Fatima",
+      "lastName": "Habimana",
+      "email": "fatima.habimana29@example.com",
+      "headline": "Operations Analyst",
+      "bio": "Early-career finance professional with reporting and operational support experience.",
+      "location": "Kampala, Uganda",
+      "skills": [
+        {
+          "name": "Financial Reporting",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Microsoft Excel",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Budgeting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Kinyarwanda",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Digital Hive",
+          "role": "Accounts Officer",
+          "startDate": "2022-10",
+          "endDate": "2025-09",
+          "description": "Assisted with invoice processing, data entry, and expense tracking.",
+          "technologies": [
+            "QuickBooks",
+            "Excel",
+            "ERP"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Rwanda",
+          "degree": "BBA Business Administration",
+          "fieldOfStudy": "Business Administration",
+          "startYear": 2016,
+          "endYear": 2021
+        }
+      ],
+      "certifications": [],
+      "projects": [],
+      "availability": {
+        "status": "Not Looking",
+        "type": "Part-time",
+        "startDate": "2026-10-28"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/fatima-habimana",
+        "portfolio": "https://portfolio.example.com/fatima"
+      }
+    },
+    {
+      "firstName": "David",
+      "lastName": "Karekezi",
+      "email": "david.karekezi30@example.com",
+      "headline": "Business Analyst",
+      "bio": "Supports financial processes and data analysis with growing exposure to planning and reporting.",
+      "location": "Remote, Rwanda",
+      "skills": [
+        {
+          "name": "Financial Reporting",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Microsoft Excel",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Budget Tracking",
+          "level": "Beginner",
+          "yearsOfExperience": 1
+        },
+        {
+          "name": "Financial Analysis",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Kinyarwanda",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Vertex Advisory",
+          "role": "Business Analyst",
+          "startDate": "2023-12",
+          "endDate": "2025-11",
+          "description": "Assisted with invoice processing, data entry, and expense tracking.",
+          "technologies": [
+            "QuickBooks",
+            "Google Sheets",
+            "Power BI"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Crestline Advisory",
+          "role": "Accounts Payable Officer",
+          "startDate": "2025-07",
+          "endDate": "2026-06",
+          "description": "Assisted with invoice processing, data entry, and expense tracking.",
+          "technologies": [
+            "Google Sheets",
+            "ERP",
+            "Power BI"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of the People",
+          "degree": "Bachelor of Business Administration",
+          "fieldOfStudy": "Business Administration",
+          "startYear": 2014,
+          "endYear": 2017
+        }
+      ],
+      "certifications": [],
+      "projects": [],
+      "availability": {
+        "status": "Not Looking",
+        "type": "Part-time"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/david-karekezi"
+      }
+    },
+    {
+      "firstName": "Olivia",
+      "lastName": "Mutoni",
+      "email": "olivia.mutoni31@example.com",
+      "headline": "Finance Assistant",
+      "bio": "Developing finance skills with hands-on experience in reporting and reconciliations.",
+      "location": "Musanze, Rwanda",
+      "skills": [
+        {
+          "name": "Financial Reporting",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Financial Modelling",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Power BI",
+          "level": "Beginner",
+          "yearsOfExperience": 1
+        },
+        {
+          "name": "Forecasting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Microsoft Excel",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "CareConnect",
+          "role": "Accounts Officer",
+          "startDate": "2024-06",
+          "endDate": "Present",
+          "description": "Assisted with invoice processing, data entry, and expense tracking.",
+          "technologies": [
+            "Power BI",
+            "Google Sheets",
+            "Excel"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "Makerere University",
+          "degree": "Diploma in Accounting",
+          "fieldOfStudy": "Accounting",
+          "startYear": 2018,
+          "endYear": 2022
+        }
+      ],
+      "certifications": [],
+      "projects": [
+        {
+          "name": "Quarterly Budget Dashboard",
+          "description": "Built a reporting workflow to improve visibility into financial performance.",
+          "technologies": [
+            "QuickBooks",
+            "Power BI",
+            "Excel"
+          ],
+          "role": "Contributor",
+          "link": "https://portfolio.example.com/olivia",
+          "startDate": "2023-01",
+          "endDate": "2024-12"
+        }
+      ],
+      "availability": {
+        "status": "Notice Period",
+        "type": "Full-time",
+        "startDate": "2026-02-07"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/olivia-mutoni",
+        "github": "https://github.com/oliviamutoni"
+      }
+    },
+    {
+      "firstName": "Irene",
+      "lastName": "Mukamana",
+      "email": "irene.mukamana32@example.com",
+      "headline": "Data Analyst",
+      "bio": "Developing finance skills with hands-on experience in reporting and reconciliations.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Microsoft Excel",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Data Analysis",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Accounts Payable",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Budget Tracking",
+          "level": "Beginner",
+          "yearsOfExperience": 1
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Rwanda Business Group",
+          "role": "Business Analyst",
+          "startDate": "2023-02",
+          "endDate": "Present",
+          "description": "Worked on reports and budget follow-up with supervision.",
+          "technologies": [
+            "QuickBooks",
+            "Power BI",
+            "Google Sheets"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Rwanda",
+          "degree": "BBA Business Administration",
+          "fieldOfStudy": "Business Administration",
+          "startYear": 2014,
+          "endYear": 2019
+        }
+      ],
+      "certifications": [],
+      "projects": [
+        {
+          "name": "Revenue Forecast Model",
+          "description": "Created an analysis file to track department spending and budget variance.",
+          "technologies": [
+            "QuickBooks",
+            "Power BI",
+            "Excel"
+          ],
+          "role": "Project Lead",
+          "link": "https://portfolio.example.com/irene",
+          "startDate": "2023-07",
+          "endDate": "2024-06"
+        }
+      ],
+      "availability": {
+        "status": "Available",
+        "type": "Part-time"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/irene-mukamana",
+        "portfolio": "https://portfolio.example.com/irene"
+      }
+    },
+    {
+      "firstName": "Didier",
+      "lastName": "Uwera",
+      "email": "didier.uwera33@example.com",
+      "headline": "Operations Analyst",
+      "bio": "Early-career finance professional with reporting and operational support experience.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Budgeting",
+          "level": "Advanced",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Accounts Payable",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Bookkeeping",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Swahili",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Crestline Advisory",
+          "role": "Accounts Officer",
+          "startDate": "2021-12",
+          "endDate": "2022-08",
+          "description": "Supported finance operations, reconciliations, and routine reporting.",
+          "technologies": [
+            "Excel",
+            "Google Sheets",
+            "ERP"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Rwanda",
+          "degree": "BBA Business Administration",
+          "fieldOfStudy": "Business Administration",
+          "startYear": 2018,
+          "endYear": 2023
+        }
+      ],
+      "certifications": [
+        {
+          "name": "QuickBooks Online Certification",
+          "issuer": "Intuit",
+          "issueDate": "2025-11"
+        }
+      ],
+      "projects": [],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Part-time",
+        "startDate": "2026-06-06"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/didier-uwera"
+      }
+    },
+    {
+      "firstName": "Vanessa",
+      "lastName": "Uwimana",
+      "email": "vanessa.uwimana34@example.com",
+      "headline": "Operations Analyst",
+      "bio": "Developing finance skills with hands-on experience in reporting and reconciliations.",
+      "location": "Nairobi, Kenya",
+      "skills": [
+        {
+          "name": "QuickBooks",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Financial Reporting",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Power BI",
+          "level": "Beginner",
+          "yearsOfExperience": 1
+        },
+        {
+          "name": "Financial Modelling",
+          "level": "Advanced",
+          "yearsOfExperience": 5
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "French",
+          "proficiency": "Intermediate"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Nova Retail",
+          "role": "Operations Analyst",
+          "startDate": "2024-11",
+          "endDate": "2025-01",
+          "description": "Supported finance operations, reconciliations, and routine reporting.",
+          "technologies": [
+            "Power BI",
+            "Excel",
+            "ERP"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of the People",
+          "degree": "Bachelor of Business Administration",
+          "fieldOfStudy": "Business Administration",
+          "startYear": 2015,
+          "endYear": 2020
+        }
+      ],
+      "certifications": [],
+      "projects": [
+        {
+          "name": "Finance Reporting Workspace",
+          "description": "Developed a dashboard for management reporting and monthly reviews.",
+          "technologies": [
+            "Excel",
+            "Google Sheets",
+            "QuickBooks"
+          ],
+          "role": "Analyst",
+          "link": "https://portfolio.example.com/vanessa",
+          "startDate": "2025-06",
+          "endDate": "2026-01"
+        }
+      ],
+      "availability": {
+        "status": "Notice Period",
+        "type": "Full-time",
+        "startDate": "2026-01-06"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/vanessa-uwimana"
+      }
+    },
+    {
+      "firstName": "David",
+      "lastName": "Mutoni",
+      "email": "david.mutoni35@example.com",
+      "headline": "Operations Analyst",
+      "bio": "Developing finance skills with hands-on experience in reporting and reconciliations.",
+      "location": "Kampala, Uganda",
+      "skills": [
+        {
+          "name": "Financial Reporting",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "QuickBooks",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Bookkeeping",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "BluePeak Consulting",
+          "role": "Operations Analyst",
+          "startDate": "2022-12",
+          "endDate": "2024-09",
+          "description": "Worked on reports and budget follow-up with supervision.",
+          "technologies": [
+            "Google Sheets",
+            "Power BI",
+            "Excel"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Kigali",
+          "degree": "BSc Economics",
+          "fieldOfStudy": "Economics",
+          "startYear": 2014,
+          "endYear": 2019
+        }
+      ],
+      "certifications": [
+        {
+          "name": "Business Analysis Fundamentals",
+          "issuer": "Coursera",
+          "issueDate": "2025-08"
+        }
+      ],
+      "projects": [
+        {
+          "name": "Department Budget Review Tool",
+          "description": "Created an analysis file to track department spending and budget variance.",
+          "technologies": [
+            "Google Sheets",
+            "Excel",
+            "Power BI"
+          ],
+          "role": "Project Lead",
+          "link": "https://portfolio.example.com/david",
+          "startDate": "2024-11",
+          "endDate": "Present"
+        }
+      ],
+      "availability": {
+        "status": "Not Looking",
+        "type": "Part-time",
+        "startDate": "2026-05-01"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/david-mutoni",
+        "portfolio": "https://portfolio.example.com/david"
+      }
+    },
+    {
+      "firstName": "Thierry",
+      "lastName": "Mukamana",
+      "email": "thierry.mukamana36@example.com",
+      "headline": "Customer Support Officer",
+      "bio": "Versatile professional with experience across non-finance business functions.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Microsoft Excel",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Recruitment",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "French",
+          "proficiency": "Intermediate"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Digital Hive",
+          "role": "Sales Executive",
+          "startDate": "2022-05",
+          "endDate": "Present",
+          "description": "Supported customers and internal teams with routine requests.",
+          "technologies": [
+            "Excel",
+            "Canva",
+            "CRM"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "African Leadership University",
+          "degree": "BSc Entrepreneurship",
+          "fieldOfStudy": "Entrepreneurship",
+          "startYear": 2021,
+          "endYear": 2026
+        }
+      ],
+      "certifications": [],
+      "projects": [],
+      "availability": {
+        "status": "Available",
+        "type": "Part-time",
+        "startDate": "2026-04-17"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/thierry-mukamana"
+      }
+    },
+    {
+      "firstName": "Samuel",
+      "lastName": "Nyiransengimana",
+      "email": "samuel.nyiransengimana37@example.com",
+      "headline": "HR Assistant",
+      "bio": "Versatile professional with experience across non-finance business functions.",
+      "location": "Musanze, Rwanda",
+      "skills": [
+        {
+          "name": "Manual Testing",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Graphic Design",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Recruitment",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Kinyarwanda",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Nova Retail",
+          "role": "Office Assistant",
+          "startDate": "2024-06",
+          "endDate": "2026-04",
+          "description": "Worked on general office coordination and non-finance reporting.",
+          "technologies": [
+            "Google Workspace",
+            "Canva",
+            "Word"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Digital Hive",
+          "role": "HR Assistant",
+          "startDate": "2026-08",
+          "endDate": "2026-04",
+          "description": "Handled daily operational and administrative tasks.",
+          "technologies": [
+            "Excel",
+            "Word",
+            "Canva"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Rwanda",
+          "degree": "BA Human Resource Management",
+          "fieldOfStudy": "Human Resource Management",
+          "startYear": 2016,
+          "endYear": 2021
+        }
+      ],
+      "certifications": [],
+      "projects": [
+        {
+          "name": "Working Capital Tracker",
+          "description": "Built a reporting workflow to improve visibility into financial performance.",
+          "technologies": [
+            "Excel",
+            "Google Sheets",
+            "CRM"
+          ],
+          "role": "Project Lead",
+          "link": "https://portfolio.example.com/samuel",
+          "startDate": "2024-10",
+          "endDate": "2025-12"
+        }
+      ],
+      "availability": {
+        "status": "Not Looking",
+        "type": "Full-time",
+        "startDate": "2026-07-16"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/samuel-nyiransengimana",
+        "github": "https://github.com/samuelnyiransengimana"
+      }
+    },
+    {
+      "firstName": "Brian",
+      "lastName": "Mukiza",
+      "email": "brian.mukiza38@example.com",
+      "headline": "Customer Support Officer",
+      "bio": "Operations-focused professional with experience in general administration and support.",
+      "location": "Rubavu, Rwanda",
+      "skills": [
+        {
+          "name": "Manual Testing",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Microsoft Excel",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Customer Service",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Swahili",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "PeopleFirst HR",
+          "role": "Recruitment Coordinator",
+          "startDate": "2025-03",
+          "endDate": "2026-03",
+          "description": "Worked on general office coordination and non-finance reporting.",
+          "technologies": [
+            "CRM",
+            "Google Workspace",
+            "Word"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Nova Retail",
+          "role": "Office Assistant",
+          "startDate": "2026-01",
+          "endDate": "Present",
+          "description": "Worked on general office coordination and non-finance reporting.",
+          "technologies": [
+            "CRM",
+            "Word",
+            "Excel"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "African Leadership University",
+          "degree": "BSc Entrepreneurship",
+          "fieldOfStudy": "Entrepreneurship",
+          "startYear": 2015,
+          "endYear": 2017
+        }
+      ],
+      "certifications": [],
+      "projects": [],
+      "availability": {
+        "status": "Not Looking",
+        "type": "Contract",
+        "startDate": "2026-11-15"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/brian-mukiza"
+      }
+    },
+    {
+      "firstName": "Claude",
+      "lastName": "Ouma",
+      "email": "claude.ouma39@example.com",
+      "headline": "Sales Executive",
+      "bio": "Customer-facing professional with strong coordination and communication skills.",
+      "location": "Kampala, Uganda",
+      "skills": [
+        {
+          "name": "Inventory Management",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Social Media",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "PeopleFirst HR",
+          "role": "Administrative Assistant",
+          "startDate": "2023-08",
+          "endDate": "2026-08",
+          "description": "Supported customers and internal teams with routine requests.",
+          "technologies": [
+            "Google Workspace",
+            "CRM",
+            "Excel"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Kigali",
+          "degree": "Diploma in Office Administration",
+          "fieldOfStudy": "Office Administration",
+          "startYear": 2014,
+          "endYear": 2016
+        }
+      ],
+      "certifications": [],
+      "projects": [
+        {
+          "name": "Finance Reporting Workspace",
+          "description": "Developed a dashboard for management reporting and monthly reviews.",
+          "technologies": [
+            "Google Sheets",
+            "Word",
+            "CRM"
+          ],
+          "role": "Project Lead",
+          "link": "https://portfolio.example.com/claude",
+          "startDate": "2025-03",
+          "endDate": "2026-09"
+        }
+      ],
+      "availability": {
+        "status": "Notice Period",
+        "type": "Part-time",
+        "startDate": "2026-07-24"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/claude-ouma"
+      }
+    },
+    {
+      "firstName": "Claudine",
+      "lastName": "Musoni",
+      "email": "claudine.musoni40@example.com",
+      "headline": "HR Assistant",
+      "bio": "Versatile professional with experience across non-finance business functions.",
+      "location": "Musanze, Rwanda",
+      "skills": [
+        {
+          "name": "Sales",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Customer Service",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Manual Testing",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Bookkeeping",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Swahili",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "BrightStack",
+          "role": "Office Assistant",
+          "startDate": "2022-09",
+          "endDate": "2025-05",
+          "description": "Worked on general office coordination and non-finance reporting.",
+          "technologies": [
+            "Word",
+            "Google Workspace",
+            "CRM"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Rwanda",
+          "degree": "BA Human Resource Management",
+          "fieldOfStudy": "Human Resource Management",
+          "startYear": 2019,
+          "endYear": 2024
+        }
+      ],
+      "certifications": [],
+      "projects": [],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Part-time",
+        "startDate": "2026-04-03"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/claudine-musoni"
+      }
+    },
+    {
+      "firstName": "Tracy",
+      "lastName": "Nkurunziza",
+      "email": "tracy.nkurunziza41@example.com",
+      "headline": "Customer Support Officer",
+      "bio": "Versatile professional with experience across non-finance business functions.",
+      "location": "Remote, Rwanda",
+      "skills": [
+        {
+          "name": "Sales",
+          "level": "Intermediate",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Bookkeeping",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Customer Service",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Office Administration",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "French",
+          "proficiency": "Intermediate"
+        }
+      ],
+      "experience": [
+        {
+          "company": "BrightStack",
+          "role": "Sales Executive",
+          "startDate": "2024-09",
+          "endDate": "2026-04",
+          "description": "Handled daily operational and administrative tasks.",
+          "technologies": [
+            "CRM",
+            "Word",
+            "Canva"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "African Leadership University",
+          "degree": "BSc Entrepreneurship",
+          "fieldOfStudy": "Entrepreneurship",
+          "startYear": 2018,
+          "endYear": 2021
+        }
+      ],
+      "certifications": [],
+      "projects": [],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time",
+        "startDate": "2026-08-07"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/tracy-nkurunziza"
+      }
+    },
+    {
+      "firstName": "Gilbert",
+      "lastName": "Nyirahabimana",
+      "email": "gilbert.nyirahabimana42@example.com",
+      "headline": "HR Assistant",
+      "bio": "Operations-focused professional with experience in general administration and support.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Bookkeeping",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Manual Testing",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "French",
+          "proficiency": "Intermediate"
+        }
+      ],
+      "experience": [
+        {
+          "company": "CareConnect",
+          "role": "Customer Support Officer",
+          "startDate": "2022-09",
+          "endDate": "2025-06",
+          "description": "Handled daily operational and administrative tasks.",
+          "technologies": [
+            "Word",
+            "Google Workspace",
+            "Canva"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "PeopleFirst HR",
+          "role": "HR Assistant",
+          "startDate": "2024-11",
+          "endDate": "Present",
+          "description": "Supported customers and internal teams with routine requests.",
+          "technologies": [
+            "Excel",
+            "Word",
+            "Canva"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Nairobi",
+          "degree": "BA Communication",
+          "fieldOfStudy": "Communication",
+          "startYear": 2018,
+          "endYear": 2022
+        }
+      ],
+      "certifications": [],
+      "projects": [
+        {
+          "name": "Finance Reporting Workspace",
+          "description": "Developed a dashboard for management reporting and monthly reviews.",
+          "technologies": [
+            "CRM",
+            "Google Sheets",
+            "Word"
+          ],
+          "role": "Finance Assistant",
+          "link": "https://portfolio.example.com/gilbert",
+          "startDate": "2023-06",
+          "endDate": "2025-03"
+        }
+      ],
+      "availability": {
+        "status": "Notice Period",
+        "type": "Contract",
+        "startDate": "2026-03-15"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/gilbert-nyirahabimana"
+      }
+    },
+    {
+      "firstName": "Michael",
+      "lastName": "Murekatete",
+      "email": "michael.murekatete43@example.com",
+      "headline": "Sales Executive",
+      "bio": "Operations-focused professional with experience in general administration and support.",
+      "location": "Kampala, Uganda",
+      "skills": [
+        {
+          "name": "Manual Testing",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Customer Service",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Nova Retail",
+          "role": "Office Assistant",
+          "startDate": "2024-09",
+          "endDate": "2026-02",
+          "description": "Worked on general office coordination and non-finance reporting.",
+          "technologies": [
+            "CRM",
+            "Canva",
+            "Google Workspace"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Rwanda",
+          "degree": "BA Human Resource Management",
+          "fieldOfStudy": "Human Resource Management",
+          "startYear": 2021,
+          "endYear": 2025
+        }
+      ],
+      "certifications": [],
+      "projects": [],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Part-time",
+        "startDate": "2026-05-28"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/michael-murekatete"
+      }
+    },
+    {
+      "firstName": "Ruth",
+      "lastName": "Nkurunziza",
+      "email": "ruth.nkurunziza44@example.com",
+      "headline": "Sales Executive",
+      "bio": "Operations-focused professional with experience in general administration and support.",
+      "location": "Huye, Rwanda",
+      "skills": [
+        {
+          "name": "Sales",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Microsoft Excel",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Recruitment",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Social Media",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Swahili",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "PixelForge",
+          "role": "Administrative Assistant",
+          "startDate": "2024-01",
+          "endDate": "2026-01",
+          "description": "Supported customers and internal teams with routine requests.",
+          "technologies": [
+            "Word",
+            "CRM",
+            "Excel"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Kigali",
+          "degree": "Diploma in Office Administration",
+          "fieldOfStudy": "Office Administration",
+          "startYear": 2015,
+          "endYear": 2017
+        }
+      ],
+      "certifications": [],
+      "projects": [],
+      "availability": {
+        "status": "Not Looking",
+        "type": "Full-time",
+        "startDate": "2026-05-08"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/ruth-nkurunziza"
+      }
+    },
+    {
+      "firstName": "Fatima",
+      "lastName": "Ndayambaje",
+      "email": "fatima.ndayambaje45@example.com",
+      "headline": "Office Assistant",
+      "bio": "Customer-facing professional with strong coordination and communication skills.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Office Administration",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Inventory Management",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Kinyarwanda",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Acme Labs",
+          "role": "QA Tester",
+          "startDate": "2025-11",
+          "endDate": "2026-02",
+          "description": "Handled daily operational and administrative tasks.",
+          "technologies": [
+            "Google Workspace",
+            "CRM",
+            "Word"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "Digital Hive",
+          "role": "QA Tester",
+          "startDate": "2026-06",
+          "endDate": "2026-10",
+          "description": "Worked on general office coordination and non-finance reporting.",
+          "technologies": [
+            "Canva",
+            "Word",
+            "CRM"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Kigali",
+          "degree": "Diploma in Office Administration",
+          "fieldOfStudy": "Office Administration",
+          "startYear": 2020,
+          "endYear": 2023
+        }
+      ],
+      "certifications": [],
+      "projects": [
+        {
+          "name": "Revenue Forecast Model",
+          "description": "Developed a dashboard for management reporting and monthly reviews.",
+          "technologies": [
+            "Google Sheets",
+            "Word",
+            "CRM"
+          ],
+          "role": "Project Lead",
+          "link": "https://portfolio.example.com/fatima",
+          "startDate": "2024-04",
+          "endDate": "2025-01"
+        }
+      ],
+      "availability": {
+        "status": "Not Looking",
+        "type": "Part-time",
+        "startDate": "2026-04-23"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/fatima-ndayambaje"
+      }
+    },
+    {
+      "firstName": "Samuel",
+      "lastName": "Twagirayezu",
+      "email": "samuel.twagirayezu46@example.com",
+      "headline": "QA Tester",
+      "bio": "Operations-focused professional with experience in general administration and support.",
+      "location": "Rubavu, Rwanda",
+      "skills": [
+        {
+          "name": "Bookkeeping",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Office Administration",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Customer Service",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Swahili",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "QuickSupport",
+          "role": "Recruitment Coordinator",
+          "startDate": "2023-03",
+          "endDate": "2024-02",
+          "description": "Handled daily operational and administrative tasks.",
+          "technologies": [
+            "Word",
+            "Excel",
+            "Google Workspace"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "CareConnect",
+          "role": "Administrative Assistant",
+          "startDate": "2025-02",
+          "endDate": "2026-11",
+          "description": "Handled daily operational and administrative tasks.",
+          "technologies": [
+            "Word",
+            "Canva",
+            "CRM"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Kigali",
+          "degree": "Diploma in Office Administration",
+          "fieldOfStudy": "Office Administration",
+          "startYear": 2014,
+          "endYear": 2017
+        }
+      ],
+      "certifications": [],
+      "projects": [],
+      "availability": {
+        "status": "Not Looking",
+        "type": "Contract",
+        "startDate": "2026-12-24"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/samuel-twagirayezu",
+        "github": "https://github.com/samueltwagirayezu"
+      }
+    },
+    {
+      "firstName": "Brian",
+      "lastName": "Umutoni",
+      "email": "brian.umutoni47@example.com",
+      "headline": "Graphic Designer",
+      "bio": "Customer-facing professional with strong coordination and communication skills.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Social Media",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Manual Testing",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Recruitment",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Microsoft Excel",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Kinyarwanda",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "PixelForge",
+          "role": "Recruitment Coordinator",
+          "startDate": "2025-02",
+          "endDate": "2026-08",
+          "description": "Handled daily operational and administrative tasks.",
+          "technologies": [
+            "Canva",
+            "CRM",
+            "Excel"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "PeopleFirst HR",
+          "role": "Graphic Designer",
+          "startDate": "2027-09",
+          "endDate": "2026-03",
+          "description": "Supported customers and internal teams with routine requests.",
+          "technologies": [
+            "Excel",
+            "Google Workspace",
+            "Word"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Nairobi",
+          "degree": "BA Communication",
+          "fieldOfStudy": "Communication",
+          "startYear": 2014,
+          "endYear": 2018
+        }
+      ],
+      "certifications": [],
+      "projects": [
+        {
+          "name": "Revenue Forecast Model",
+          "description": "Built a reporting workflow to improve visibility into financial performance.",
+          "technologies": [
+            "Google Sheets",
+            "Word",
+            "Excel"
+          ],
+          "role": "Contributor",
+          "link": "https://portfolio.example.com/brian",
+          "startDate": "2023-02",
+          "endDate": "2025-02"
+        }
+      ],
+      "availability": {
+        "status": "Notice Period",
+        "type": "Full-time",
+        "startDate": "2026-01-23"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/brian-umutoni"
+      }
+    },
+    {
+      "firstName": "Nathan",
+      "lastName": "Uwera",
+      "email": "nathan.uwera48@example.com",
+      "headline": "Customer Support Officer",
+      "bio": "Versatile professional with experience across non-finance business functions.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Graphic Design",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        },
+        {
+          "name": "Social Media",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Swahili",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "ServiceLink",
+          "role": "HR Assistant",
+          "startDate": "2022-01",
+          "endDate": "2024-09",
+          "description": "Handled daily operational and administrative tasks.",
+          "technologies": [
+            "Canva",
+            "CRM",
+            "Excel"
+          ],
+          "isCurrent": false
+        },
+        {
+          "company": "CareConnect",
+          "role": "QA Tester",
+          "startDate": "2024-04",
+          "endDate": "Present",
+          "description": "Supported customers and internal teams with routine requests.",
+          "technologies": [
+            "Excel",
+            "Google Workspace",
+            "Canva"
+          ],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Kigali",
+          "degree": "Diploma in Office Administration",
+          "fieldOfStudy": "Office Administration",
+          "startYear": 2021,
+          "endYear": 2026
+        }
+      ],
+      "certifications": [],
+      "projects": [],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/nathan-uwera"
+      }
+    },
+    {
+      "firstName": "Linda",
+      "lastName": "Jenkins",
+      "email": "linda.jenkins49@example.com",
+      "headline": "QA Tester",
+      "bio": "Customer-facing professional with strong coordination and communication skills.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        {
+          "name": "Office Administration",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Manual Testing",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Swahili",
+          "proficiency": "Conversational"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Orbit Logistics",
+          "role": "Office Assistant",
+          "startDate": "2023-06",
+          "endDate": "2024-03",
+          "description": "Handled daily operational and administrative tasks.",
+          "technologies": [
+            "CRM",
+            "Canva",
+            "Excel"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Kigali",
+          "degree": "Diploma in Office Administration",
+          "fieldOfStudy": "Office Administration",
+          "startYear": 2017,
+          "endYear": 2019
+        }
+      ],
+      "certifications": [],
+      "projects": [],
+      "availability": {
+        "status": "Available",
+        "type": "Full-time",
+        "startDate": "2026-05-05"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/linda-jenkins",
+        "github": "https://github.com/lindajenkins"
+      }
+    },
+    {
+      "firstName": "Naomi",
+      "lastName": "Umutoni",
+      "email": "naomi.umutoni50@example.com",
+      "headline": "Administrative Assistant",
+      "bio": "Versatile professional with experience across non-finance business functions.",
+      "location": "Kampala, Uganda",
+      "skills": [
+        {
+          "name": "Social Media",
+          "level": "Advanced",
+          "yearsOfExperience": 4
+        },
+        {
+          "name": "Sales",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Recruitment",
+          "level": "Intermediate",
+          "yearsOfExperience": 3
+        },
+        {
+          "name": "Office Administration",
+          "level": "Intermediate",
+          "yearsOfExperience": 2
+        }
+      ],
+      "languages": [
+        {
+          "name": "English",
+          "proficiency": "Fluent"
+        },
+        {
+          "name": "Kinyarwanda",
+          "proficiency": "Native"
+        }
+      ],
+      "experience": [
+        {
+          "company": "Nova Retail",
+          "role": "QA Tester",
+          "startDate": "2022-12",
+          "endDate": "2024-10",
+          "description": "Worked on general office coordination and non-finance reporting.",
+          "technologies": [
+            "Google Workspace",
+            "Canva",
+            "Word"
+          ],
+          "isCurrent": false
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Nairobi",
+          "degree": "BA Communication",
+          "fieldOfStudy": "Communication",
+          "startYear": 2015,
+          "endYear": 2019
+        }
+      ],
+      "certifications": [],
+      "projects": [],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Contract"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/naomi-umutoni"
+      }
+    }
+  ]
+}

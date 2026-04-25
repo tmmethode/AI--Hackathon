@@ -56,8 +56,9 @@ export class ApplicantController {
   }
 
   /**
-   * Normalize a raw candidate payload — supports both the candidates.json-style
-   * keys ("Start Date", "Field of Study", etc.) and camelCase keys.
+   * Normalize a raw candidate payload. Canonical API payloads use camelCase
+   * keys, while legacy spaced-key variants remain supported for backwards
+   * compatibility during ingestion.
    */
   private normalizeProfile(raw: any): ApplicantProfileInput {
     if (!raw || typeof raw !== 'object') {

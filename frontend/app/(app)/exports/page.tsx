@@ -219,9 +219,8 @@ function buildCsvRows(record: ShortlistRecord): (readonly unknown[])[] {
   return rows;
 }
 
-// Convert internal camelCase candidate entries to the Talent Profile Schema's
-// PascalCase-with-spaces variants for fields whose spec example uses them
-// (work experience, education, certifications, projects, availability).
+// Convert canonical camelCase candidate entries to a legacy spaced-key export
+// shape for consumers that still expect labels like "Start Date".
 function toSpecCandidate(entry: Record<string, unknown>): Record<string, unknown> {
   const SPEC_KEY_MAP: Record<string, string> = {
     startDate: "Start Date",
@@ -797,10 +796,10 @@ export default function ExportsPage() {
                 className="mt-0.5 h-4 w-4 rounded border-line text-brand"
               />
               <span>
-                <span className="font-semibold text-ink">Spec-compliant keys</span>
+                <span className="font-semibold text-ink">Legacy spaced keys</span>
                 <span className="block text-ink-muted">
-                  Re-emit experience / education / certification / project / availability date and label fields with the
-                  Talent Profile Schema's PascalCase-with-spaces convention (e.g. <code>"Start Date"</code>, <code>"Field of Study"</code>).
+                  Default exports use canonical camelCase keys. Enable this only if a downstream consumer still expects
+                  legacy labels like <code>"Start Date"</code> or <code>"Field of Study"</code>.
                 </span>
               </span>
             </label>

@@ -69,9 +69,10 @@ export interface SocialLinksDTO {
  * Full applicant profile shape, matching the candidates.json schema used by the
  * Umurava platform ingestion feed (also acceptable for CSV rows once parsed).
  *
- * Note: the JSON feed uses keys like "Start Date" / "Is Current". Callers can
- * send either the original keys or camelCase (see CandidatePayload for flexible
- * ingestion). This DTO is the canonical, normalized form stored in DB.
+ * Canonical API shape uses camelCase keys such as `startDate`, `endDate`,
+ * `isCurrent`, `fieldOfStudy`, and `issueDate`. Legacy feeds with spaced keys
+ * like "Start Date" / "Is Current" are still accepted for backward
+ * compatibility during ingestion. This DTO is the normalized form stored in DB.
  */
 export interface ApplicantProfileInput {
   firstName: string;

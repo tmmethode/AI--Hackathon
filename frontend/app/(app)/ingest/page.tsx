@@ -112,7 +112,8 @@ const importStages = [
   { id: "refreshing", label: "Refresh Live Preview", icon: RefreshCw },
 ] as const;
 
-// Talent Profile Schema v1 — every controlled-vocabulary value below
+// Talent Profile Schema v1 — canonical field names in the public JSON example
+// are camelCase. Controlled-vocabulary values below
 // (skills.level, languages.proficiency, availability.status, availability.type)
 // must use one of the canonical Title-Case strings shown across the two example
 // applicants. Dates use YYYY-MM (experience / projects / certifications),
@@ -419,6 +420,17 @@ function CollectionEditor<TItem>({
 }
 
 function createApplicantEditForm(applicant: ApplicantRecord): ApplicantEditFormState {
+  const fallbackCertifications =
+    (applicant.certifications || []).length > 0
+      ? applicant.certifications || []
+      : normalizeCertificationEntries(
+          resolveApplicantRawValue(applicant, "certifications", "Certifications", "licenses")
+        );
+  const fallbackProjects =
+    (applicant.projects || []).length > 0
+      ? applicant.projects || []
+      : normalizeProjectEntries(resolveApplicantRawValue(applicant, "projects", "Projects"));
+
   return {
     firstName: applicant.firstName || "",
     lastName: applicant.lastName || "",
@@ -439,8 +451,8 @@ function createApplicantEditForm(applicant: ApplicantRecord): ApplicantEditFormS
       technologies: entry.technologies ? [...entry.technologies] : undefined,
     })),
     education: (applicant.education || []).map((entry) => ({ ...entry })),
-    certifications: (applicant.certifications || []).map((entry) => ({ ...entry })),
-    projects: (applicant.projects || []).map((entry) => ({
+    certifications: fallbackCertifications.map((entry) => ({ ...entry })),
+    projects: fallbackProjects.map((entry) => ({
       ...entry,
       technologies: entry.technologies ? [...entry.technologies] : undefined,
     })),
@@ -626,6 +638,36 @@ function pickValue(record: Record<string, unknown>, ...keys: string[]) {
   for (const key of keys) {
     const value = record[key];
     if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return value;
+    }
+  }
+
+  return undefined;
+}
+
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function resolveApplicantSourceRecords(applicant: ApplicantRecord): Record<string, unknown>[] {
+  const rawPayload = asRecord(applicant.rawPayload);
+  const extracted = asRecord(rawPayload?.extracted) || rawPayload;
+  const firstExtractedApplicant = Array.isArray(extracted?.applicants)
+    ? asRecord(extracted.applicants[0])
+    : undefined;
+
+  return [firstExtractedApplicant, extracted, rawPayload].filter(
+    (record, index, records): record is Record<string, unknown> =>
+      Boolean(record) && records.findIndex((item) => item === record) === index
+  );
+}
+
+function resolveApplicantRawValue(applicant: ApplicantRecord, ...keys: string[]) {
+  for (const record of resolveApplicantSourceRecords(applicant)) {
+    const value = pickValue(record, ...keys);
+    if (value !== undefined) {
       return value;
     }
   }
@@ -975,10 +1017,36 @@ function normalizeApplicantInput(raw: unknown): ApplicantProfileInput {
   const educationInstitution = pickValue(record, "educationInstitution");
   const certificationName = pickValue(record, "certificationName");
   const projectName = pickValue(record, "projectName");
-  const nestedExperience = normalizeExperienceEntries(pickValue(record, "experience", "workExperience", "workHistory"));
-  const nestedEducation = normalizeEducationEntries(pickValue(record, "education", "educationHistory"));
-  const nestedCertifications = normalizeCertificationEntries(pickValue(record, "certifications"));
-  const nestedProjects = normalizeProjectEntries(pickValue(record, "projects"));
+  const nestedExperience = normalizeExperienceEntries(
+    pickValue(
+      record,
+      "experience",
+      "workExperience",
+      "workHistory",
+      "Work Experience",
+      "Recent Experience",
+      "professionalExperience"
+    )
+  );
+  const nestedEducation = normalizeEducationEntries(
+    pickValue(
+      record,
+      "education",
+      "educationHistory",
+      "educations",
+      "education_history",
+      "Education",
+      "Education History",
+      "educationalBackground",
+      "academicHistory"
+    )
+  );
+  const nestedCertifications = normalizeCertificationEntries(
+    pickValue(record, "certifications", "Certifications", "licenses")
+  );
+  const nestedProjects = normalizeProjectEntries(
+    pickValue(record, "projects", "Projects")
+  );
 
   const normalized: ApplicantProfileInput = {
     firstName,
@@ -1292,7 +1360,7 @@ function JsonTab({
   return (
     <div className="flex flex-col gap-4 p-6">
       <p className="text-sm text-ink-muted">
-        Umurava applicant json schema.
+        Umurava applicant JSON schema using canonical camelCase field names.
       </p>
       <div
         onDragOver={(event) => {
@@ -2544,7 +2612,7 @@ export default function IngestPage() {
       <Modal open={showSchemaModal} onClose={() => setShowSchemaModal(false)} size="lg">
         <ModalHeader
           title="Talent Profile JSON Schema"
-          subtitle="Conforms to the Umurava Talent Profile Schema v1 — every applicant uses this exact shape."
+          subtitle="Conforms to the Umurava Talent Profile Schema v1 — use camelCase keys consistently across applicant payloads."
           onClose={() => setShowSchemaModal(false)}
         />
         <ModalBody className="flex flex-col gap-4">
@@ -2553,8 +2621,10 @@ export default function IngestPage() {
             <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-ink-muted">
               <li><strong className="text-ink">Required:</strong> firstName, lastName, email (unique per job), headline, location, skills (≥ 1), experience (≥ 1), education (≥ 1), projects (≥ 1), availability (with status + type).</li>
               <li><strong className="text-ink">Optional:</strong> bio, languages, certifications, socialLinks.</li>
+              <li><strong className="text-ink">Field naming:</strong> use camelCase everywhere, for example startDate, endDate, isCurrent, fieldOfStudy, and issueDate.</li>
               <li><strong className="text-ink">Controlled vocabulary:</strong> skills.level = Beginner | Intermediate | Advanced | Expert; languages.proficiency = Basic | Conversational | Fluent | Native; availability.status = Available | Open to Opportunities | Not Available; availability.type = Full-time | Part-time | Contract.</li>
               <li><strong className="text-ink">Date format:</strong> YYYY-MM for experience / projects / certifications (use "Present" for ongoing roles); YYYY-MM-DD for availability.startDate; integer years for education.</li>
+              <li>Legacy spaced keys such as <code>"Start Date"</code> are only accepted for backward compatibility during import.</li>
               <li>Upload one applicant directly, an array of applicants, or wrap them in <code>{`{ "applicants": [...] }`}</code>.</li>
             </ul>
           </div>

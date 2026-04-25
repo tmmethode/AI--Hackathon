@@ -3706,7 +3706,7 @@
 				"additionalProperties": false
 			},
 			"ApplicantProfileInput": {
-				"description": "Full applicant profile shape, matching the candidates.json schema used by the\nUmurava platform ingestion feed (also acceptable for CSV rows once parsed).\n\nNote: the JSON feed uses keys like \"Start Date\" / \"Is Current\". Callers can\nsend either the original keys or camelCase (see CandidatePayload for flexible\ningestion). This DTO is the canonical, normalized form stored in DB.",
+				"description": "Full applicant profile shape, matching the candidates.json schema used by the\nUmurava platform ingestion feed (also acceptable for CSV rows once parsed).\n\nCanonical API shape uses camelCase keys such as `startDate`, `endDate`,\n`isCurrent`, `fieldOfStudy`, and `issueDate`. Legacy feeds with spaced keys\nlike \"Start Date\" / \"Is Current\" are still accepted for backward\ncompatibility during ingestion. This DTO is the normalized form stored in DB.",
 				"properties": {
 					"firstName": {
 						"type": "string"

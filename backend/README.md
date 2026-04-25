@@ -1,126 +1,210 @@
-# Backend API
+# Umurava Screening — Backend API
 
-Backend service for the Umurava Screening platform, built with TypeScript, Express, tsoa, Mongoose, and Gemini integrations.
+Express + tsoa + Mongoose REST API for the Umurava Screening platform. Powers job requisitions, multi-source applicant ingest with strict Talent Profile Schema enforcement, Gemini-powered batch screening, shortlist persistence, and the recruiter AI Assistant.
 
-## Features
+> Default port: **3001** · Swagger UI: **`/docs`** · OpenAPI spec: `docs/swagger.json` (auto-generated)
 
-- **TypeScript**: Full TypeScript support with strict mode
-- **Express**: Web framework for building REST APIs
-- **tsoa**: Automatic OpenAPI/Swagger documentation generation
-- **Mongoose**: MongoDB object modeling for Node.js
-- **CORS**: Cross-origin resource sharing configured
-- **Environment variables**: Secure configuration management
+## Highlights
+
+- **Auto-generated REST contract.** tsoa decorators on the controllers produce `generated/routes.ts` and `docs/swagger.json` on every build; the swagger UI is mounted at `/docs`.
+- **Talent Profile Schema enforcement.** `Applicant` model rejects bad data at write time — required `headline` / `location`, controlled vocabularies for skill levels / language proficiencies / availability statuses & types, regex-validated YYYY-MM / YYYY-MM-DD dates, year-range checks on education, non-empty array validators for skills / experience / education / projects, compound unique index on `{ job, email }`.
+- **Conditional strictness for deferred ingest.** Pending placeholder records (PDF / link queues waiting for AI parsing) bypass the strict validators via a `requiresStructuredProfile()` gate, then become spec-strict the moment they're re-saved as `parsed`.
+- **Ingest normalization.** `utils/applicant-profile.ts` collapses case variants (`"advanced"` → `"Advanced"`), accepts spec PascalCase-with-spaces aliases (`"Start Date"`, `"Field of Study"`, …), and coerces fuzzy date strings (`"2024"`, `"Jan 2024"`, ISO timestamps) into the spec format.
+- **Gemini batch screening.** Chunked batch scoring with weighted final score (using each job's saved scoring weights), narrative pass for strengths/gaps, eligibility threshold of `≥ 54%`, transparent chunk-failure tracking surfaced via response meta.
+- **Pipeline persistence.** `Shortlist.shortlist[]` carries a `pipelineStatus` field (`shortlisted` | `interview` | `exam` | `assessment` | `practical`); a single `PATCH /shortlists/{id}/candidates/{email}` endpoint moves candidates between stages and rejection.
+- **Recruiter AI Assistant.** Page-aware chat that grounds answers in saved screening data, sees pipeline stage counts, and never invents qualifications.
+
+## Stack
+
+- **TypeScript** (strict mode)
+- **Express** 4 + **tsoa** 6 (decorators → routes + OpenAPI)
+- **Mongoose** 8 (MongoDB)
+- **Passport** with JWT + Google OAuth + Local strategies
+- **pdf-parse** · **mammoth** · **word-extractor** (resume parsing)
+- **Google Generative Language REST API** (Gemini)
 
 ## Installation
 
 ```bash
 npm install
-```
-
-## Environment Setup
-
-Copy the environment example file:
-```bash
 cp .env.example .env
+# fill in MONGODB_URI, JWT_SECRET, GEMINI_API_KEY, etc.
 ```
 
-Update the `.env` file with your MongoDB connection string and Gemini credentials:
+## Environment variables
+
+See [`.env.example`](.env.example) for the complete list. Most-used:
+
+| Variable | Default | Notes |
+|---|---|---|
+| `PORT` | `3001` | API listen port |
+| `MONGODB_URI` | — | Required (`mongodb://localhost:27017/<db>`) |
+| `JWT_SECRET` | — | Required for auth |
+| `JWT_EXPIRES_IN` | `7d` | Lifetime of issued tokens |
+| `SESSION_SECRET` | — | Express session signing |
+| `FRONTEND_URL` | `http://localhost:3000` | Allowed CORS origin |
+| `GEMINI_API_KEY` | — | Required for screening + AI Assistant |
+| `GEMINI_MODEL` | `gemini-2.5-flash-lite` | Override the default model |
+| `GEMINI_BASE_URL` | Generative Language v1beta | Override the API base URL |
+| `GEMINI_MAX_OUTPUT_TOKENS` | `1200` | Per-response token cap |
+| `GEMINI_FRONTEND_DEFAULT_SHORTLIST_SIZE` | `10` | Default shortlist size in the UI |
+| `GEMINI_FRONTEND_MIN_SHORTLIST_SIZE` / `_MAX_SHORTLIST_SIZE` | `5` / `50` | UI clamp |
+| `GEMINI_SCREEN_BATCH_MAX_APPLICANTS` | `200` | Hard cap per screening run |
+
+## Available scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Regenerate tsoa artifacts then start nodemon (auto-restart on save) |
+| `npm run build` | Regenerate tsoa artifacts → `tsc` → bundle with `tsup` to `dist/index.mjs` |
+| `npm start` | Run the production bundle |
+
+## Project structure
+
 ```
-MONGODB_URI=mongodb://localhost:27017/helloworld
-GEMINI_API_KEY=your-gemini-api-key
+backend/
+├── controllers/           # tsoa controllers — source of truth for routes
+│   ├── ApplicantController.ts   # CRUD + ingest (Umurava JSON, CSV, files, links)
+│   ├── AuthController.ts        # Login, register, /me, JWT, Google OAuth callback
+│   ├── DashboardController.ts   # Aggregated metrics surfaced on /dashboard
+│   ├── GeminiController.ts      # Direct Gemini endpoints (health, generate, screen, batch)
+│   ├── HistoryController.ts     # Run history with per-run pipeline stage counts
+│   ├── JobController.ts         # Job requisitions + weighted scoring criteria
+│   ├── NotificationController.ts # In-app notifications
+│   ├── ShortlistController.ts   # Persisted shortlists + PATCH candidate pipelineStatus
+│   └── SidebarController.ts     # Live workspace counters for the sidebar
+│
+├── gemini/
+│   ├── client.ts                 # Gemini REST client wrapper
+│   ├── config.ts                 # Centralized env + frontend defaults
+│   ├── screening.ts              # Single-candidate + batch screening service
+│   ├── batch-screening-runner.ts # DB-driven batch runner (loads applicants, calls screening)
+│   ├── applicant-import.ts       # PDF / link parse → spec-shaped applicant
+│   ├── job-import.ts             # Public job posting parser
+│   ├── frontend.ts               # Frontend-facing screening helper
+│   ├── assistant.ts              # Recruiter AI Assistant context builder
+│   ├── prompts.ts                # All Gemini prompt templates + system instructions
+│   ├── shortlist-criteria.ts     # Eligibility threshold (≥54%)
+│   ├── rubric.ts                 # Weight derivation + final score recomputation
+│   └── types.ts                  # Spec-aligned literal-union types
+│
+├── models/
+│   ├── Applicant.ts     # Strict Talent Profile Schema (enums, regex, conditional required)
+│   ├── Job.ts           # Job requisition + scoring weights
+│   ├── Shortlist.ts     # Screening run output + shortlist[] with pipelineStatus
+│   └── User.ts          # Recruiter / admin accounts
+│
+├── interfaces/          # tsoa-friendly DTOs (mirrored from models)
+├── utils/
+│   ├── applicant-profile.ts   # canonicalizeEnum + normalizeYearMonth + section normalizers
+│   └── HttpError.ts
+├── middleware/          # Auth middleware, error handler, etc.
+├── config/database.ts   # Mongo connection
+├── generated/routes.ts  # AUTO-GENERATED — do not edit
+├── docs/swagger.json    # AUTO-GENERATED — do not edit
+├── index.ts             # Application entry
+├── server.ts            # Express setup, middleware, routes mount
+├── tsoa.json            # tsoa config
+└── tsconfig.json
 ```
 
-Optional Gemini tuning for frontend-driven screening:
-```
-GEMINI_MODEL=gemini-2.5-flash-lite
-GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/models
-GEMINI_MAX_OUTPUT_TOKENS=1200
-GEMINI_FRONTEND_DEFAULT_SHORTLIST_SIZE=10
-GEMINI_FRONTEND_MIN_SHORTLIST_SIZE=5
-GEMINI_FRONTEND_MAX_SHORTLIST_SIZE=50
-```
+## REST API
 
-## Available Scripts
+### Auth
+- `POST /auth/register` — register a new user (admin role required for non-self).
+- `POST /auth/login` — issue a JWT.
+- `GET /auth/me` — return the authenticated user.
+- `POST /auth/refresh` — refresh an expiring JWT.
+- `GET /auth/google` / `GET /auth/google/callback` — Google OAuth.
 
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build the project and generate documentation
-- `npm start` - Start production server
+### Jobs
+- `GET /jobs` — list (paginated, filterable by status / search).
+- `POST /jobs` — create a job + scoring weights.
+- `GET /jobs/{id}` — single job detail.
+- `PATCH /jobs/{id}` — update a job (recruiter / admin).
+- `DELETE /jobs/{id}` — delete (admin / recruiter).
+- `POST /jobs/{id}/archive` — flip status to `Closed`.
+- `GET /jobs/select` — lightweight selector list (used by AI Assistant scope dropdown).
 
-## API Endpoints
+### Applicants
+- `GET /applicants` — list (paginated, filtered by job / status / source / search).
+- `POST /applicants/jobs/{jobId}` — bulk-create from `ApplicantProfileInput[]` (Umurava JSON path).
+- `POST /applicants/jobs/{jobId}/csv` — bulk-create from CSV rows.
+- `POST /applicants/jobs/{jobId}/files` — bulk-create from uploaded PDF / DOCX (parsed via Gemini).
+- `POST /applicants/jobs/{jobId}/links` — queue paste-links for deferred parsing.
+- `GET /applicants/jobs/{jobId}/{applicantId}` — single applicant.
+- `PATCH /applicants/jobs/{jobId}/{applicantId}` — update (full Mongoose validation runs).
+- `DELETE /applicants/jobs/{jobId}/{applicantId}` — delete.
 
-### Core APIs
+### Screening (Gemini)
+- `GET /gemini/health` — is Gemini configured and which model.
+- `GET /gemini/frontend-config` — defaults / limits / endpoint paths for the frontend.
+- `POST /gemini/generate` — generic prompt passthrough.
+- `POST /gemini/screen-candidate` — single candidate scored against a job.
+- `POST /gemini/screen-run` — frontend-driven screening run across multiple candidates.
+- `POST /gemini/screen-batch` — DB-driven batch run: loads parsed applicants by job, chunks them, scores all in one workflow, persists ranked shortlist + narratives. Response includes a `meta` block with `requestedApplicants`, `processedApplicants`, `truncatedApplicants`, plus `failedChunks` / `failureReasons` / `unscoredApplicants` so the UI can surface partial failures.
+- `POST /gemini/assistant` — recruiter chat (page-aware scope, pipeline-status-aware).
+- `POST /gemini/parse-applicants` — internal helper used by file / link ingest.
+- `POST /gemini/parse-job` — parse a job posting URL into a draft job.
 
-- `POST /auth/login` - Authenticate user credentials and issue a JWT
-- `POST /auth/register` - Register a new user (admin-protected)
-- `GET /auth/me` - Return the authenticated user profile
-- `GET /jobs` - List job requisitions
-- `POST /jobs` - Create a job requisition
-- `GET /applicants` - List applicants
-- `POST /applicants` - Create applicants (including ingestion payloads)
-- `GET /shortlists` - List shortlist runs
-- `POST /shortlists` - Persist shortlist outcomes
-- `GET /notifications` - Retrieve in-app notifications
+### Shortlists
+- `GET /shortlists` — list runs (filterable by job).
+- `GET /shortlists/select` — lightweight selector for the AI Assistant + Exports dropdowns.
+- `GET /shortlists/{id}` — full shortlist record (screening results + shortlist + weight criteria).
+- `POST /shortlists` — persist a screening response.
+- `PATCH /shortlists/{id}/candidates/{email}` — move a candidate between pipeline stages (`shortlisted` | `rejected` | `interview` | `exam` | `assessment` | `practical`). Single source of truth for live recruiter actions.
+- `DELETE /shortlists/{id}` — delete a run.
 
-### Gemini APIs
-
-- `GET /gemini/health` - Check whether Gemini is configured and which model is active
-- `GET /gemini/frontend-config` - Return frontend-facing Gemini defaults, limits, and endpoint paths
-- `POST /gemini/generate` - Send a generic prompt to Gemini
-- `POST /gemini/screen-candidate` - Score a candidate against structured job requirements
-- `POST /gemini/screen-run` - Process a frontend screening run across multiple candidates and return ranked results
-- `POST /gemini/screen-batch` - Evaluate all applicants against a single job in one Gemini call using that job's saved scoring weights (Must-have Qualifications, Nice-to-have Qualifications, Core Hard & Soft Skills, Years of Experience & Seniority Level, Educational Background) and return a ranked shortlist limited by `shortlistCount`
+### History / Dashboard / Sidebar / Notifications
+- `GET /history/summary` — paginated run summaries with per-run `stageCounts` + `averageMatchScore`.
+- `GET /dashboard/summary` — aggregated KPIs powering the recruiter dashboard.
+- `GET /sidebar/usage` — weekly screening run counter for the sidebar.
+- `GET /notifications` / `POST /notifications/{id}/read` / `POST /notifications/mark-all-read`.
 
 ### Documentation
+- `GET /docs` — Swagger UI.
+- `GET /` — redirects to `/docs` when MongoDB is reachable.
 
-- `GET /docs` - Swagger UI documentation
-- `GET /` - Redirects to documentation (if database is connected)
+## Talent Profile Schema enforcement
 
-## Project Structure
+Applicants are validated at the model layer using values exported from [`models/Applicant.ts`](models/Applicant.ts):
 
-```
-backend_api/
-├── config/
-│   └── database.ts       # MongoDB connection
-├── controllers/
-│   ├── ApplicantController.ts   # Applicant APIs
-│   ├── AuthController.ts        # Authentication APIs
-│   ├── GeminiController.ts      # Gemini endpoints
-│   ├── JobController.ts         # Job requisition APIs
-│   ├── NotificationController.ts # Notification APIs
-│   └── ShortlistController.ts   # Shortlist APIs
-├── gemini/
-│   ├── config.ts         # Centralized Gemini environment and frontend defaults
-│   ├── client.ts         # Gemini REST client
-│   ├── frontend.ts       # Frontend-facing screening run service
-│   ├── prompts.ts        # Screening prompt builders
-│   ├── screening.ts      # Candidate screening service
-│   └── types.ts          # Gemini request/response types
-├── models/
-│   ├── Applicant.ts      # Applicant model
-│   ├── Job.ts            # Job model
-│   ├── Shortlist.ts      # Shortlist model
-│   └── User.ts           # User model
-├── generated/           # Auto-generated tsoa routes
-├── docs/               # Auto-generated swagger docs
-├── index.ts            # Application entry point
-├── server.ts           # Express server setup
-├── package.json
-├── tsconfig.json
-├── tsoa.json
-└── .env.example
+```ts
+export const SKILL_LEVELS = ['Beginner', 'Intermediate', 'Advanced', 'Expert'] as const;
+export const LANGUAGE_PROFICIENCIES = ['Basic', 'Conversational', 'Fluent', 'Native'] as const;
+export const AVAILABILITY_STATUSES = ['Available', 'Open to Opportunities', 'Not Available'] as const;
+export const AVAILABILITY_TYPES = ['Full-time', 'Part-time', 'Contract'] as const;
+export const DATE_YYYY_MM_REGEX = /^(\d{4}-(0[1-9]|1[0-2])(-\d{2})?|Present)$/i;
+export const DATE_YYYY_MM_DD_REGEX = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 ```
 
-## Development
+Pending placeholders (`ingestStatus: 'pending'`) are exempt via `requiresStructuredProfile()` so deferred PDF/link queues can persist without a complete profile. The screening pipeline filters to `ingestStatus: 'parsed'` only, so the LLM never sees incomplete data.
 
-The development server will automatically:
-1. Generate tsoa routes and documentation
-2. Watch for file changes
-3. Restart the server on changes
+## Development workflow
 
-Start the development server:
 ```bash
 npm run dev
 ```
 
-The API will be available at `http://localhost:3001`
-Documentation will be available at `http://localhost:3001/docs`
+Watches the source tree, re-runs `tsoa routes` + `tsoa spec` on every save, and restarts the API. Edit a controller, watch the swagger UI update at `/docs` automatically.
+
+```bash
+./node_modules/.bin/tsc --noEmit -p tsconfig.json
+```
+
+Type-checks without emitting. Should always be clean before committing.
+
+```bash
+npx tsoa routes && npx tsoa spec
+```
+
+Manually regenerate the auto-generated route + swagger files (run this if you edit controllers but skip `npm run dev`).
+
+## Deploying
+
+```bash
+npm run build      # tsoa + tsc + tsup → dist/index.mjs
+npm start          # node dist/index.mjs
+```
+
+Compatible with Render, Railway, Fly.io, AWS, or any Node 18+ container host. Make sure `MONGODB_URI`, `JWT_SECRET`, `GEMINI_API_KEY`, and `FRONTEND_URL` are set in production.

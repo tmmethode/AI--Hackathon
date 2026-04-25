@@ -22,6 +22,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field, Input, Select, Textarea } from "@/components/ui/Input";
+import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { Modal, ModalBody, ModalFooter } from "@/components/ui/Modal";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { type EducationLevel, type EmploymentType, type LocationPolicy, type SeniorityLevel } from "@/lib/jobs";
@@ -414,33 +415,49 @@ export default function NewJobPage() {
           step={3}
         >
           <Field label="Job Description" className="mb-5" required>
-            <Textarea rows={3} value={form.description} onChange={(event) => updateFormField("description", event.target.value)} />
-            <span className="mt-1 block text-xs text-ink-muted">A comprehensive overview of the role visible to candidates at the top of the job posting.</span>
+            <RichTextEditor
+              minHeight={140}
+              value={form.description}
+              onChange={(value) => updateFormField("description", value)}
+              placeholder="Describe the role, the team, and what success looks like…"
+              ariaLabel="Job description"
+              required
+            />
+            <span className="mt-1 block text-xs text-ink-muted">A comprehensive overview of the role visible to candidates at the top of the job posting. Use the toolbar for headings, lists, and emphasis. Drag the bottom-right corner to resize.</span>
           </Field>
 
           <Field label="Key Responsibilities" className="mb-5" required>
-            <Textarea
-              rows={5}
+            <RichTextEditor
+              minHeight={180}
               value={form.responsibilities}
-              onChange={(event) => updateFormField("responsibilities", event.target.value)}
+              onChange={(value) => updateFormField("responsibilities", value)}
+              placeholder="Use the bulleted-list button to add responsibilities, one per line."
+              ariaLabel="Key responsibilities"
+              required
             />
-            <span className="mt-1 block text-xs text-ink-muted">List the primary duties and day-to-day tasks. Use bullet points (•) for readability.</span>
+            <span className="mt-1 block text-xs text-ink-muted">List the primary duties and day-to-day tasks.</span>
           </Field>
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
             <Field label="Must-have Qualifications" required>
-              <Textarea
-                rows={5}
+              <RichTextEditor
+                minHeight={180}
                 value={form.mustHaveQualifications}
-                onChange={(event) => updateFormField("mustHaveQualifications", event.target.value)}
+                onChange={(value) => updateFormField("mustHaveQualifications", value)}
+                placeholder="List the non-negotiable requirements as a bulleted list."
+                ariaLabel="Must-have qualifications"
+                required
               />
               <span className="mt-1 block text-xs text-ink-muted">List the non-negotiable requirements candidates must meet.</span>
             </Field>
             <Field label="Nice-to-have Qualifications" required>
-              <Textarea
-                rows={5}
+              <RichTextEditor
+                minHeight={180}
                 value={form.niceToHaveQualifications}
-                onChange={(event) => updateFormField("niceToHaveQualifications", event.target.value)}
+                onChange={(value) => updateFormField("niceToHaveQualifications", value)}
+                placeholder="List bonus qualifications that strengthen a candidate profile."
+                ariaLabel="Nice-to-have qualifications"
+                required
               />
               <span className="mt-1 block text-xs text-ink-muted">Capture bonus qualifications that strengthen a candidate profile.</span>
             </Field>

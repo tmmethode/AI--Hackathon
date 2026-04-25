@@ -11,9 +11,12 @@ import {
   KeyRound,
   LineChart,
   Link as LinkIcon,
+  Code2,
+  Download,
   Mail,
   ShieldCheck,
   Sparkles,
+  Star,
   Target,
   Upload,
   Users,
@@ -131,12 +134,91 @@ const workflow = [
   },
   {
     step: "5",
+    icon: Star,
+    title: "Select candidates",
+    description:
+      "Pick the candidates you want to move forward with from the AI-ranked shortlist — selections persist across sessions and feed into the rest of the pipeline.",
+  },
+  {
+    step: "6",
     icon: Workflow,
     title: "Move through the pipeline",
     description:
-      "Update pipeline status, persist changes across sessions, and keep dashboards, history and exports in sync.",
+      "Advance selected candidates through pipeline stages, persist changes across sessions, and keep dashboards, history and exports in sync.",
   },
 ];
+
+// Talent Profile Schema v1 — canonical camelCase schema accepted by the
+// /ingest page. Kept short here (single applicant, all field families covered)
+// so it fits comfortably on the landing page. The full two-applicant example
+// lives at frontend/app/(app)/ingest/page.tsx (EXAMPLE_JSON_SCHEMA).
+const APPLICANT_JSON_TEMPLATE = `{
+  "applicants": [
+    {
+      "firstName": "Sarah",
+      "lastName": "Jenkins",
+      "email": "sarah.jenkins@example.com",
+      "headline": "Senior Frontend Engineer",
+      "bio": "Strong product-thinking and mentoring experience.",
+      "location": "Kigali, Rwanda",
+      "skills": [
+        { "name": "React",      "level": "Advanced",     "yearsOfExperience": 4 },
+        { "name": "TypeScript", "level": "Advanced",     "yearsOfExperience": 4 },
+        { "name": "Figma",      "level": "Intermediate", "yearsOfExperience": 2 }
+      ],
+      "languages": [
+        { "name": "English",     "proficiency": "Fluent" },
+        { "name": "Kinyarwanda", "proficiency": "Native" }
+      ],
+      "experience": [
+        {
+          "company": "Acme Labs",
+          "role": "Senior Frontend Engineer",
+          "startDate": "2023-02",
+          "endDate": "Present",
+          "description": "Lead frontend delivery for customer-facing dashboards.",
+          "technologies": ["React", "TypeScript", "Next.js"],
+          "isCurrent": true
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Rwanda",
+          "degree": "BSc Computer Science",
+          "fieldOfStudy": "Computer Science",
+          "startYear": 2015,
+          "endYear": 2019
+        }
+      ],
+      "certifications": [
+        { "name": "AWS Certified Developer", "issuer": "Amazon", "issueDate": "2023-06" }
+      ],
+      "projects": [
+        {
+          "name": "Recruiting Analytics Platform",
+          "description": "Recruiter reporting workspace.",
+          "technologies": ["React", "Node.js", "PostgreSQL"],
+          "role": "Frontend Lead",
+          "link": "https://portfolio.example.com/sarah",
+          "startDate": "2023-01",
+          "endDate": "2023-10"
+        }
+      ],
+      "availability": {
+        "status": "Open to Opportunities",
+        "type": "Full-time",
+        "startDate": "2026-01-15"
+      },
+      "socialLinks": {
+        "linkedin": "https://linkedin.com/in/sarah-jenkins",
+        "github": "https://github.com/sarahjenkins",
+        "portfolio": "https://portfolio.example.com/sarah"
+      }
+    }
+  ]
+}`;
+
+const APPLICANT_JSON_TEMPLATE_HREF = `data:application/json;charset=utf-8,${encodeURIComponent(APPLICANT_JSON_TEMPLATE)}`;
 
 export default function LandingPage() {
   return (
@@ -155,6 +237,7 @@ export default function LandingPage() {
             <a href="#overview" className="transition-colors hover:text-brand">Overview</a>
             <a href="#features" className="transition-colors hover:text-brand">Features</a>
             <a href="#workflow" className="transition-colors hover:text-brand">How it works</a>
+            <a href="#json-template" className="transition-colors hover:text-brand">JSON template</a>
             <a href="#demo" className="transition-colors hover:text-brand">Demo access</a>
           </nav>
 
@@ -403,14 +486,14 @@ export default function LandingPage() {
           <div className="mx-auto max-w-3xl text-center">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">How to use it</p>
             <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
-              From a job link to a shortlist in five steps.
+              From a job link to selected candidates in six steps.
             </h2>
             <p className="mt-4 text-base text-ink-subtle">
               Sign in, then follow the recruiter workflow that the app guides you through.
             </p>
           </div>
 
-          <ol className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-5">
+          <ol className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {workflow.map(({ step, icon: Icon, title, description }) => (
               <li key={step}>
                 <Card className="relative flex h-full flex-col p-5 transition-shadow duration-200 hover:shadow-soft">
@@ -427,6 +510,122 @@ export default function LandingPage() {
             ))}
           </ol>
         </div>
+      </section>
+
+      {/* JSON template */}
+      <section id="json-template" className="mx-auto w-full max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">Applicant JSON template</p>
+          <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+            Bring your own applicants — just match the schema.
+          </h2>
+          <p className="mt-4 text-base text-ink-subtle">
+            Umurava Screening accepts applicants as JSON in the canonical Talent Profile Schema v1 (camelCase fields). Drop the
+            file into the Ingest page and every applicant is parsed into structured skills, experience, education and
+            availability — ready for AI screening.
+          </p>
+        </div>
+
+        <Card className="mt-10 overflow-hidden p-0 shadow-soft">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line/80 bg-surface-soft px-5 py-3">
+            <div className="flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-md bg-brand/10">
+                <Code2 className="h-4 w-4 text-brand" />
+              </span>
+              <div>
+                <p className="text-xs font-semibold text-ink">applicants.json</p>
+                <p className="text-[11px] text-ink-muted">Talent Profile Schema v1 · canonical camelCase</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <a
+                href={APPLICANT_JSON_TEMPLATE_HREF}
+                download="applicant-template.json"
+                aria-label="Download applicant JSON template"
+              >
+                <Button variant="secondary" size="sm" leftIcon={<Download className="h-3.5 w-3.5" />}>
+                  Download template
+                </Button>
+              </a>
+              <Link href="/login?next=%2Fingest" aria-label="Open the ingest page">
+                <Button variant="ghost" size="sm" rightIcon={<ArrowRight className="h-3.5 w-3.5" />}>
+                  Open Ingest
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <pre className="max-h-[520px] overflow-auto bg-ink-soft px-5 py-4 text-[12px] leading-relaxed text-white/90">
+            <code className="font-mono">{APPLICANT_JSON_TEMPLATE}</code>
+          </pre>
+        </Card>
+
+        {/* Sample dataset download */}
+        <Card className="mt-8 flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand/10">
+              <Download className="h-5 w-5 text-brand" />
+            </span>
+            <div>
+              <h3 className="text-sm font-semibold text-ink">Need sample applicants to try the screening?</h3>
+              <p className="mt-1 text-xs leading-5 text-ink-subtle">
+                Download a ready-to-ingest dataset of 50 finance &amp; operations applicants — already conformant to the schema
+                above. Use it on the Ingest page to see AI screening end-to-end without preparing data yourself.
+              </p>
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
+            <a
+              href="/sample-data/finance_applicants_50.json"
+              download="finance_applicants_50.json"
+              aria-label="Download finance applicants sample dataset (50 records, ~125 KB)"
+            >
+              <Button variant="primary" size="md" leftIcon={<Download className="h-4 w-4" />}>
+                Download 50 finance applicants
+              </Button>
+            </a>
+            <a
+              href="/sample-data/finance_applicants_50.json"
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs text-ink-muted underline-offset-4 hover:text-brand hover:underline"
+            >
+              Preview JSON
+            </a>
+          </div>
+        </Card>
+
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            {
+              label: "Field naming",
+              copy: "camelCase everywhere — startDate, endDate, isCurrent, fieldOfStudy, issueDate.",
+            },
+            {
+              label: "skills.level",
+              copy: "Beginner · Intermediate · Advanced · Expert",
+            },
+            {
+              label: "languages.proficiency",
+              copy: "Basic · Conversational · Fluent · Native",
+            },
+            {
+              label: "Dates",
+              copy: "YYYY-MM (experience, projects, certifications), \"Present\" for ongoing roles, YYYY-MM-DD for availability.startDate.",
+            },
+          ].map(({ label, copy }) => (
+            <Card key={label} className="p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-brand">{label}</p>
+              <p className="mt-1.5 text-xs leading-5 text-ink-subtle">{copy}</p>
+            </Card>
+          ))}
+        </div>
+
+        <p className="mt-6 text-center text-xs text-ink-muted">
+          Supported shapes: a single applicant object, an array of applicants, or an object with an{" "}
+          <code className="rounded bg-surface-soft px-1.5 py-0.5 font-mono text-[11px] text-ink">applicants</code> array (shown
+          above).
+        </p>
       </section>
 
       {/* Demo credentials */}
