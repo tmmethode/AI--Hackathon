@@ -77,6 +77,7 @@ export interface IShortlistCriterionAssessment {
 export interface IShortlist extends Document {
   _id: mongoose.Types.ObjectId;
   job: mongoose.Types.ObjectId;
+  screeningRun?: mongoose.Types.ObjectId;
   jobTitle: string;
   runName: string;
   geminiModel: string;
@@ -197,6 +198,7 @@ const ShortlistWeightCriterionSchema: Schema = new Schema(
 const ShortlistSchema: Schema = new Schema(
   {
     job: { type: Schema.Types.ObjectId, ref: 'Job', required: true },
+    screeningRun: { type: Schema.Types.ObjectId, ref: 'ScreeningRun' },
     jobTitle: { type: String, required: true, trim: true },
     runName: { type: String, required: true, trim: true },
     geminiModel: { type: String, default: '' },

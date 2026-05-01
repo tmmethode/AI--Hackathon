@@ -43,6 +43,10 @@ const BATCH_CHUNK_SIZE = Math.max(
   1,
   Math.floor(Number(process.env.GEMINI_BATCH_CHUNK_SIZE) || 30)
 );
+const BATCH_SCORING_CONCURRENCY = Math.max(
+  1,
+  Math.floor(Number(process.env.GEMINI_BATCH_SCORING_CONCURRENCY) || 2)
+);
 const BATCH_MAX_OUTPUT_TOKENS = Math.max(
   4096,
   Math.floor(Number(process.env.GEMINI_BATCH_MAX_OUTPUT_TOKENS) || 32768)
@@ -50,6 +54,10 @@ const BATCH_MAX_OUTPUT_TOKENS = Math.max(
 const BATCH_NARRATIVE_CHUNK_SIZE = Math.max(
   1,
   Math.floor(Number(process.env.GEMINI_BATCH_NARRATIVE_CHUNK_SIZE) || 10)
+);
+const BATCH_NARRATIVE_CONCURRENCY = Math.max(
+  1,
+  Math.floor(Number(process.env.GEMINI_BATCH_NARRATIVE_CONCURRENCY) || 2)
 );
 const SHORTLIST_EXPLANATION_BUFFER = 10;
 const MAX_BATCH_EXPLANATION_ITEMS = 3;
@@ -109,6 +117,17 @@ function sortApplicantsDeterministically(
 function isMaxTokensError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   return message.includes("finishReason=MAX_TOKENS") || message.includes("MAX_TOKENS");
+}
+
+function isChunkSplittableError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+
+  return (
+    isMaxTokensError(error) ||
+    message.includes("timed out") ||
+    message.includes("non-JSON response") ||
+    message.includes("empty response")
+  );
 }
 
 function splitShortlistCount(
@@ -451,6 +470,35 @@ function compareBatchEntries(
   return right.confidenceScore - left.confidenceScore;
 }
 
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  concurrency: number,
+  mapper: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const normalizedConcurrency = Math.max(1, Math.min(concurrency, items.length || 1));
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (true) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+
+      if (currentIndex >= items.length) {
+        return;
+      }
+
+      results[currentIndex] = await mapper(items[currentIndex], currentIndex);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: normalizedConcurrency }, () => worker())
+  );
+
+  return results;
+}
+
 export class GeminiScreeningService {
   constructor(private readonly client = new GeminiClient()) {}
 
@@ -547,7 +595,7 @@ export class GeminiScreeningService {
     try {
       return await this.runGeminiBatchScoringCall(request, effectiveShortlistCount);
     } catch (error) {
-      if (!isMaxTokensError(error) || request.applicants.length <= 1) {
+      if (!isChunkSplittableError(error) || request.applicants.length <= 1) {
         throw error;
       }
 
@@ -629,7 +677,7 @@ export class GeminiScreeningService {
     try {
       return await this.runGeminiBatchNarrativeCall(job, targets, instructions);
     } catch (error) {
-      if (!isMaxTokensError(error) || targets.length <= 1) {
+      if (!isChunkSplittableError(error) || targets.length <= 1) {
         throw error;
       }
 
@@ -729,24 +777,36 @@ export class GeminiScreeningService {
     const narrativesByEmail = new Map<string, ParsedBatchNarrativeResult>();
     let lastModel: string | undefined;
 
-    for (const chunk of chunks) {
-      try {
-        const { entries, model } = await this.runGeminiBatchNarrativeChunkWithRetry(
-          job,
-          chunk,
-          instructions
-        );
-
-        for (const [email, entry] of entries) {
-          if (!narrativesByEmail.has(email)) {
-            narrativesByEmail.set(email, entry);
-          }
+    const outcomes = await mapWithConcurrency(
+      chunks,
+      BATCH_NARRATIVE_CONCURRENCY,
+      async (chunk) => {
+        try {
+          return await this.runGeminiBatchNarrativeChunkWithRetry(
+            job,
+            chunk,
+            instructions
+          );
+        } catch {
+          return null;
         }
-
-        lastModel = model || lastModel;
-      } catch {
-        // Leave narrative fields empty for this chunk if enrichment fails.
       }
+    );
+
+    for (const outcome of outcomes) {
+      if (!outcome) {
+        continue;
+      }
+
+      const { entries, model } = outcome;
+
+      for (const [email, entry] of entries) {
+        if (!narrativesByEmail.has(email)) {
+          narrativesByEmail.set(email, entry);
+        }
+      }
+
+      lastModel = model || lastModel;
     }
 
     rankedResults.forEach((entry) => {
@@ -782,25 +842,43 @@ export class GeminiScreeningService {
     const failures: Array<{ chunkIndex: number; reason: string }> = [];
     let lastModel = this.client.getModel();
 
-    for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex += 1) {
-      const chunk = chunks[chunkIndex];
+    const outcomes = await mapWithConcurrency(
+      chunks,
+      BATCH_SCORING_CONCURRENCY,
+      async (chunk, chunkIndex) => {
+        try {
+          const result = await this.runGeminiBatchScoringChunkWithRetry(
+            { ...request, applicants: chunk },
+            Math.min(chunk.length, shortlistCount || chunk.length)
+          );
 
-      try {
-        const { entries, model } = await this.runGeminiBatchScoringChunkWithRetry(
-          { ...request, applicants: chunk },
-          Math.min(chunk.length, shortlistCount || chunk.length)
-        );
-
-        for (const [email, entry] of entries) {
-          if (!mergedEntries.has(email)) {
-            mergedEntries.set(email, entry);
-          }
+          return { chunkIndex, result, reason: null as string | null };
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : String(error);
+          return { chunkIndex, result: null as { entries: Map<string, ParsedBatchScoreEntry>; model: string } | null, reason };
         }
-        lastModel = model || lastModel;
-      } catch (error) {
-        const reason = error instanceof Error ? error.message : String(error);
-        failures.push({ chunkIndex, reason });
       }
+    );
+
+    for (const outcome of outcomes) {
+      if (outcome.reason) {
+        failures.push({ chunkIndex: outcome.chunkIndex, reason: outcome.reason });
+        continue;
+      }
+
+      if (!outcome.result) {
+        continue;
+      }
+
+      const { entries, model } = outcome.result;
+
+      for (const [email, entry] of entries) {
+        if (!mergedEntries.has(email)) {
+          mergedEntries.set(email, entry);
+        }
+      }
+
+      lastModel = model || lastModel;
     }
 
     const screeningResults: GeminiBatchScreeningResultEntry[] = sortedApplicants.map(
@@ -864,14 +942,17 @@ export class GeminiScreeningService {
       .filter((entry) => isBatchEntryShortlistEligible(entry))
       .slice(0, shortlistCount);
 
-    const explanationModel = await this.enrichRankedResults(
-      request.job,
-      screeningResults,
-      sortedApplicants,
-      shortlistCount,
-      shortlistedEntries,
-      request.instructions
-    );
+    const explanationModel =
+      shortlistCount > 0
+        ? await this.enrichRankedResults(
+            request.job,
+            screeningResults,
+            sortedApplicants,
+            shortlistCount,
+            shortlistedEntries,
+            request.instructions
+          )
+        : undefined;
 
     const shortlist: GeminiBatchShortlistEntry[] = shortlistedEntries
       .map((entry) => ({

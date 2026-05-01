@@ -22,6 +22,7 @@ import Shortlist, {
   ShortlistRecommendation,
 } from '../models/Shortlist';
 import Job from '../models/Job';
+import ScreeningResult from '../models/ScreeningResult';
 import { IUser } from '../models/User';
 import { HttpError } from '../utils/HttpError';
 
@@ -289,9 +290,14 @@ export class ShortlistController {
     };
   }
 
-  private toShortlistDTO(shortlist: IShortlist): ShortlistDTO {
+  private async toShortlistDTO(shortlist: IShortlist): Promise<ShortlistDTO> {
+    const sourceScreeningResults = shortlist.screeningRun
+      ? await ScreeningResult.find({ run: shortlist.screeningRun })
+          .sort({ candidateRank: 1 })
+          .lean<IShortlistResultEntry[]>()
+      : (shortlist.screeningResults || []);
     const screeningByEmail = new Map(
-      (shortlist.screeningResults || []).map((entry) => [this.normalizeEmail(entry.applicantEmail), entry])
+      sourceScreeningResults.map((entry) => [this.normalizeEmail(entry.applicantEmail), entry])
     );
 
     return {
@@ -305,7 +311,7 @@ export class ShortlistController {
       weightCriteria: (shortlist.weightCriteria || []).map((entry) =>
         this.toWeightCriterionDTO(entry)
       ),
-      screeningResults: (shortlist.screeningResults || []).map((entry) =>
+      screeningResults: sourceScreeningResults.map((entry) =>
         this.toResultEntryDTO(entry)
       ),
       shortlist: (shortlist.shortlist || []).map((entry) =>
@@ -451,7 +457,7 @@ export class ShortlistController {
       }
 
       return {
-        data: this.toShortlistDTO(shortlist),
+        data: await this.toShortlistDTO(shortlist),
         message: 'Shortlist retrieved successfully',
       };
     } catch (error) {
@@ -550,7 +556,7 @@ export class ShortlistController {
       await shortlist.save();
 
       return {
-        data: this.toShortlistDTO(shortlist),
+        data: await this.toShortlistDTO(shortlist),
         message: 'Shortlist saved successfully',
       };
     } catch (error) {
@@ -650,7 +656,7 @@ export class ShortlistController {
       await shortlist.save();
 
       return {
-        data: this.toShortlistDTO(shortlist),
+        data: await this.toShortlistDTO(shortlist),
         message: 'Candidate status updated successfully',
       };
     } catch (error) {

@@ -1,5 +1,10 @@
-import { Body, Get, Post, Route, Security, Tags } from "tsoa";
+import { Body, Get, Path, Post, Request, Route, Security, Tags } from "tsoa";
 import { GeminiRecruiterAssistantService } from "../gemini/assistant";
+import {
+  geminiAsyncScreeningRunService,
+  type GeminiBatchScreeningRunRequest,
+  type GeminiBatchScreeningRunStatusResponse,
+} from "../gemini/async-screening-runner";
 import { GeminiClient } from "../gemini/client";
 import { GeminiFrontendService } from "../gemini/frontend";
 import { GeminiBatchScreeningRunnerService } from "../gemini/batch-screening-runner";
@@ -114,6 +119,52 @@ export class GeminiController {
   ): Promise<GeminiBatchScreeningResponse> {
     try {
       return await this.batchScreeningRunner.screenBatchFromDatabase(requestBody);
+    } catch (error) {
+      throw this.toHttpError(error);
+    }
+  }
+
+  @Post("screen-batch-runs")
+  @Security('jwt', ['recruiter', 'admin'])
+  public async startScreenBatchRun(
+    @Request() req: any,
+    @Body() requestBody: GeminiBatchScreeningRunRequest
+  ): Promise<{ data: GeminiBatchScreeningRunStatusResponse; message: string }> {
+    try {
+      const actingUserId = req?.user?._id?.toString?.();
+
+      if (!actingUserId) {
+        throw new HttpError(401, "User not authenticated");
+      }
+
+      const data = await geminiAsyncScreeningRunService.createRun(requestBody, actingUserId);
+      return {
+        data,
+        message: "Screening run started.",
+      };
+    } catch (error) {
+      throw this.toHttpError(error);
+    }
+  }
+
+  @Get("screen-batch-runs/{runId}")
+  @Security('jwt', ['recruiter', 'admin'])
+  public async getScreenBatchRun(
+    @Request() req: any,
+    @Path() runId: string
+  ): Promise<{ data: GeminiBatchScreeningRunStatusResponse; message: string }> {
+    try {
+      const actingUserId = req?.user?._id?.toString?.();
+
+      if (!actingUserId) {
+        throw new HttpError(401, "User not authenticated");
+      }
+
+      const data = await geminiAsyncScreeningRunService.getRunStatus(runId, actingUserId);
+      return {
+        data,
+        message: "Screening run loaded.",
+      };
     } catch (error) {
       throw this.toHttpError(error);
     }

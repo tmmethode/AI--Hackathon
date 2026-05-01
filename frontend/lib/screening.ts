@@ -201,6 +201,7 @@ export interface GeminiBatchApplicant {
 
 export interface GeminiBatchScreeningRequest {
   jobId: string;
+  runName?: string;
   shortlistCount: number;
   instructions?: string;
   temperature?: number;
@@ -280,6 +281,37 @@ export interface GeminiBatchScreeningResponse {
   meta?: GeminiBatchScreeningMeta;
 }
 
+export type GeminiBatchScreeningRunStatus =
+  | "queued"
+  | "running"
+  | "completed"
+  | "partial"
+  | "failed";
+
+export interface GeminiBatchScreeningRunStatusResponse {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  runName: string;
+  status: GeminiBatchScreeningRunStatus;
+  shortlistCount: number;
+  requestedApplicants: number;
+  processedApplicants: number;
+  scoredApplicants: number;
+  failedApplicants: number;
+  processedChunks: number;
+  failedChunks: number;
+  chunkSize: number;
+  model?: string;
+  failureReasons: string[];
+  error?: string;
+  screeningStartedAt?: string;
+  screeningCompletedAt?: string;
+  screeningDurationSeconds?: number;
+  savedShortlistId?: string;
+  response?: GeminiBatchScreeningResponse;
+}
+
 function getAuthHeader() {
   const session = getStoredAuth();
 
@@ -332,4 +364,34 @@ export async function screenBatchApplicants(payload: GeminiBatchScreeningRequest
   });
 
   return handleApiResponse<GeminiBatchScreeningResponse>(response, "Failed to run screening.");
+}
+
+export async function startScreenBatchRun(payload: GeminiBatchScreeningRequest) {
+  const response = await fetch(`${getApiBaseUrl()}/gemini/screen-batch-runs`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeader(),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return handleApiResponse<{ data: GeminiBatchScreeningRunStatusResponse; message: string }>(
+    response,
+    "Failed to start screening run."
+  );
+}
+
+export async function getScreenBatchRun(runId: string) {
+  const response = await fetch(`${getApiBaseUrl()}/gemini/screen-batch-runs/${runId}`, {
+    headers: {
+      ...getAuthHeader(),
+    },
+    cache: "no-store",
+  });
+
+  return handleApiResponse<{ data: GeminiBatchScreeningRunStatusResponse; message: string }>(
+    response,
+    "Failed to load screening run."
+  );
 }

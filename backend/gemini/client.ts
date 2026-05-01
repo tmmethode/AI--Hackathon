@@ -51,29 +51,25 @@ function isRetryableNetworkError(error: unknown): boolean {
 }
 
 export class GeminiClient {
-  private readonly apiKey: string;
-  private readonly model: string;
-  private readonly baseUrl: string;
-  private readonly defaultTemperature: number;
-  private readonly maxOutputTokens: number;
-
   constructor(private readonly config: GeminiConfig = getGeminiConfig()) {
-    this.apiKey = config.apiKey;
-    this.model = config.model;
-    this.baseUrl = config.baseUrl;
-    this.defaultTemperature = config.defaultTemperature;
-    this.maxOutputTokens = config.maxOutputTokens;
+    this.config = config;
+  }
+
+  private getResolvedConfig(): GeminiConfig {
+    return getGeminiConfig();
   }
 
   public isConfigured(): boolean {
-    return this.apiKey.trim().length > 0;
+    return this.getResolvedConfig().apiKey.trim().length > 0;
   }
 
   public getModel(): string {
-    return this.model;
+    return this.getResolvedConfig().model;
   }
 
   public async generateText(request: GeminiGenerateRequest): Promise<GeminiGenerateResponse> {
+    const resolved = this.getResolvedConfig();
+
     if (!this.isConfigured()) {
       throw new Error("GEMINI_API_KEY is not configured");
     }
@@ -82,13 +78,13 @@ export class GeminiClient {
     const maxOutputTokens =
       Number.isFinite(requestedTokens) && requestedTokens > 0
         ? Math.floor(requestedTokens)
-        : this.maxOutputTokens;
+        : resolved.maxOutputTokens;
 
     const requestedTemperature = Number(request.temperature);
     const temperature =
       Number.isFinite(requestedTemperature) && requestedTemperature >= 0
         ? requestedTemperature
-        : this.defaultTemperature;
+        : resolved.defaultTemperature;
 
     const requestedSeed = Number(request.seed);
     const seed =
@@ -144,11 +140,11 @@ export class GeminiClient {
       const timeout = setTimeout(() => controller.abort(), GEMINI_REQUEST_TIMEOUT_MS);
 
       try {
-        const response = await fetch(`${this.baseUrl}/${this.model}:generateContent`, {
+        const response = await fetch(`${resolved.baseUrl}/${resolved.model}:generateContent`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-goog-api-key": this.apiKey,
+            "x-goog-api-key": resolved.apiKey,
           },
           body,
           signal: controller.signal,
@@ -210,7 +206,7 @@ export class GeminiClient {
 
     return {
       text,
-      model: this.model,
+      model: resolved.model,
       usage: data.usageMetadata,
     };
   }

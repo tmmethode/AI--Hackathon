@@ -2393,6 +2393,165 @@
 				"type": "object",
 				"additionalProperties": false
 			},
+			"ScreeningRunStatus": {
+				"type": "string",
+				"enum": [
+					"queued",
+					"running",
+					"completed",
+					"partial",
+					"failed"
+				]
+			},
+			"GeminiBatchScreeningRunStatusResponse": {
+				"properties": {
+					"id": {
+						"type": "string"
+					},
+					"jobId": {
+						"type": "string"
+					},
+					"jobTitle": {
+						"type": "string"
+					},
+					"runName": {
+						"type": "string"
+					},
+					"status": {
+						"$ref": "#/components/schemas/ScreeningRunStatus"
+					},
+					"shortlistCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"requestedApplicants": {
+						"type": "number",
+						"format": "double"
+					},
+					"processedApplicants": {
+						"type": "number",
+						"format": "double"
+					},
+					"scoredApplicants": {
+						"type": "number",
+						"format": "double"
+					},
+					"failedApplicants": {
+						"type": "number",
+						"format": "double"
+					},
+					"processedChunks": {
+						"type": "number",
+						"format": "double"
+					},
+					"failedChunks": {
+						"type": "number",
+						"format": "double"
+					},
+					"chunkSize": {
+						"type": "number",
+						"format": "double"
+					},
+					"model": {
+						"type": "string"
+					},
+					"failureReasons": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"error": {
+						"type": "string"
+					},
+					"screeningStartedAt": {
+						"type": "string"
+					},
+					"screeningCompletedAt": {
+						"type": "string"
+					},
+					"screeningDurationSeconds": {
+						"type": "number",
+						"format": "double"
+					},
+					"savedShortlistId": {
+						"type": "string"
+					},
+					"response": {
+						"$ref": "#/components/schemas/GeminiBatchScreeningResponse"
+					}
+				},
+				"required": [
+					"id",
+					"jobId",
+					"jobTitle",
+					"runName",
+					"status",
+					"shortlistCount",
+					"requestedApplicants",
+					"processedApplicants",
+					"scoredApplicants",
+					"failedApplicants",
+					"processedChunks",
+					"failedChunks",
+					"chunkSize",
+					"failureReasons"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
+			"GeminiBatchScreeningRunRequest": {
+				"properties": {
+					"jobId": {
+						"type": "string"
+					},
+					"shortlistCount": {
+						"type": "number",
+						"format": "double"
+					},
+					"instructions": {
+						"type": "string"
+					},
+					"temperature": {
+						"type": "number",
+						"format": "double"
+					},
+					"applicantIds": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"applicantEmails": {
+						"items": {
+							"type": "string"
+						},
+						"type": "array"
+					},
+					"filters": {
+						"properties": {
+							"ingestStatus": {
+								"type": "string",
+								"enum": [
+									"parsed",
+									"pending",
+									"failed"
+								]
+							}
+						},
+						"type": "object"
+					},
+					"runName": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"jobId",
+					"shortlistCount"
+				],
+				"type": "object",
+				"additionalProperties": false
+			},
 			"GeminiRecruiterAssistantContextSummary": {
 				"properties": {
 					"source": {
@@ -5084,6 +5243,107 @@
 						}
 					}
 				}
+			}
+		},
+		"/gemini/screen-batch-runs": {
+			"post": {
+				"operationId": "StartScreenBatchRun",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"message": {
+											"type": "string"
+										},
+										"data": {
+											"$ref": "#/components/schemas/GeminiBatchScreeningRunStatusResponse"
+										}
+									},
+									"required": [
+										"message",
+										"data"
+									],
+									"type": "object"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Gemini"
+				],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
+				"parameters": [],
+				"requestBody": {
+					"required": true,
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/GeminiBatchScreeningRunRequest"
+							}
+						}
+					}
+				}
+			}
+		},
+		"/gemini/screen-batch-runs/{runId}": {
+			"get": {
+				"operationId": "GetScreenBatchRun",
+				"responses": {
+					"200": {
+						"description": "Ok",
+						"content": {
+							"application/json": {
+								"schema": {
+									"properties": {
+										"message": {
+											"type": "string"
+										},
+										"data": {
+											"$ref": "#/components/schemas/GeminiBatchScreeningRunStatusResponse"
+										}
+									},
+									"required": [
+										"message",
+										"data"
+									],
+									"type": "object"
+								}
+							}
+						}
+					}
+				},
+				"tags": [
+					"Gemini"
+				],
+				"security": [
+					{
+						"jwt": [
+							"recruiter",
+							"admin"
+						]
+					}
+				],
+				"parameters": [
+					{
+						"in": "path",
+						"name": "runId",
+						"required": true,
+						"schema": {
+							"type": "string"
+						}
+					}
+				]
 			}
 		},
 		"/gemini/assistant": {

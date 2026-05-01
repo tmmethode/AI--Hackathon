@@ -103,6 +103,10 @@ export default function ScreeningProgressPage() {
       return 0;
     }
 
+    if (typeof run.backendRun?.processedApplicants === "number") {
+      return Math.min(run.backendRun.processedApplicants, run.request.totalApplicants);
+    }
+
     if (isComplete) {
       return run.request.totalApplicants;
     }

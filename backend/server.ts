@@ -2,6 +2,8 @@ import express, { type Request, type Response } from "express";
 import swaggerUi from "swagger-ui-express";
 import { RegisterRoutes } from "./generated/routes";
 import dotenv from "dotenv";
+import fs from "fs";
+import path from "path";
 import { connectDatabase } from "./config/database";
 import cors from "cors";
 import morgan from "morgan";
@@ -10,9 +12,20 @@ import jwt from "jsonwebtoken";
 import passport, { hasGoogleOAuthConfig } from "./config/passport";
 import { authenticateToken } from "./middleware/auth";
 import type { IUser } from "./models/User";
+import { geminiAsyncScreeningRunService } from "./gemini/async-screening-runner";
 import { HttpError } from "./utils/HttpError";
 
-dotenv.config();
+const envCandidates = [
+  path.resolve(process.cwd(), "backend/.env"),
+  path.resolve(process.cwd(), ".env"),
+];
+
+for (const envPath of envCandidates) {
+  if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+    break;
+  }
+}
 
 const app = express();
 
@@ -105,7 +118,12 @@ connectDatabase().then((result) => {
   databaseConnected = result.success;
   if (!result.success) {
     databaseError = result.error;
+    return;
   }
+
+  void geminiAsyncScreeningRunService.resumePendingRuns().catch((error) => {
+    console.error("Failed to resume pending screening runs:", error);
+  });
 });
 
 const allowedOrigins = Array.from(

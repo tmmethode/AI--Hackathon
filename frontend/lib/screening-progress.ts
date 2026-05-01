@@ -1,8 +1,10 @@
 "use client";
 
-import type { GeminiBatchScreeningResponse } from "@/lib/screening";
-import { screenBatchApplicants } from "@/lib/screening";
-import { buildCreatePayload, createShortlist } from "@/lib/shortlists";
+import type {
+  GeminiBatchScreeningResponse,
+  GeminiBatchScreeningRunStatusResponse,
+} from "@/lib/screening";
+import { getScreenBatchRun, startScreenBatchRun } from "@/lib/screening";
 
 export type ScreeningRunStatus = "running" | "completed" | "failed";
 
@@ -29,6 +31,8 @@ export interface ScreeningRunSnapshot {
   status: ScreeningRunStatus;
   request: ScreeningRunRequest;
   startedAt: number;
+  runId?: string;
+  backendRun?: GeminiBatchScreeningRunStatusResponse;
   completedAt?: number;
   response?: GeminiBatchScreeningResponse;
   savedShortlistId?: string;
@@ -52,8 +56,9 @@ function setCurrentRun(snapshot: ScreeningRunSnapshot | null) {
 
 async function executeRun(snapshot: ScreeningRunSnapshot) {
   try {
-    const response = await screenBatchApplicants({
+    const started = await startScreenBatchRun({
       jobId: snapshot.request.jobId,
+      runName: snapshot.request.runName,
       shortlistCount: snapshot.request.shortlistSize,
       instructions: snapshot.request.instructions,
       temperature: snapshot.request.temperature,
@@ -62,40 +67,56 @@ async function executeRun(snapshot: ScreeningRunSnapshot) {
       filters: snapshot.request.filters,
     });
 
-    let savedShortlistId: string | undefined;
-    let persistWarning: string | undefined;
-    const completedAt = Date.now();
-
-    try {
-      const saved = await createShortlist(
-        buildCreatePayload(
-          snapshot.request.jobId,
-          snapshot.request.runName,
-          response,
-          snapshot.request.instructions,
-          {
-            startedAt: snapshot.startedAt,
-            completedAt,
-          }
-        )
-      );
-      savedShortlistId = saved.data._id;
-    } catch (persistError) {
-      persistWarning =
-        persistError instanceof Error
-          ? persistError.message
-          : "Screening succeeded, but saving the shortlist failed.";
-    }
-
     setCurrentRun({
       ...snapshot,
-      status: "completed",
-      completedAt,
-      response,
-      savedShortlistId,
-      persistWarning,
-      error: undefined,
+      runId: started.data.id,
+      backendRun: started.data,
     });
+
+    while (true) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const polled = await getScreenBatchRun(started.data.id);
+      const backendRun = polled.data;
+      const completedAt = backendRun.screeningCompletedAt
+        ? new Date(backendRun.screeningCompletedAt).getTime()
+        : undefined;
+
+      const nextSnapshot: ScreeningRunSnapshot = {
+        ...snapshot,
+        runId: backendRun.id,
+        backendRun,
+        completedAt,
+        response: backendRun.response,
+        savedShortlistId: backendRun.savedShortlistId,
+      };
+
+      if (backendRun.status === "failed") {
+        setCurrentRun({
+          ...nextSnapshot,
+          status: "failed",
+          error: backendRun.error || "Failed to complete the screening run.",
+        });
+        return;
+      }
+
+      if (backendRun.status === "completed" || backendRun.status === "partial") {
+        setCurrentRun({
+          ...nextSnapshot,
+          status: "completed",
+          persistWarning:
+            backendRun.status === "partial"
+              ? "Screening completed with partial failures. Review the batch warnings below."
+              : undefined,
+          error: undefined,
+        });
+        return;
+      }
+
+      setCurrentRun({
+        ...nextSnapshot,
+        status: "running",
+      });
+    }
   } catch (error) {
     setCurrentRun({
       ...snapshot,

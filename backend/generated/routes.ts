@@ -833,6 +833,54 @@ const models: TsoaRoute.Models = {
         "additionalProperties": false,
     },
     // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ScreeningRunStatus": {
+        "dataType": "refAlias",
+        "type": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["queued"]},{"dataType":"enum","enums":["running"]},{"dataType":"enum","enums":["completed"]},{"dataType":"enum","enums":["partial"]},{"dataType":"enum","enums":["failed"]}],"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiBatchScreeningRunStatusResponse": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"dataType":"string","required":true},
+            "jobId": {"dataType":"string","required":true},
+            "jobTitle": {"dataType":"string","required":true},
+            "runName": {"dataType":"string","required":true},
+            "status": {"ref":"ScreeningRunStatus","required":true},
+            "shortlistCount": {"dataType":"double","required":true},
+            "requestedApplicants": {"dataType":"double","required":true},
+            "processedApplicants": {"dataType":"double","required":true},
+            "scoredApplicants": {"dataType":"double","required":true},
+            "failedApplicants": {"dataType":"double","required":true},
+            "processedChunks": {"dataType":"double","required":true},
+            "failedChunks": {"dataType":"double","required":true},
+            "chunkSize": {"dataType":"double","required":true},
+            "model": {"dataType":"string"},
+            "failureReasons": {"dataType":"array","array":{"dataType":"string"},"required":true},
+            "error": {"dataType":"string"},
+            "screeningStartedAt": {"dataType":"string"},
+            "screeningCompletedAt": {"dataType":"string"},
+            "screeningDurationSeconds": {"dataType":"double"},
+            "savedShortlistId": {"dataType":"string"},
+            "response": {"ref":"GeminiBatchScreeningResponse"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "GeminiBatchScreeningRunRequest": {
+        "dataType": "refObject",
+        "properties": {
+            "jobId": {"dataType":"string","required":true},
+            "shortlistCount": {"dataType":"double","required":true},
+            "instructions": {"dataType":"string"},
+            "temperature": {"dataType":"double"},
+            "applicantIds": {"dataType":"array","array":{"dataType":"string"}},
+            "applicantEmails": {"dataType":"array","array":{"dataType":"string"}},
+            "filters": {"dataType":"nestedObjectLiteral","nestedProperties":{"ingestStatus":{"dataType":"union","subSchemas":[{"dataType":"enum","enums":["parsed"]},{"dataType":"enum","enums":["pending"]},{"dataType":"enum","enums":["failed"]}]}}},
+            "runName": {"dataType":"string"},
+        },
+        "additionalProperties": false,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
     "GeminiRecruiterAssistantContextSummary": {
         "dataType": "refObject",
         "properties": {
@@ -2328,6 +2376,70 @@ export function RegisterRoutes(app: Router) {
 
               await templateService.apiHandler({
                 methodName: 'screenBatch',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsGeminiController_startScreenBatchRun: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                requestBody: {"in":"body","name":"requestBody","required":true,"ref":"GeminiBatchScreeningRunRequest"},
+        };
+        app.post('/gemini/screen-batch-runs',
+            authenticateMiddleware([{"jwt":["recruiter","admin"]}]),
+            ...(fetchMiddlewares<RequestHandler>(GeminiController)),
+            ...(fetchMiddlewares<RequestHandler>(GeminiController.prototype.startScreenBatchRun)),
+
+            async function GeminiController_startScreenBatchRun(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsGeminiController_startScreenBatchRun, request, response });
+
+                const controller = new GeminiController();
+
+              await templateService.apiHandler({
+                methodName: 'startScreenBatchRun',
+                controller,
+                response,
+                next,
+                validatedArgs,
+                successStatus: undefined,
+              });
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        const argsGeminiController_getScreenBatchRun: Record<string, TsoaRoute.ParameterSchema> = {
+                req: {"in":"request","name":"req","required":true,"dataType":"object"},
+                runId: {"in":"path","name":"runId","required":true,"dataType":"string"},
+        };
+        app.get('/gemini/screen-batch-runs/:runId',
+            authenticateMiddleware([{"jwt":["recruiter","admin"]}]),
+            ...(fetchMiddlewares<RequestHandler>(GeminiController)),
+            ...(fetchMiddlewares<RequestHandler>(GeminiController.prototype.getScreenBatchRun)),
+
+            async function GeminiController_getScreenBatchRun(request: ExRequest, response: ExResponse, next: any) {
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = templateService.getValidatedArgs({ args: argsGeminiController_getScreenBatchRun, request, response });
+
+                const controller = new GeminiController();
+
+              await templateService.apiHandler({
+                methodName: 'getScreenBatchRun',
                 controller,
                 response,
                 next,
