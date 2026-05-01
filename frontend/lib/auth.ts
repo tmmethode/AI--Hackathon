@@ -130,7 +130,7 @@ function normalizeApiUrl(url: string) {
 }
 
 export function getApiBaseUrl() {
-  return normalizeApiUrl(process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000");
+  return normalizeApiUrl(process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001");
 }
 
 export function resolveSafeNextPath(nextPath: string | null | undefined) {

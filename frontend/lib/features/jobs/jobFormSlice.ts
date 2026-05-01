@@ -227,6 +227,80 @@ function normalizeWeightCriteriaShape(criteria: WeightCriterion[]): WeightCriter
   }));
 }
 
+function fallbackRichTextToPlainText(value: string): string {
+  return value
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|blockquote|h1|h2|h3|h4|h5|h6)>/gi, "\n\n")
+    .replace(/<li>/gi, "• ")
+    .replace(/<\/li>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function serializeRichTextNode(node: Node): string {
+  if (node.nodeType === 3) {
+    return node.textContent || "";
+  }
+
+  if (node.nodeType !== 1) {
+    return "";
+  }
+
+  const element = node as HTMLElement;
+  const tag = element.tagName.toLowerCase();
+  const children = Array.from(element.childNodes).map(serializeRichTextNode).join("");
+  const trimmedChildren = children.replace(/\u00a0/g, " ").trim();
+
+  if (tag === "br") {
+    return "\n";
+  }
+
+  if (tag === "li") {
+    return trimmedChildren ? `• ${trimmedChildren}\n` : "";
+  }
+
+  if (["ul", "ol"].includes(tag)) {
+    return trimmedChildren ? `${trimmedChildren}\n` : "";
+  }
+
+  if (["p", "div", "blockquote", "h1", "h2", "h3", "h4", "h5", "h6"].includes(tag)) {
+    return trimmedChildren ? `${trimmedChildren}\n\n` : "";
+  }
+
+  return children;
+}
+
+function richTextToPlainText(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  if (!/<[a-z][\s\S]*>/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (typeof DOMParser === "undefined") {
+    return fallbackRichTextToPlainText(trimmed);
+  }
+
+  const parser = new DOMParser();
+  const document = parser.parseFromString(trimmed, "text/html");
+  const text = Array.from(document.body.childNodes).map(serializeRichTextNode).join("");
+
+  return text
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 function buildPayload(state: JobFormState, status: CreateJobPayload["status"]): CreateJobPayload {
   const authUser = getStoredAuthUser();
   const hiringManagerId =
@@ -239,10 +313,10 @@ function buildPayload(state: JobFormState, status: CreateJobPayload["status"]): 
     locationPolicy: state.form.locationPolicy as LocationPolicy,
     employmentType: state.form.employmentType as EmploymentType,
     salaryBand: state.form.salaryBand.trim() || undefined,
-    description: state.form.description.trim(),
-    responsibilities: state.form.responsibilities.trim(),
-    mustHaveQualifications: state.form.mustHaveQualifications.trim(),
-    niceToHaveQualifications: state.form.niceToHaveQualifications.trim() || undefined,
+    description: richTextToPlainText(state.form.description),
+    responsibilities: richTextToPlainText(state.form.responsibilities),
+    mustHaveQualifications: richTextToPlainText(state.form.mustHaveQualifications),
+    niceToHaveQualifications: richTextToPlainText(state.form.niceToHaveQualifications) || undefined,
     coreHardSkills: splitLinesToList(state.form.coreHardSkills),
     preferredSkills: [],
     coreSoftSkills: splitLinesToList(state.form.coreSoftSkills),

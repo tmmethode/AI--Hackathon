@@ -626,25 +626,57 @@ export class GeminiAsyncScreeningRunService {
     const rankedResults = await ScreeningResult.find({ run: run._id })
       .sort({ candidateRank: 1 })
       .lean();
+    const rankedResultEntries = rankedResults.map((entry) => toResponseEntry(entry as any));
 
-    const shortlistResults = rankedResults
-      .map((entry) => toResponseEntry(entry as any))
+    const shortlistResults = rankedResultEntries
       .filter((entry) => isBatchEntryShortlistEligible(entry))
       .slice(0, run.shortlistCount);
 
-    const shortlistEmailSet = new Set(
-      shortlistResults.map((entry) => normalizeEmail(entry.applicantEmail))
-    );
-    const explanationCoverage = Math.min(
-      rankedResults.length,
-      run.shortlistCount + ASYNC_EXPLANATION_BUFFER
-    );
-    const explanationTargets = rankedResults
-      .map((entry) => toResponseEntry(entry as any))
-      .filter(
-        (entry, index) =>
-          index < explanationCoverage || shortlistEmailSet.has(normalizeEmail(entry.applicantEmail))
+    const explanationTargets = (() => {
+      const maxTargets = Math.min(
+        rankedResultEntries.length,
+        Math.max(0, run.shortlistCount) + ASYNC_EXPLANATION_BUFFER
       );
+
+      if (maxTargets === 0) {
+        return [] as GeminiBatchScreeningResultEntry[];
+      }
+
+      const selected: GeminiBatchScreeningResultEntry[] = [];
+      const selectedEmails = new Set<string>();
+
+      for (const entry of shortlistResults) {
+        const emailKey = normalizeEmail(entry.applicantEmail);
+
+        if (selectedEmails.has(emailKey)) {
+          continue;
+        }
+
+        selected.push(entry);
+        selectedEmails.add(emailKey);
+
+        if (selected.length >= maxTargets) {
+          return selected.slice(0, maxTargets);
+        }
+      }
+
+      for (const entry of rankedResultEntries) {
+        const emailKey = normalizeEmail(entry.applicantEmail);
+
+        if (selectedEmails.has(emailKey)) {
+          continue;
+        }
+
+        selected.push(entry);
+        selectedEmails.add(emailKey);
+
+        if (selected.length >= maxTargets) {
+          break;
+        }
+      }
+
+      return selected;
+    })();
     const explanationTargetEmails = explanationTargets.map((entry) => normalizeEmail(entry.applicantEmail));
     const shortlistApplicantDocs = await Applicant.find({
       job: run.job,

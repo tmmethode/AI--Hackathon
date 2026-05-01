@@ -13,7 +13,7 @@ const PAGE_SIZE_DEFAULT = 10;
 const PAGE_SIZE_MAX = 50;
 
 function getApiBaseUrl() {
-  const raw = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5000").trim();
+  const raw = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001").trim();
   if (/^https?:\/\//i.test(raw)) return raw.endsWith("/") ? raw.slice(0, -1) : raw;
   if (/^\d+$/.test(raw)) return `http://localhost:${raw}`;
   return `http://${raw.replace(/\/$/, "")}`;

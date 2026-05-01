@@ -41,7 +41,7 @@ const DETERMINISTIC_SCREENING_TEMPERATURE = 0;
 
 const BATCH_CHUNK_SIZE = Math.max(
   1,
-  Math.floor(Number(process.env.GEMINI_BATCH_CHUNK_SIZE) || 30)
+  Math.floor(Number(process.env.GEMINI_BATCH_CHUNK_SIZE) || 10)
 );
 const BATCH_SCORING_CONCURRENCY = Math.max(
   1,
@@ -470,6 +470,57 @@ function compareBatchEntries(
   return right.confidenceScore - left.confidenceScore;
 }
 
+function selectExplanationCoverageEntries(
+  rankedResults: readonly GeminiBatchScreeningResultEntry[],
+  requestedShortlistCount: number,
+  shortlistedEntries: readonly GeminiBatchScreeningResultEntry[],
+  buffer: number
+): GeminiBatchScreeningResultEntry[] {
+  const maxTargets = Math.min(
+    rankedResults.length,
+    Math.max(0, Math.floor(requestedShortlistCount)) + Math.max(0, Math.floor(buffer))
+  );
+
+  if (maxTargets === 0) {
+    return [];
+  }
+
+  const selected: GeminiBatchScreeningResultEntry[] = [];
+  const selectedEmails = new Set<string>();
+
+  for (const entry of shortlistedEntries) {
+    const emailKey = entry.applicantEmail.trim().toLowerCase();
+
+    if (selectedEmails.has(emailKey)) {
+      continue;
+    }
+
+    selected.push(entry);
+    selectedEmails.add(emailKey);
+
+    if (selected.length >= maxTargets) {
+      return selected.slice(0, maxTargets);
+    }
+  }
+
+  for (const entry of rankedResults) {
+    const emailKey = entry.applicantEmail.trim().toLowerCase();
+
+    if (selectedEmails.has(emailKey)) {
+      continue;
+    }
+
+    selected.push(entry);
+    selectedEmails.add(emailKey);
+
+    if (selected.length >= maxTargets) {
+      break;
+    }
+  }
+
+  return selected;
+}
+
 async function mapWithConcurrency<T, R>(
   items: readonly T[],
   concurrency: number,
@@ -723,18 +774,12 @@ export class GeminiScreeningService {
     const applicantByEmail = new Map(
       applicants.map((applicant) => [applicant.email.trim().toLowerCase(), applicant])
     );
-    const requestedCoverage = Math.min(
-      rankedResults.length,
-      requestedShortlistCount + SHORTLIST_EXPLANATION_BUFFER
-    );
-    const shortlistedEmails = new Set(
-      shortlistedEntries.map((entry) => entry.applicantEmail.trim().toLowerCase())
-    );
-    const targets = rankedResults
-      .filter(
-        (entry, index) =>
-          index < requestedCoverage || shortlistedEmails.has(entry.applicantEmail.trim().toLowerCase())
-      )
+    const targets = selectExplanationCoverageEntries(
+      rankedResults,
+      requestedShortlistCount,
+      shortlistedEntries,
+      SHORTLIST_EXPLANATION_BUFFER
+    )
       .map((entry): GeminiBatchNarrativeTarget => ({
         candidateRank: entry.candidateRank,
         applicantEmail: entry.applicantEmail,

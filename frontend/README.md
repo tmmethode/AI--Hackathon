@@ -2,14 +2,14 @@
 
 The recruiter-facing web app for the Umurava Screening platform. Built with **Next.js 16** (App Router + React 19 RSC), **TypeScript**, **Tailwind CSS**, **Redux Toolkit**, **Lucide** icons, and a fully token-driven design system.
 
-> Default port: **3000** · Backend it talks to: configured via `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:5000` in `.env.example`, but typically `http://localhost:3001` for this repo).
+> Default port: **3000** · Backend it talks to: configured via `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:3001` in `.env.example` for this repo).
 
 ## Features
 
 - **Recruiter dashboard** with Pipeline Health KPIs, top-match sparkline, run-distribution badges, and a filterable recent-runs table.
 - **Job requisitions** (`/jobs`) — list, create / edit, weighted scoring criteria with auto-rebalancing, archive, soft delete, view modal, AI-powered job import from public links / PDF.
 - **Multi-source applicant ingest** (`/ingest`) — Umurava Platform (canonical JSON, default tab), Resume upload, CSV import, paste links. Live preview with status / source filters and rows-per-page; CSV / JSON template downloads; spec-aligned **Edit Applicant** modal with structured per-section editors and required-field validation.
-- **Screening** (`/screening`) — pick target job + shortlist size, optional recruiter instructions, batch-run progress page with chunk-failure visibility.
+- **Screening** (`/screening`) — pick target job + shortlist size, optional recruiter instructions, start an async screening run, then watch the progress page with chunk-failure visibility.
 - **Shortlists** (`/shortlists`) — ranked candidate cards, side-by-side compare modal, advance / reject (persists via PATCH), match-tier and status filters, page-size selector.
 - **Selected Candidates** (`/candidates`) — pipeline view with stat tiles (clickable), inline stage badges, AI Summary / Full CV split via `?view=cv` deep-link, list-style compact rows.
 - **Candidate detail** (`/candidates/[id]`) — AI Summary tab (recommendation, scores, strengths, gaps, recruiter notes) + Full CV tab (professional summary, experience, education, projects, certifications, languages, downloads — including spec-format PDF CV).
@@ -46,7 +46,7 @@ cp .env.example .env.local
 
 | Variable | Purpose |
 |---|---|
-| `NEXT_PUBLIC_API_URL` | Base URL the browser hits (e.g. `http://localhost:3001`) |
+| `NEXT_PUBLIC_API_URL` | Base URL the browser and Next route handlers hit (e.g. `http://localhost:3001`) |
 
 ## Run
 
@@ -79,7 +79,7 @@ Open [http://localhost:3000](http://localhost:3000). The root URL redirects to `
 - `/jobs/new` — Create / edit a screening job
 - `/ingest` — Multi-source applicant ingest (default tab: **Umurava Platform**)
 - `/screening` — Trigger a screening run
-- `/screening/progress` — Run progress + result preview
+- `/screening/progress` — Async run progress + result preview
 - `/shortlists` — Shortlist results, compare, advance / reject
 - `/candidates` — **Selected Candidates** pipeline (only active stages — `rejected` and `new` are filtered out)
 - `/candidates/[id]` — Candidate detail (AI Summary by default, CV via `?view=cv`)

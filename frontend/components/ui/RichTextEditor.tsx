@@ -65,6 +65,39 @@ function clearAllInlineFormatting() {
   }
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function renderPlainTextBlock(block: string): string {
+  const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
+
+  if (lines.length === 0) {
+    return "<p><br></p>";
+  }
+
+  const unorderedItems = lines.map((line) => line.match(/^\s*[-*•]\s+(.+)$/));
+  if (unorderedItems.every(Boolean)) {
+    return `<ul>${unorderedItems
+      .map((match) => `<li>${escapeHtml(match?.[1] || "")}</li>`)
+      .join("")}</ul>`;
+  }
+
+  const orderedItems = lines.map((line) => line.match(/^\s*\d+[.)]\s+(.+)$/));
+  if (orderedItems.every(Boolean)) {
+    return `<ol>${orderedItems
+      .map((match) => `<li>${escapeHtml(match?.[1] || "")}</li>`)
+      .join("")}</ol>`;
+  }
+
+  return `<p>${lines.map((line) => escapeHtml(line)).join("<br />")}</p>`;
+}
+
 // Treat plain text (no HTML tags) as authored prose and preserve newlines by
 // converting them into <p> / <br> so the WYSIWYG view renders the same shape
 // the user typed. An empty value still seeds an empty <p> so the cursor lives
@@ -76,10 +109,19 @@ function normalizeInitialContent(input: string): string {
   if (/<[a-z][\s\S]*>/i.test(input)) {
     return input;
   }
-  return input
+
+  const blocks = input
+    .replace(/\r\n?/g, "\n")
+    .trim()
     .split(/\n{2,}/)
-    .map((paragraph) => `<p>${paragraph.replace(/\n/g, "<br />")}</p>`)
-    .join("");
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  if (blocks.length === 0) {
+    return "<p><br></p>";
+  }
+
+  return blocks.map(renderPlainTextBlock).join("");
 }
 
 export function RichTextEditor({

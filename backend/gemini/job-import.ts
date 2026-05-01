@@ -77,7 +77,7 @@ export interface JobImportResponse {
   warnings: string[];
 }
 
-function normalizeText(value: unknown): string | undefined {
+function normalizeSingleLineText(value: unknown): string | undefined {
   if (typeof value !== "string") {
     return undefined;
   }
@@ -86,13 +86,57 @@ function normalizeText(value: unknown): string | undefined {
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function clampText(value: unknown, maxChars = 4_000): string | undefined {
-  const normalized = normalizeText(value);
+function clampText(value: string | undefined, maxChars = 4_000): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const normalized = value.trim();
   if (!normalized) {
     return undefined;
   }
 
   return normalized.length > maxChars ? `${normalized.slice(0, maxChars).trim()}…` : normalized;
+}
+
+function normalizeMultilineText(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const normalized = value
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  return normalized.length > 0 ? normalized : undefined;
+}
+
+function splitListItems(value: string): string[] {
+  return value
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .flatMap((line) => line.split(/\s+(?=(?:[-*•]\s+|\d+[.)]\s+))/g))
+    .map((item) => item.replace(/^\s*(?:[-*•]+|\d+[.)])\s*/, ""))
+    .map((item) => item.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
+}
+
+function normalizeBulletedText(value: unknown): string | undefined {
+  const normalized = normalizeMultilineText(value);
+  if (!normalized) {
+    return undefined;
+  }
+
+  const items = splitListItems(normalized);
+  if (items.length === 0) {
+    return undefined;
+  }
+
+  return items.map((item) => `• ${item}`).join("\n");
 }
 
 function normalizeStringArray(value: unknown, maxItems = 20): string[] | undefined {
@@ -101,7 +145,7 @@ function normalizeStringArray(value: unknown, maxItems = 20): string[] | undefin
   }
 
   const result = value
-    .map((item) => normalizeText(item))
+    .map((item) => normalizeSingleLineText(item))
     .filter((item): item is string => Boolean(item))
     .slice(0, maxItems);
 
@@ -138,10 +182,10 @@ function sanitizeWeightCriteria(value: unknown): Array<{ id: string; label: stri
   const sanitized = value
     .map((criterion, index) => {
       const source = (criterion || {}) as ImportCandidateWeightCriterion;
-      const label = normalizeText(source.label);
+      const label = normalizeSingleLineText(source.label);
       const parsedValue = typeof source.value === "number" ? source.value : Number(source.value);
       const rounded = Number.isFinite(parsedValue) ? Math.max(0, Math.min(100, Math.round(parsedValue))) : undefined;
-      const id = normalizeText(source.id) || (label ? label.toLowerCase().replace(/[^a-z0-9]+/g, "-") : `criterion-${index}`);
+      const id = normalizeSingleLineText(source.id) || (label ? label.toLowerCase().replace(/[^a-z0-9]+/g, "-") : `criterion-${index}`);
 
       if (!label || rounded === undefined) {
         return undefined;
@@ -155,16 +199,16 @@ function sanitizeWeightCriteria(value: unknown): Array<{ id: string; label: stri
 }
 
 function sanitizeImportedDraft(payload: ImportCandidatePayload): ImportedJobDraft {
-  const locationPolicy = normalizeText(payload.locationPolicy);
-  const employmentType = normalizeText(payload.employmentType);
-  const seniorityLevel = normalizeText(payload.seniorityLevel);
-  const educationLevel = normalizeText(payload.educationLevel);
-  const status = normalizeText(payload.status);
+  const locationPolicy = normalizeSingleLineText(payload.locationPolicy);
+  const employmentType = normalizeSingleLineText(payload.employmentType);
+  const seniorityLevel = normalizeSingleLineText(payload.seniorityLevel);
+  const educationLevel = normalizeSingleLineText(payload.educationLevel);
+  const status = normalizeSingleLineText(payload.status);
 
   const draft: ImportedJobDraft = {
-    title: clampText(payload.title, 160),
-    hiringManager: clampText(payload.hiringManager, 160),
-    location: clampText(payload.location, 160),
+    title: clampText(normalizeSingleLineText(payload.title), 160),
+    hiringManager: clampText(normalizeSingleLineText(payload.hiringManager), 160),
+    location: clampText(normalizeSingleLineText(payload.location), 160),
     locationPolicy:
       locationPolicy && ALLOWED_LOCATION_POLICIES.has(locationPolicy)
         ? (locationPolicy as ImportedJobDraft["locationPolicy"])
@@ -173,11 +217,11 @@ function sanitizeImportedDraft(payload: ImportCandidatePayload): ImportedJobDraf
       employmentType && ALLOWED_EMPLOYMENT_TYPES.has(employmentType)
         ? (employmentType as ImportedJobDraft["employmentType"])
         : undefined,
-    salaryBand: clampText(payload.salaryBand, 160),
-    description: clampText(payload.description, 6_000),
-    responsibilities: clampText(payload.responsibilities, 10_000),
-    mustHaveQualifications: clampText(payload.mustHaveQualifications, 7_000),
-    niceToHaveQualifications: clampText(payload.niceToHaveQualifications, 7_000),
+    salaryBand: clampText(normalizeSingleLineText(payload.salaryBand), 160),
+    description: clampText(normalizeMultilineText(payload.description), 6_000),
+    responsibilities: clampText(normalizeBulletedText(payload.responsibilities), 10_000),
+    mustHaveQualifications: clampText(normalizeBulletedText(payload.mustHaveQualifications), 7_000),
+    niceToHaveQualifications: clampText(normalizeBulletedText(payload.niceToHaveQualifications), 7_000),
     coreHardSkills: normalizeStringArray(payload.coreHardSkills, 30),
     coreSoftSkills: normalizeStringArray(payload.coreSoftSkills, 30),
     experienceYears: Number.isFinite(Number(payload.experienceYears))
@@ -327,7 +371,7 @@ export class GeminiJobImportService {
   }
 
   public async parseFromLink(payload: ParseJobLinkRequest): Promise<JobImportResponse> {
-    const sourceUrl = normalizeText(payload.url);
+    const sourceUrl = normalizeSingleLineText(payload.url);
 
     if (!sourceUrl) {
       throw new Error("A job URL is required.");
@@ -375,18 +419,18 @@ export class GeminiJobImportService {
   }
 
   public async parseFromFile(payload: ParseJobFileRequest): Promise<JobImportResponse> {
-    const fileName = normalizeText(payload.fileName);
+    const fileName = normalizeSingleLineText(payload.fileName);
 
     if (!fileName) {
       throw new Error("File name is required.");
     }
 
-    const base64Data = normalizeText(payload.base64Data);
+    const base64Data = normalizeSingleLineText(payload.base64Data);
     if (!base64Data) {
       throw new Error("File payload is empty.");
     }
 
-    const mimeType = normalizeText(payload.mimeType) || inferMimeFromName(fileName);
+    const mimeType = normalizeSingleLineText(payload.mimeType) || inferMimeFromName(fileName);
     const supported = new Set([
       "application/pdf",
       "application/msword",

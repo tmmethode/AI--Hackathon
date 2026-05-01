@@ -27,7 +27,7 @@ Built for the **Umurava AI Hackathon** and conformant to the official [Talent Pr
 - **Job requisitions** with weighted scoring criteria (Must-have, Nice-to-have, Hard & Soft Skills, Experience, Education) — the weights drive the AI screening.
 - **Multi-source applicant ingest** — Umurava Platform JSON (canonical schema), CSV, PDF/DOC resume upload, paste-link queueing.
 - **Strict Talent Profile Schema enforcement** at write time (Mongoose validators with controlled vocabularies for skill levels, language proficiencies, availability statuses/types; date-format regex; non-empty required arrays; per-job email uniqueness).
-- **AI screening** with Gemini batch scoring, weighted final score, ranked shortlist, narrative strengths/gaps, chunk-failure visibility.
+- **AI screening** with Gemini batch scoring, async screening runs, weighted final score, ranked shortlist, narrative strengths/gaps, and chunk-failure visibility.
 - **Pipeline tracking** — Shortlisted → Interview → Technical Exam → Assessment → Practical with persistence (`pipelineStatus` on each shortlist entry) and live cross-page sync via window-focus listeners.
 - **AI Assistant** — page-aware chat that auto-scopes to the job/shortlist the user is viewing, sees pipeline stage counts, and grounds every answer in saved screening data.
 - **Spec-compliant exports** — CSV / PDF / JSON with optional spec-format key transform (PascalCase-with-spaces variants like `"Start Date"`, `"Field of Study"`).
@@ -52,7 +52,9 @@ Built for the **Umurava AI Hackathon** and conformant to the official [Talent Pr
                                                │  Job /       │        │   narratives +   │
                                                │  Applicant / │        │   recruiter      │
                                                │  Shortlist / │        │   assistant)     │
-                                               │  User        │        └──────────────────┘
+                                               │  ScreeningRun│        └──────────────────┘
+                                               │  ScreeningRes│
+                                               │  User        │
                                                └──────────────┘
 ```
 
@@ -60,7 +62,7 @@ Built for the **Umurava AI Hackathon** and conformant to the official [Talent Pr
 
 1. Recruiter creates a job with weighted scoring criteria.
 2. Applicants are ingested through one of four paths; every record is normalized + canonicalized to the spec, then saved with strict validation.
-3. Recruiter triggers a screening run → backend chunks parsed applicants, calls Gemini for each chunk, re-ranks, picks `≥ 54%` matches, runs a narrative pass for strengths/gaps, persists a `Shortlist` document.
+3. Recruiter triggers a screening run → backend creates a `ScreeningRun`, chunks parsed applicants, calls Gemini for each chunk, persists per-candidate `ScreeningResult` rows, re-ranks, picks `≥ 54%` matches, runs a narrative pass for the shortlist plus a small top-ranked buffer, then persists the final `Shortlist`.
 4. Recruiter works the shortlist on Selected Candidates / Shortlists pages, advancing or rejecting candidates. Status changes persist via `PATCH /shortlists/{id}/candidates/{email}` and propagate to History, Exports, AI Assistant.
 5. Reports flow out as CSV / PDF / JSON, with the JSON optionally re-emitted in PascalCase-with-spaces "spec-format" keys.
 
@@ -72,8 +74,8 @@ Built for the **Umurava AI Hackathon** and conformant to the official [Talent Pr
 .
 ├── backend/                # Express + tsoa REST API (port 3001)
 │   ├── controllers/        # 9 tsoa controllers (auth, jobs, applicants, shortlists, gemini, assistant, ...)
-│   ├── gemini/             # Gemini client, batch screening runner, prompt builders, assistant
-│   ├── models/             # Mongoose models (Applicant, Job, Shortlist, User)
+│   ├── gemini/             # Gemini client, async screening runner, prompt builders, assistant
+│   ├── models/             # Mongoose models (Applicant, Job, Shortlist, ScreeningRun, ScreeningResult, User)
 │   ├── utils/              # applicant-profile normalizer, http error
 │   ├── interfaces/         # tsoa-friendly DTOs
 │   ├── generated/          # Auto-generated tsoa routes (do not edit)
@@ -158,28 +160,23 @@ npm start                # runs both compiled apps
 
 ### `backend/.env`
 
-| Variable | Purpose |
-|---|---|
-| `PORT` | Backend port (default `3001`) |
-| `MONGODB_URI` | Mongo connection string |
-| `JWT_SECRET` / `JWT_EXPIRES_IN` | JWT signing key + lifetime |
-| `SESSION_SECRET` | Express session secret |
-| `FRONTEND_URL` | Allowed CORS origin (default `http://localhost:3000`) |
-| `GEMINI_API_KEY` | Google AI Studio key — required for screening + AI Assistant |
-| `GEMINI_MODEL` | Override (default `gemini-2.5-flash-lite`) |
-| `GEMINI_BASE_URL` | Override the Generative Language base URL |
-| `GEMINI_MAX_OUTPUT_TOKENS` | Token cap per response (default 1200) |
-| `GEMINI_FRONTEND_DEFAULT_SHORTLIST_SIZE` | Default shortlist cap surfaced in the UI |
-| `GEMINI_FRONTEND_MIN_SHORTLIST_SIZE` / `GEMINI_FRONTEND_MAX_SHORTLIST_SIZE` | UI clamp for the shortlist size selector |
-| `GEMINI_SCREEN_BATCH_MAX_APPLICANTS` | Cap on how many applicants reach a single screening run |
-| `EMAIL_SERVICE` / `EMAIL_USER` / `EMAIL_PASS` | Transactional email (verification flows) |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_CALLBACK_URL` | OAuth Google sign-in |
+`backend/.env.example` is the authoritative reference. Every variable in it is now commented line-by-line so you can see what is required, what is optional, and which part of the app uses it.
+
+Key groups:
+
+- `MONGODB_URI` for database connectivity
+- `JWT_SECRET`, `JWT_EXPIRES_IN`, and `SESSION_SECRET` for auth/session handling
+- `FRONTEND_URL` and the Google OAuth variables for browser auth flows
+- `GEMINI_API_KEY`, `GEMINI_MODEL`, and `GEMINI_BASE_URL` for Gemini connectivity
+- `GEMINI_BATCH_*`, `GEMINI_REQUEST_TIMEOUT_MS`, `GEMINI_MAX_RETRIES`, and `GEMINI_RETRY_BASE_DELAY_MS` for screening throughput and retry behavior
+- `GEMINI_ASYNC_DB_CHUNK_SIZE` and `GEMINI_PERSISTED_SCREENING_RESULT_LIMIT` for async run persistence behavior
+- `GEMINI_SCREEN_BATCH_MAX_APPLICANTS` only for the legacy synchronous `POST /gemini/screen-batch` endpoint
 
 ### `frontend/.env.local`
 
-| Variable | Purpose |
-|---|---|
-| `NEXT_PUBLIC_API_URL` | Backend base URL the browser hits (e.g. `http://localhost:3001`) |
+`frontend/.env.example` now defaults to `http://localhost:3001` and documents the single variable the UI needs:
+
+- `NEXT_PUBLIC_API_URL` for the backend base URL used by the browser and Next route handlers
 
 ---
 
@@ -212,7 +209,7 @@ The [Talent Profile Schema Specification](https://github.com/tmmethode/AI--Hacka
 
 1. **Create a job** (`/jobs/new`). Set scoring weights — these drive the AI's final score.
 2. **Ingest applicants** (`/ingest`). Default tab is **Umurava Platform** (canonical JSON). Resume Upload, CSV, and Paste Links also supported. Live preview lists the saved records with status / source filters and rows-per-page.
-3. **Trigger a screening run** (`/screening`). Pick the target job, set shortlist size, optionally add recruiter instructions. Backend chunks applicants and calls Gemini.
+3. **Trigger a screening run** (`/screening`). Pick the target job, set shortlist size, optionally add recruiter instructions. The frontend starts an async screening run and polls its progress while the backend chunks applicants and calls Gemini.
 4. **Review results** (`/screening/progress` then `/shortlists`). Compare candidates side-by-side, advance them through the pipeline, or reject — every change persists.
 5. **Work the pipeline** (`/candidates` — *Selected Candidates*). Filter by stage, see per-stage counts, click into each candidate for the **AI Summary** or **Full CV** view (with PDF download).
 6. **Track over time** (`/history`). Per-run pipeline stage breakdown, average match, top match, average screening runtime, weekly throughput.
@@ -223,14 +220,15 @@ The [Talent Profile Schema Specification](https://github.com/tmmethode/AI--Hacka
 ## AI features
 
 ### 1. Batch screening and ranking
+- The frontend starts screening with `POST /gemini/screen-batch-runs` and polls `GET /gemini/screen-batch-runs/{runId}`, so larger runs no longer depend on one long-lived HTTP request.
 - Applicants are screened in chunks, but always against the same job definition: title, responsibilities, must-have qualifications, nice-to-haves, skills, experience, education, and recruiter-defined weight criteria.
 - The backend does not blindly trust the model's final ranking. Gemini returns criterion-level scoring, then the server re-computes the weighted match score and sorts the results consistently before building the shortlist.
 - Screening only runs on parsed, schema-valid applicant records, so incomplete placeholder profiles never reach the model.
-- Recruiters see operational visibility during long runs: requested vs processed applicants, truncation when a run hits the configured cap, failed chunk counts, and the first few failure reasons on the progress page.
+- Recruiters see operational visibility during long runs: queued/running/completed status, processed counts, failed chunk counts, and the first few failure reasons on the progress page.
 - Shortlist eligibility is explicit: candidates must reach `matchScore >= 54`, and the saved shortlist is capped by the recruiter-selected shortlist size.
 
 ### 2. Narrative explanation pass
-- After ranking, a second Gemini pass generates recruiter-friendly strengths, gaps or risks, and a concise summary for each shortlisted candidate.
+- After ranking, a second Gemini pass generates recruiter-friendly strengths, gaps or risks, and a concise summary for each shortlisted candidate plus a small buffer of top-ranked candidates.
 - This explanation step is read-only with respect to ranking: it does not alter match scores, reorder candidates, or change shortlist eligibility.
 - The result is a shortlist that is both sortable and explainable: recruiters get a quantitative score plus plain-language reasoning they can review with hiring managers.
 

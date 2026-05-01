@@ -10,7 +10,7 @@ Express + tsoa + Mongoose REST API for the Umurava Screening platform. Powers jo
 - **Talent Profile Schema enforcement.** `Applicant` model rejects bad data at write time — required `headline` / `location`, controlled vocabularies for skill levels / language proficiencies / availability statuses & types, regex-validated YYYY-MM / YYYY-MM-DD dates, year-range checks on education, non-empty array validators for skills / experience / education / projects, compound unique index on `{ job, email }`.
 - **Conditional strictness for deferred ingest.** Pending placeholder records (PDF / link queues waiting for AI parsing) bypass the strict validators via a `requiresStructuredProfile()` gate, then become spec-strict the moment they're re-saved as `parsed`.
 - **Ingest normalization.** `utils/applicant-profile.ts` collapses case variants (`"advanced"` → `"Advanced"`), accepts spec PascalCase-with-spaces aliases (`"Start Date"`, `"Field of Study"`, …), and coerces fuzzy date strings (`"2024"`, `"Jan 2024"`, ISO timestamps) into the spec format.
-- **Gemini batch screening.** Chunked batch scoring with weighted final score (using each job's saved scoring weights), narrative pass for strengths/gaps, eligibility threshold of `≥ 54%`, transparent chunk-failure tracking surfaced via response meta.
+- **Gemini batch screening.** Chunked batch scoring with weighted final score (using each job's saved scoring weights), async run orchestration, narrative pass for strengths/gaps, eligibility threshold of `≥ 54%`, and transparent chunk-failure tracking surfaced via run status and response meta.
 - **Pipeline persistence.** `Shortlist.shortlist[]` carries a `pipelineStatus` field (`shortlisted` | `interview` | `exam` | `assessment` | `practical`); a single `PATCH /shortlists/{id}/candidates/{email}` endpoint moves candidates between stages and rejection.
 - **Recruiter AI Assistant.** Page-aware chat that grounds answers in saved screening data, sees pipeline stage counts, and never invents qualifications.
 
@@ -33,7 +33,7 @@ cp .env.example .env
 
 ## Environment variables
 
-See [`.env.example`](.env.example) for the complete list. Most-used:
+See [`.env.example`](.env.example) for the complete list. Every variable in that file is commented line-by-line. Most-used:
 
 | Variable | Default | Notes |
 |---|---|---|
@@ -49,7 +49,12 @@ See [`.env.example`](.env.example) for the complete list. Most-used:
 | `GEMINI_MAX_OUTPUT_TOKENS` | `1200` | Per-response token cap |
 | `GEMINI_FRONTEND_DEFAULT_SHORTLIST_SIZE` | `10` | Default shortlist size in the UI |
 | `GEMINI_FRONTEND_MIN_SHORTLIST_SIZE` / `_MAX_SHORTLIST_SIZE` | `5` / `50` | UI clamp |
-| `GEMINI_SCREEN_BATCH_MAX_APPLICANTS` | `200` | Hard cap per screening run |
+| `GEMINI_BATCH_CHUNK_SIZE` | `10` | Applicants per Gemini scoring request |
+| `GEMINI_BATCH_MAX_OUTPUT_TOKENS` | `32768` | Batch scoring output budget |
+| `GEMINI_BATCH_SCORING_CONCURRENCY` / `GEMINI_BATCH_NARRATIVE_CONCURRENCY` | `2` / `2` | In-run parallelism |
+| `GEMINI_ASYNC_DB_CHUNK_SIZE` | `20` | Mongo fetch batch size for async runs |
+| `GEMINI_PERSISTED_SCREENING_RESULT_LIMIT` | `500` | Preview results copied onto the shortlist document |
+| `GEMINI_SCREEN_BATCH_MAX_APPLICANTS` | `200` | Hard cap for the legacy synchronous `POST /gemini/screen-batch` endpoint |
 
 ## Available scripts
 
@@ -78,7 +83,8 @@ backend/
 │   ├── client.ts                 # Gemini REST client wrapper
 │   ├── config.ts                 # Centralized env + frontend defaults
 │   ├── screening.ts              # Single-candidate + batch screening service
-│   ├── batch-screening-runner.ts # DB-driven batch runner (loads applicants, calls screening)
+│   ├── async-screening-runner.ts # Async screening runs persisted in MongoDB
+│   ├── batch-screening-runner.ts # Legacy DB-driven synchronous batch runner
 │   ├── applicant-import.ts       # PDF / link parse → spec-shaped applicant
 │   ├── job-import.ts             # Public job posting parser
 │   ├── frontend.ts               # Frontend-facing screening helper
@@ -89,10 +95,12 @@ backend/
 │   └── types.ts                  # Spec-aligned literal-union types
 │
 ├── models/
-│   ├── Applicant.ts     # Strict Talent Profile Schema (enums, regex, conditional required)
-│   ├── Job.ts           # Job requisition + scoring weights
-│   ├── Shortlist.ts     # Screening run output + shortlist[] with pipelineStatus
-│   └── User.ts          # Recruiter / admin accounts
+│   ├── Applicant.ts       # Strict Talent Profile Schema (enums, regex, conditional required)
+│   ├── Job.ts             # Job requisition + scoring weights
+│   ├── Shortlist.ts       # Final shortlist output + shortlist[] with pipelineStatus
+│   ├── ScreeningRun.ts    # Async screening run state, ownership, counters, filters
+│   ├── ScreeningResult.ts # Per-applicant persisted scoring/explanation rows
+│   └── User.ts            # Recruiter / admin accounts
 │
 ├── interfaces/          # tsoa-friendly DTOs (mirrored from models)
 ├── utils/
@@ -142,7 +150,9 @@ backend/
 - `POST /gemini/generate` — generic prompt passthrough.
 - `POST /gemini/screen-candidate` — single candidate scored against a job.
 - `POST /gemini/screen-run` — frontend-driven screening run across multiple candidates.
-- `POST /gemini/screen-batch` — DB-driven batch run: loads parsed applicants by job, chunks them, scores all in one workflow, persists ranked shortlist + narratives. Response includes a `meta` block with `requestedApplicants`, `processedApplicants`, `truncatedApplicants`, plus `failedChunks` / `failureReasons` / `unscoredApplicants` so the UI can surface partial failures.
+- `POST /gemini/screen-batch` — legacy synchronous DB-driven batch run. Still supported, but the main frontend flow now uses async runs instead.
+- `POST /gemini/screen-batch-runs` — preferred async screening entrypoint. Creates a persisted `ScreeningRun`, processes applicants in background chunks, and saves per-candidate `ScreeningResult` rows before writing the final `Shortlist`.
+- `GET /gemini/screen-batch-runs/{runId}` — load current async run status, counts, failures, shortlist, and ranked results.
 - `POST /gemini/assistant` — recruiter chat (page-aware scope, pipeline-status-aware).
 - `POST /gemini/parse-applicants` — internal helper used by file / link ingest.
 - `POST /gemini/parse-job` — parse a job posting URL into a draft job.
