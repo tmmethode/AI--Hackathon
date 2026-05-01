@@ -86,6 +86,18 @@ export class GeminiClient {
         ? requestedTemperature
         : resolved.defaultTemperature;
 
+    const requestedTimeoutMs = Number(request.timeoutMs);
+    const timeoutMs =
+      Number.isFinite(requestedTimeoutMs) && requestedTimeoutMs >= 5_000
+        ? Math.floor(requestedTimeoutMs)
+        : GEMINI_REQUEST_TIMEOUT_MS;
+
+    const requestedMaxRetries = Number(request.maxRetries);
+    const maxRetries =
+      Number.isFinite(requestedMaxRetries) && requestedMaxRetries >= 0
+        ? Math.floor(requestedMaxRetries)
+        : GEMINI_MAX_RETRIES;
+
     const requestedSeed = Number(request.seed);
     const seed =
       Number.isFinite(requestedSeed) && Number.isInteger(requestedSeed)
@@ -135,9 +147,9 @@ export class GeminiClient {
     let data: GeminiApiResponse | null = null;
     let responseOk = false;
 
-    for (let attempt = 0; attempt <= GEMINI_MAX_RETRIES; attempt += 1) {
+    for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), GEMINI_REQUEST_TIMEOUT_MS);
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
         const response = await fetch(`${resolved.baseUrl}/${resolved.model}:generateContent`, {
@@ -158,7 +170,7 @@ export class GeminiClient {
         }
 
         const statusRetryable = response.status === 429 || response.status >= 500;
-        if (statusRetryable && attempt < GEMINI_MAX_RETRIES) {
+        if (statusRetryable && attempt < maxRetries) {
           await sleep(GEMINI_RETRY_BASE_DELAY_MS * (attempt + 1));
           continue;
         }
@@ -168,13 +180,13 @@ export class GeminiClient {
         const isTimeoutAbort = error instanceof Error && error.name === "AbortError";
         const retryable = isTimeoutAbort || isRetryableNetworkError(error);
 
-        if (retryable && attempt < GEMINI_MAX_RETRIES) {
+        if (retryable && attempt < maxRetries) {
           await sleep(GEMINI_RETRY_BASE_DELAY_MS * (attempt + 1));
           continue;
         }
 
         if (isTimeoutAbort) {
-          throw new Error(`Gemini request timed out after ${GEMINI_REQUEST_TIMEOUT_MS}ms`);
+          throw new Error(`Gemini request timed out after ${timeoutMs}ms`);
         }
 
         throw error;

@@ -8,7 +8,7 @@ Express + tsoa + Mongoose REST API for the Umurava Screening platform. Powers jo
 
 - **Auto-generated REST contract.** tsoa decorators on the controllers produce `generated/routes.ts` and `docs/swagger.json` on every build; the swagger UI is mounted at `/docs`.
 - **Talent Profile Schema enforcement.** `Applicant` model rejects bad data at write time — required `headline` / `location`, controlled vocabularies for skill levels / language proficiencies / availability statuses & types, regex-validated YYYY-MM / YYYY-MM-DD dates, year-range checks on education, non-empty array validators for skills / experience / education / projects, compound unique index on `{ job, email }`.
-- **Conditional strictness for deferred ingest.** Pending placeholder records (PDF / link queues waiting for AI parsing) bypass the strict validators via a `requiresStructuredProfile()` gate, then become spec-strict the moment they're re-saved as `parsed`.
+- **Conditional strictness for fallback ingest.** Pending placeholder records created when Gemini is unavailable or a source cannot be parsed immediately bypass the strict validators via a `requiresStructuredProfile()` gate, then become spec-strict the moment they're re-saved as `parsed`.
 - **Ingest normalization.** `utils/applicant-profile.ts` collapses case variants (`"advanced"` → `"Advanced"`), accepts spec PascalCase-with-spaces aliases (`"Start Date"`, `"Field of Study"`, …), and coerces fuzzy date strings (`"2024"`, `"Jan 2024"`, ISO timestamps) into the spec format.
 - **Gemini batch screening.** Chunked batch scoring with weighted final score (using each job's saved scoring weights), async run orchestration, narrative pass for strengths/gaps, eligibility threshold of `≥ 54%`, and transparent chunk-failure tracking surfaced via run status and response meta.
 - **Pipeline persistence.** `Shortlist.shortlist[]` carries a `pipelineStatus` field (`shortlisted` | `interview` | `exam` | `assessment` | `practical`); a single `PATCH /shortlists/{id}/candidates/{email}` endpoint moves candidates between stages and rejection.
@@ -138,8 +138,8 @@ backend/
 - `GET /applicants` — list (paginated, filtered by job / status / source / search).
 - `POST /applicants/jobs/{jobId}` — bulk-create from `ApplicantProfileInput[]` (Umurava JSON path).
 - `POST /applicants/jobs/{jobId}/csv` — bulk-create from CSV rows.
-- `POST /applicants/jobs/{jobId}/files` — bulk-create from uploaded PDF / DOCX (parsed via Gemini).
-- `POST /applicants/jobs/{jobId}/links` — queue paste-links for deferred parsing.
+- `POST /applicants/jobs/{jobId}/files` — bulk-create from uploaded PDF / DOCX resumes (parsed via Gemini when available, otherwise queued as pending placeholders).
+- `POST /applicants/jobs/{jobId}/links` — ingest public profile / resume links (parsed via Gemini when available, otherwise queued as pending placeholders).
 - `GET /applicants/jobs/{jobId}/{applicantId}` — single applicant.
 - `PATCH /applicants/jobs/{jobId}/{applicantId}` — update (full Mongoose validation runs).
 - `DELETE /applicants/jobs/{jobId}/{applicantId}` — delete.
@@ -154,8 +154,8 @@ backend/
 - `POST /gemini/screen-batch-runs` — preferred async screening entrypoint. Creates a persisted `ScreeningRun`, processes applicants in background chunks, and saves per-candidate `ScreeningResult` rows before writing the final `Shortlist`.
 - `GET /gemini/screen-batch-runs/{runId}` — load current async run status, counts, failures, shortlist, and ranked results.
 - `POST /gemini/assistant` — recruiter chat (page-aware scope, pipeline-status-aware).
-- `POST /gemini/parse-applicants` — internal helper used by file / link ingest.
-- `POST /gemini/parse-job` — parse a job posting URL into a draft job.
+- `POST /gemini/parse-job-link` — parse a public job posting URL into a draft job.
+- `POST /gemini/parse-job-file` — parse a PDF / DOC / DOCX job description into a draft job.
 
 ### Shortlists
 - `GET /shortlists` — list runs (filterable by job).
@@ -188,7 +188,7 @@ export const DATE_YYYY_MM_REGEX = /^(\d{4}-(0[1-9]|1[0-2])(-\d{2})?|Present)$/i;
 export const DATE_YYYY_MM_DD_REGEX = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 ```
 
-Pending placeholders (`ingestStatus: 'pending'`) are exempt via `requiresStructuredProfile()` so deferred PDF/link queues can persist without a complete profile. The screening pipeline filters to `ingestStatus: 'parsed'` only, so the LLM never sees incomplete data.
+Pending placeholders (`ingestStatus: 'pending'`) are exempt via `requiresStructuredProfile()` so fallback file/link ingest can persist even when Gemini is unavailable or a source cannot be parsed immediately. The screening pipeline filters to `ingestStatus: 'parsed'` only, so the LLM never sees incomplete data.
 
 ## Development workflow
 

@@ -25,7 +25,7 @@ Built for the **Umurava AI Hackathon** and conformant to the official [Talent Pr
 ## Highlights
 
 - **Job requisitions** with weighted scoring criteria (Must-have, Nice-to-have, Hard & Soft Skills, Experience, Education) — the weights drive the AI screening.
-- **Multi-source applicant ingest** — Umurava Platform JSON (canonical schema), CSV, PDF/DOC resume upload, paste-link queueing.
+- **Multi-source applicant ingest** — Umurava Platform JSON (canonical schema), CSV, PDF/DOC resume upload, and paste-link parsing with fallback pending placeholders when AI parsing is unavailable.
 - **Strict Talent Profile Schema enforcement** at write time (Mongoose validators with controlled vocabularies for skill levels, language proficiencies, availability statuses/types; date-format regex; non-empty required arrays; per-job email uniqueness).
 - **AI screening** with Gemini batch scoring, async screening runs, weighted final score, ranked shortlist, narrative strengths/gaps, and chunk-failure visibility.
 - **Pipeline tracking** — Shortlisted → Interview → Technical Exam → Assessment → Practical with persistence (`pipelineStatus` on each shortlist entry) and live cross-page sync via window-focus listeners.
@@ -201,7 +201,7 @@ The [Talent Profile Schema Specification](https://github.com/tmmethode/AI--Hacka
 - [`backend/gemini/types.ts`](backend/gemini/types.ts) — `GeminiSkillLevel`, `GeminiLanguageProficiency`, `GeminiAvailabilityStatus`, `GeminiAvailabilityType` literal-union types mirror the spec; `GeminiBatchApplicant` requires every spec-required field.
 - [`frontend/app/(app)/ingest/page.tsx`](frontend/app/(app)/ingest/page.tsx) — `EXAMPLE_JSON_SCHEMA` ships two applicants demonstrating the full controlled vocabulary; Edit Applicant modal performs the same required-field check before sending PATCH.
 
-**Pending placeholders.** Records created with `ingestStatus: 'pending'` (deferred PDF/link parses when Gemini is unavailable) bypass the strict validators. The same record is re-validated when it's re-saved as `parsed`. The screening pipeline filters to `parsed` only, so the LLM never sees incomplete profiles.
+**Pending placeholders.** Records created with `ingestStatus: 'pending'` (for example when Gemini is unavailable or a file/link source cannot be parsed immediately) bypass the strict validators. The same record is re-validated when it's re-saved as `parsed`. The screening pipeline filters to `parsed` only, so the LLM never sees incomplete profiles.
 
 ---
 

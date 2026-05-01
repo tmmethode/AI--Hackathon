@@ -6,6 +6,8 @@ export interface JobImportResponse {
   warnings: string[];
 }
 
+const JOB_IMPORT_REQUEST_TIMEOUT_MS = 50_000;
+
 function getAuthHeader() {
   const session = getStoredAuth();
 
@@ -36,15 +38,39 @@ async function handleApiResponse<T>(response: Response, fallbackMessage: string)
   return payload as T;
 }
 
+async function fetchWithTimeout(input: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Job parsing timed out. Try a smaller file or a simpler public job URL.");
+    }
+
+    if (error instanceof Error && error.message.toLowerCase().includes("failed to fetch")) {
+      throw new Error("The parsing request could not reach the backend or it timed out before a response was returned.");
+    }
+
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
 export async function parseJobFromLink(url: string) {
-  const response = await fetch(`${getApiBaseUrl()}/gemini/parse-job-link`, {
+  const response = await fetchWithTimeout(`${getApiBaseUrl()}/gemini/parse-job-link`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       ...getAuthHeader(),
     },
     body: JSON.stringify({ url }),
-  });
+  }, JOB_IMPORT_REQUEST_TIMEOUT_MS);
 
   return handleApiResponse<JobImportResponse>(response, "Unable to parse this job link.");
 }
@@ -62,7 +88,7 @@ export async function parseJobFromFile(file: File) {
 
   const base64Data = btoa(binary);
 
-  const response = await fetch(`${getApiBaseUrl()}/gemini/parse-job-file`, {
+  const response = await fetchWithTimeout(`${getApiBaseUrl()}/gemini/parse-job-file`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -73,7 +99,7 @@ export async function parseJobFromFile(file: File) {
       mimeType: file.type,
       base64Data,
     }),
-  });
+  }, JOB_IMPORT_REQUEST_TIMEOUT_MS);
 
   return handleApiResponse<JobImportResponse>(response, "Unable to parse this file.");
 }

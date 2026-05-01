@@ -9,6 +9,10 @@ import { GeminiClient } from "./client";
 
 const MAX_SOURCE_TEXT_CHARS = 30_000;
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const JOB_IMPORT_SOURCE_FETCH_TIMEOUT_MS = 15_000;
+const JOB_IMPORT_GEMINI_TIMEOUT_MS = 35_000;
+const JOB_IMPORT_GEMINI_MAX_RETRIES = 0;
+const JOB_IMPORT_GEMINI_MAX_OUTPUT_TOKENS = 3200;
 
 const ALLOWED_LOCATION_POLICIES = new Set(["remote", "hybrid", "onsite"]);
 const ALLOWED_EMPLOYMENT_TYPES = new Set(["full-time", "part-time", "contract", "internship", "temporary"]);
@@ -259,8 +263,35 @@ function stripHtml(html: string): string {
 }
 
 function truncateSourceText(input: string): string {
-  const normalized = input.replace(/\s+/g, " ").trim();
+  const normalized = input
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
   return normalized.length > MAX_SOURCE_TEXT_CHARS ? normalized.slice(0, MAX_SOURCE_TEXT_CHARS) : normalized;
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Fetching the job source timed out after ${timeoutMs}ms`);
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function buildExtractionPrompt(sourceType: "url" | "file", sourceValue: string, sourceText: string): string {
@@ -363,7 +394,9 @@ export class GeminiJobImportService {
       prompt: buildExtractionPrompt(sourceType, sourceValue, preparedText),
       responseMimeType: "application/json",
       temperature: 0,
-      maxOutputTokens: 4500,
+      maxOutputTokens: JOB_IMPORT_GEMINI_MAX_OUTPUT_TOKENS,
+      timeoutMs: JOB_IMPORT_GEMINI_TIMEOUT_MS,
+      maxRetries: JOB_IMPORT_GEMINI_MAX_RETRIES,
     });
 
     const parsed = parseModelResponse(response.text);
@@ -388,14 +421,14 @@ export class GeminiJobImportService {
       throw new Error("Only http/https URLs are supported.");
     }
 
-    const response = await fetch(parsedUrl.toString(), {
+    const response = await fetchWithTimeout(parsedUrl.toString(), {
       method: "GET",
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; AI-Hackathon-JobImporter/1.0)",
         Accept: "text/html,application/xhtml+xml",
       },
       redirect: "follow",
-    });
+    }, JOB_IMPORT_SOURCE_FETCH_TIMEOUT_MS);
 
     if (!response.ok) {
       throw new Error(`Unable to access the job link (HTTP ${response.status}).`);

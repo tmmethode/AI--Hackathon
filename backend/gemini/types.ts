@@ -3,6 +3,8 @@ export interface GeminiGenerateRequest {
   systemInstruction?: string;
   temperature?: number;
   maxOutputTokens?: number;
+  timeoutMs?: number;
+  maxRetries?: number;
   responseMimeType?: "text/plain" | "application/json";
   seed?: number;
   topP?: number;

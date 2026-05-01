@@ -10,6 +10,10 @@ import { ApplicantProfileInput } from "../interfaces/applicant";
 
 const MAX_SOURCE_TEXT_CHARS = 35_000;
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const APPLICANT_IMPORT_SOURCE_FETCH_TIMEOUT_MS = 15_000;
+const APPLICANT_IMPORT_GEMINI_TIMEOUT_MS = 35_000;
+const APPLICANT_IMPORT_GEMINI_MAX_RETRIES = 0;
+const APPLICANT_IMPORT_GEMINI_MAX_OUTPUT_TOKENS = 2200;
 const SUPPORTED_FILE_TYPES = new Set([
   "application/pdf",
   "application/msword",
@@ -54,9 +58,33 @@ function inferMimeFromName(fileName: string): string {
 function truncateSourceText(input: string): string {
   const normalized = input
     .replace(/\u0000/g, " ")
-    .replace(/\s+/g, " ")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
     .trim();
   return normalized.length > MAX_SOURCE_TEXT_CHARS ? normalized.slice(0, MAX_SOURCE_TEXT_CHARS) : normalized;
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Fetching the applicant source timed out after ${timeoutMs}ms`);
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function stripHtml(html: string): string {
@@ -330,7 +358,9 @@ export class GeminiApplicantImportService {
       prompt: buildExtractionPrompt(sourceType, sourceValue, preparedText),
       responseMimeType: "application/json",
       temperature: 0,
-      maxOutputTokens: 2600,
+      maxOutputTokens: APPLICANT_IMPORT_GEMINI_MAX_OUTPUT_TOKENS,
+      timeoutMs: APPLICANT_IMPORT_GEMINI_TIMEOUT_MS,
+      maxRetries: APPLICANT_IMPORT_GEMINI_MAX_RETRIES,
     });
 
     const parsedPayload = parseModelResponse(response.text);
@@ -411,14 +441,14 @@ export class GeminiApplicantImportService {
       throw new Error("Only http/https URLs are supported.");
     }
 
-    const response = await fetch(parsedUrl.toString(), {
+    const response = await fetchWithTimeout(parsedUrl.toString(), {
       method: "GET",
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; AI-Hackathon-ApplicantImporter/1.0)",
         Accept: "text/html,text/plain,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       },
       redirect: "follow",
-    });
+    }, APPLICANT_IMPORT_SOURCE_FETCH_TIMEOUT_MS);
 
     if (!response.ok) {
       throw new Error(`Unable to access the applicant link (HTTP ${response.status}).`);

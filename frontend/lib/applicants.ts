@@ -191,6 +191,8 @@ interface ApplicantResponse {
   message: string;
 }
 
+const INGEST_REQUEST_TIMEOUT_MS = 60_000;
+
 function getAuthHeader() {
   const session = getStoredAuth();
 
@@ -268,6 +270,8 @@ async function postJsonWithProgress<T>(
       ...getAuthHeader(),
     };
 
+    xhr.timeout = INGEST_REQUEST_TIMEOUT_MS;
+
     Object.entries(headers).forEach(([key, value]) => {
       xhr.setRequestHeader(key, value);
     });
@@ -290,8 +294,15 @@ async function postJsonWithProgress<T>(
       onProgress({ loaded, total, percent });
     };
 
-    xhr.onerror = () => reject(new Error("Network error while uploading applicants."));
+    xhr.onerror = () =>
+      reject(new Error("The applicant ingest request could not reach the backend or it was closed before a response was returned."));
     xhr.onabort = () => reject(new Error("Applicant upload was aborted."));
+    xhr.ontimeout = () =>
+      reject(
+        new Error(
+          "Applicant ingest timed out. Try fewer resumes/links at once, or retry with a smaller file."
+        )
+      );
     xhr.onload = async () => {
       onProgress({ loaded: bodySize, total: bodySize, percent: 100 });
 

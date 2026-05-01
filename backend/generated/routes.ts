@@ -561,6 +561,8 @@ const models: TsoaRoute.Models = {
             "systemInstruction": {"dataType":"string"},
             "temperature": {"dataType":"double"},
             "maxOutputTokens": {"dataType":"double"},
+            "timeoutMs": {"dataType":"double"},
+            "maxRetries": {"dataType":"double"},
             "responseMimeType": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["text/plain"]},{"dataType":"enum","enums":["application/json"]}]},
             "seed": {"dataType":"double"},
             "topP": {"dataType":"double"},
